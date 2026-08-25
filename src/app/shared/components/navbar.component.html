@@ -20,48 +20,58 @@
 
         <!-- Desktop Navigation Links (Only if logged in) -->
         @if (authService.isAuthenticated()) {
-          <nav class="hidden md:flex items-center gap-1">
+          <nav class="hidden lg:flex items-center gap-1">
             <a 
               routerLink="/" 
               routerLinkActive="bg-indigo-600/10 text-indigo-400 border-indigo-500/30"
               [routerLinkActiveOptions]="{ exact: true }"
-              class="px-3.5 py-2 rounded-xl text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/60 border border-transparent transition-all">
+              class="px-3 py-2 rounded-xl text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/60 border border-transparent transition-all">
               Dashboard
-            </a>
-            <a 
-              routerLink="/obreiros" 
-              routerLinkActive="bg-indigo-600/10 text-indigo-400 border-indigo-500/30"
-              class="px-3.5 py-2 rounded-xl text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/60 border border-transparent transition-all">
-              Obreiros
-            </a>
-            <a 
-              routerLink="/eventos" 
-              routerLinkActive="bg-indigo-600/10 text-indigo-400 border-indigo-500/30"
-              class="px-3.5 py-2 rounded-xl text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/60 border border-transparent transition-all">
-              Cultos & Eventos
-            </a>
-            <a 
-              routerLink="/tipos-evento" 
-              routerLinkActive="bg-indigo-600/10 text-indigo-400 border-indigo-500/30"
-              class="px-3.5 py-2 rounded-xl text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/60 border border-transparent transition-all">
-              Modelos
-            </a>
-            <a 
-              routerLink="/bloqueios" 
-              routerLinkActive="bg-indigo-600/10 text-indigo-400 border-indigo-500/30"
-              class="px-3.5 py-2 rounded-xl text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/60 border border-transparent transition-all">
-              Bloqueios
             </a>
             <a 
               routerLink="/escalas" 
               routerLinkActive="bg-indigo-600/10 text-indigo-400 border-indigo-500/30"
-              class="px-3.5 py-2 rounded-xl text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/60 border border-transparent transition-all">
+              class="px-3 py-2 rounded-xl text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/60 border border-transparent transition-all">
               Escalas
+            </a>
+            <a 
+              routerLink="/bloqueios" 
+              routerLinkActive="bg-indigo-600/10 text-indigo-400 border-indigo-500/30"
+              class="px-3 py-2 rounded-xl text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/60 border border-transparent transition-all">
+              Bloqueios
+            </a>
+            <a 
+              routerLink="/eventos" 
+              routerLinkActive="bg-indigo-600/10 text-indigo-400 border-indigo-500/30"
+              class="px-3 py-2 rounded-xl text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/60 border border-transparent transition-all">
+              Cultos & Eventos
+            </a>
+            <a 
+              routerLink="/obreiros" 
+              routerLinkActive="bg-indigo-600/10 text-indigo-400 border-indigo-500/30"
+              class="px-3 py-2 rounded-xl text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/60 border border-transparent transition-all">
+              Obreiros
+            </a>
+            <a 
+              routerLink="/relatorios" 
+              routerLinkActive="bg-indigo-600/10 text-indigo-400 border-indigo-500/30"
+              class="px-3 py-2 rounded-xl text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/60 border border-transparent transition-all">
+              Relatórios
+            </a>
+
+            <!-- Separator for Setup / Auxiliaries -->
+            <div class="h-4 w-px bg-slate-800 mx-1.5" aria-hidden="true"></div>
+
+            <a 
+              routerLink="/tipos-evento" 
+              routerLinkActive="bg-indigo-600/10 text-indigo-400 border-indigo-500/30"
+              class="px-3 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border border-transparent transition-all">
+              Modelos
             </a>
             <a 
               routerLink="/meses" 
               routerLinkActive="bg-indigo-600/10 text-indigo-400 border-indigo-500/30"
-              class="px-3.5 py-2 rounded-xl text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/60 border border-transparent transition-all">
+              class="px-3 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border border-transparent transition-all">
               Meses
             </a>
           </nav>

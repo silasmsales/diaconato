@@ -1,0 +1,666 @@
+<div class="space-y-6 animate-fade-in pb-20 md:pb-10">
+  <!-- Top Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div>
+      <div class="flex items-center gap-2">
+        <span class="text-xs font-bold px-2.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 uppercase tracking-wider">
+          ADTAG • Diaconato
+        </span>
+        <span class="text-xs text-slate-400">Inteligência Ministerial</span>
+      </div>
+      <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight mt-1 flex items-center gap-2.5">
+        <span>Relatórios Gerenciais</span>
+      </h1>
+      <p class="text-sm text-slate-400 mt-0.5">Indicadores estratégicos de assiduidade, ocupação de vagas e distribuição de escalas</p>
+    </div>
+  </div>
+
+  <!-- Navigation Tabs -->
+  <div class="flex items-center gap-1.5 p-1.5 bg-slate-900/90 border border-slate-800 rounded-2xl overflow-x-auto no-scrollbar">
+    <button 
+      (click)="setTab('assiduidade')"
+      [class]="activeTab() === 'assiduidade' ? 'bg-indigo-600 text-white font-bold shadow-lg shadow-indigo-600/30' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'"
+      class="px-4 py-2 rounded-xl text-xs font-semibold transition-all whitespace-nowrap flex items-center gap-2">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <span>1. Assiduidade & Presença</span>
+    </button>
+
+    <button 
+      (click)="setTab('cobertura')"
+      [class]="activeTab() === 'cobertura' ? 'bg-indigo-600 text-white font-bold shadow-lg shadow-indigo-600/30' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'"
+      class="px-4 py-2 rounded-xl text-xs font-semibold transition-all whitespace-nowrap flex items-center gap-2">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+      </svg>
+      <span>2. Cobertura de Vagas</span>
+    </button>
+
+    <button 
+      (click)="setTab('distribuicao')"
+      [class]="activeTab() === 'distribuicao' ? 'bg-indigo-600 text-white font-bold shadow-lg shadow-indigo-600/30' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'"
+      class="px-4 py-2 rounded-xl text-xs font-semibold transition-all whitespace-nowrap flex items-center gap-2">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+      </svg>
+      <span>3. Distribuição Anual</span>
+    </button>
+
+    <button 
+      (click)="setTab('resumo')"
+      [class]="activeTab() === 'resumo' ? 'bg-indigo-600 text-white font-bold shadow-lg shadow-indigo-600/30' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'"
+      class="px-4 py-2 rounded-xl text-xs font-semibold transition-all whitespace-nowrap flex items-center gap-2">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+      </svg>
+      <span>4. Resumo Mensal</span>
+    </button>
+
+    <button 
+      (click)="setTab('conflitos')"
+      [class]="activeTab() === 'conflitos' ? 'bg-rose-600 text-white font-bold shadow-lg shadow-rose-600/30' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'"
+      class="px-4 py-2 rounded-xl text-xs font-semibold transition-all whitespace-nowrap flex items-center gap-2">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+      </svg>
+      <span>5. Auditoria de Conflitos</span>
+    </button>
+  </div>
+
+  <!-- Loading State -->
+  @if (relatorioService.loading()) {
+    <div class="glass-card rounded-2xl p-12 text-center border border-slate-800 animate-pulse space-y-3">
+      <div class="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+      <p class="text-sm font-semibold text-slate-300">Carregando dados estatísticos...</p>
+    </div>
+  }
+
+  <!-- TAB 1: ASSIDUIDADE & PRESENÇA -->
+  @if (!relatorioService.loading() && activeTab() === 'assiduidade') {
+    <div class="space-y-4">
+      <!-- Filter Bar -->
+      <div class="glass-panel rounded-2xl p-4 border border-slate-800/80 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+        <div class="flex items-center gap-2 flex-wrap">
+          <!-- Modo Toggle (Mensal vs Anual vs Geral) -->
+          <div class="flex items-center p-1 bg-slate-900 border border-slate-800 rounded-xl">
+            <button 
+              (click)="setAssiduidadeModo('mensal')"
+              [class]="assiduidadeModo() === 'mensal' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-400 hover:text-slate-200'"
+              class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all">
+              Visão Mensal
+            </button>
+            <button 
+              (click)="setAssiduidadeModo('anual')"
+              [class]="assiduidadeModo() === 'anual' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-400 hover:text-slate-200'"
+              class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all">
+              Visão Anual
+            </button>
+            <button 
+              (click)="setAssiduidadeModo('geral')"
+              [class]="assiduidadeModo() === 'geral' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-400 hover:text-slate-200'"
+              class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all">
+              Histórico Geral
+            </button>
+          </div>
+
+          @if (assiduidadeModo() === 'mensal') {
+            <select 
+              [ngModel]="selectedMesId()"
+              (ngModelChange)="onMesChange($event)"
+              class="px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-xl text-xs font-semibold text-slate-100 focus:outline-none focus:border-indigo-500">
+              @for (m of mesService.meses(); track m.id_mes) {
+                <option [value]="m.id_mes">{{ formatMesReferencia(m) }}</option>
+              }
+            </select>
+          }
+
+          @if (assiduidadeModo() === 'anual') {
+            <select 
+              [ngModel]="selectedAno()"
+              (ngModelChange)="onAnoChange($event)"
+              class="px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-xl text-xs font-semibold text-slate-100 focus:outline-none focus:border-indigo-500">
+              @for (ano of anosDisponiveis(); track ano) {
+                <option [value]="ano">{{ ano }}</option>
+              }
+            </select>
+          }
+        </div>
+
+        <div class="relative w-full md:w-64">
+          <input 
+            type="text"
+            [ngModel]="searchQuery()"
+            (ngModelChange)="searchQuery.set($event)"
+            placeholder="Buscar por obreiro..."
+            class="w-full pl-9 pr-4 py-1.5 bg-slate-900/90 border border-slate-700/70 rounded-xl text-slate-100 placeholder-slate-500 text-xs focus:outline-none focus:border-indigo-500"
+          />
+          <svg class="w-4 h-4 text-slate-500 absolute left-3 top-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </div>
+      </div>
+
+      <!-- Table Anual -->
+      @if (assiduidadeModo() === 'anual') {
+        <div class="glass-panel rounded-2xl border border-slate-800/80 overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-300">
+              <thead class="bg-slate-900/90 border-b border-slate-800 uppercase tracking-wider text-[10px] font-bold text-slate-400">
+                <tr>
+                  <th class="py-3 px-4">#</th>
+                  <th class="py-3 px-4">Obreiro</th>
+                  <th class="py-3 px-4 text-center">Escalas no Ano</th>
+                  <th class="py-3 px-4 text-center">Presenças</th>
+                  <th class="py-3 px-4 text-center">Faltas</th>
+                  <th class="py-3 px-4 text-center">Pendentes</th>
+                  <th class="py-3 px-4">Taxa de Assiduidade Anual</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800/60">
+                @for (item of filteredAssiduidadeAnual(); track item.id_obreiro; let idx = $index) {
+                  <tr class="hover:bg-slate-800/30 transition-colors">
+                    <td class="py-3 px-4 font-mono text-slate-500">{{ idx + 1 }}</td>
+                    <td class="py-3 px-4">
+                      <div class="font-bold text-slate-100 text-sm flex items-center gap-1.5">
+                        <span>{{ item.nome_obreiro }}</span>
+                        @if (item.is_diacono) {
+                          <span class="text-[9px] px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">Diácono</span>
+                        }
+                        @if (item.is_pulpito) {
+                          <span class="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">Púlpito</span>
+                        }
+                      </div>
+                    </td>
+                    <td class="py-3 px-4 text-center font-bold text-white">{{ item.total_escalas_ano }}</td>
+                    <td class="py-3 px-4 text-center font-bold text-emerald-400">{{ item.presencas_ano }}</td>
+                    <td class="py-3 px-4 text-center font-bold text-rose-400">{{ item.faltas_ano }}</td>
+                    <td class="py-3 px-4 text-center text-slate-400">{{ item.pendentes_ano }}</td>
+                    <td class="py-3 px-4">
+                      <div class="flex items-center gap-3">
+                        <div class="flex-1 h-2 bg-slate-800 rounded-full overflow-hidden">
+                          <div 
+                            class="h-full rounded-full transition-all duration-500"
+                            [ngClass]="{
+                              'bg-emerald-500': (item.taxa_presenca_ano_pct || 0) >= 80,
+                              'bg-amber-500': (item.taxa_presenca_ano_pct || 0) >= 60 && (item.taxa_presenca_ano_pct || 0) < 80,
+                              'bg-rose-500': (item.taxa_presenca_ano_pct || 0) < 60
+                            }"
+                            [style.width.%]="item.taxa_presenca_ano_pct || 0">
+                          </div>
+                        </div>
+                        <span 
+                          [class]="getTaxaBadgeClass(item.taxa_presenca_ano_pct)"
+                          class="px-2 py-0.5 rounded-md text-[11px] font-extrabold border shrink-0">
+                          {{ item.taxa_presenca_ano_pct !== null ? item.taxa_presenca_ano_pct + '%' : '-' }}
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="7" class="py-8 text-center text-slate-500 italic">
+                      Nenhum registro de escala encontrado para o ano de {{ selectedAno() }}.
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      }
+
+      <!-- Table Mensal -->
+      @if (assiduidadeModo() === 'mensal') {
+        <div class="glass-panel rounded-2xl border border-slate-800/80 overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-300">
+              <thead class="bg-slate-900/90 border-b border-slate-800 uppercase tracking-wider text-[10px] font-bold text-slate-400">
+                <tr>
+                  <th class="py-3 px-4">#</th>
+                  <th class="py-3 px-4">Obreiro</th>
+                  <th class="py-3 px-4 text-center">Escalas</th>
+                  <th class="py-3 px-4 text-center">Presenças</th>
+                  <th class="py-3 px-4 text-center">Faltas</th>
+                  <th class="py-3 px-4 text-center">Pendentes</th>
+                  <th class="py-3 px-4">Taxa de Assiduidade</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800/60">
+                @for (item of filteredAssiduidadeMensal(); track item.id_obreiro; let idx = $index) {
+                  <tr class="hover:bg-slate-800/30 transition-colors">
+                    <td class="py-3 px-4 font-mono text-slate-500">{{ idx + 1 }}</td>
+                    <td class="py-3 px-4">
+                      <div class="font-bold text-slate-100 text-sm flex items-center gap-1.5">
+                        <span>{{ item.nome_obreiro }}</span>
+                        @if (item.is_diacono) {
+                          <span class="text-[9px] px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">Diácono</span>
+                        }
+                        @if (item.is_pulpito) {
+                          <span class="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">Púlpito</span>
+                        }
+                      </div>
+                    </td>
+                    <td class="py-3 px-4 text-center font-bold text-white">{{ item.total_escalas_mes }}</td>
+                    <td class="py-3 px-4 text-center font-bold text-emerald-400">{{ item.presencas_mes }}</td>
+                    <td class="py-3 px-4 text-center font-bold text-rose-400">{{ item.faltas_mes }}</td>
+                    <td class="py-3 px-4 text-center text-slate-400">{{ item.pendentes_mes }}</td>
+                    <td class="py-3 px-4">
+                      <div class="flex items-center gap-3">
+                        <div class="flex-1 h-2 bg-slate-800 rounded-full overflow-hidden">
+                          <div 
+                            class="h-full rounded-full transition-all duration-500"
+                            [ngClass]="{
+                              'bg-emerald-500': (item.taxa_presenca_mes_pct || 0) >= 80,
+                              'bg-amber-500': (item.taxa_presenca_mes_pct || 0) >= 60 && (item.taxa_presenca_mes_pct || 0) < 80,
+                              'bg-rose-500': (item.taxa_presenca_mes_pct || 0) < 60
+                            }"
+                            [style.width.%]="item.taxa_presenca_mes_pct || 0">
+                          </div>
+                        </div>
+                        <span 
+                          [class]="getTaxaBadgeClass(item.taxa_presenca_mes_pct)"
+                          class="px-2 py-0.5 rounded-md text-[11px] font-extrabold border shrink-0">
+                          {{ item.taxa_presenca_mes_pct !== null ? item.taxa_presenca_mes_pct + '%' : '-' }}
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="7" class="py-8 text-center text-slate-500 italic">
+                      Nenhum registro de escala encontrado para este mês.
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      }
+
+      <!-- Table Geral -->
+      @if (assiduidadeModo() === 'geral') {
+        <div class="glass-panel rounded-2xl border border-slate-800/80 overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-300">
+              <thead class="bg-slate-900/90 border-b border-slate-800 uppercase tracking-wider text-[10px] font-bold text-slate-400">
+                <tr>
+                  <th class="py-3 px-4">#</th>
+                  <th class="py-3 px-4">Obreiro</th>
+                  <th class="py-3 px-4 text-center">Total Escalas</th>
+                  <th class="py-3 px-4 text-center">Presenças</th>
+                  <th class="py-3 px-4 text-center">Faltas</th>
+                  <th class="py-3 px-4 text-center">Taxa Presença</th>
+                  <th class="py-3 px-4 text-center">Taxa Falta</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800/60">
+                @for (item of filteredAssiduidadeGeral(); track item.id_obreiro; let idx = $index) {
+                  <tr class="hover:bg-slate-800/30 transition-colors">
+                    <td class="py-3 px-4 font-mono text-slate-500">{{ idx + 1 }}</td>
+                    <td class="py-3 px-4">
+                      <div class="font-bold text-slate-100 text-sm flex items-center gap-1.5">
+                        <span>{{ item.nome_obreiro }}</span>
+                        @if (item.is_diacono) {
+                          <span class="text-[9px] px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">Diácono</span>
+                        }
+                      </div>
+                      <div class="text-[11px] text-slate-400">{{ item.telefone || 'Sem telefone' }}</div>
+                    </td>
+                    <td class="py-3 px-4 text-center font-extrabold text-white">{{ item.total_escalas }}</td>
+                    <td class="py-3 px-4 text-center font-bold text-emerald-400">{{ item.total_presencas }}</td>
+                    <td class="py-3 px-4 text-center font-bold text-rose-400">{{ item.total_faltas }}</td>
+                    <td class="py-3 px-4 text-center">
+                      <span 
+                        [class]="getTaxaBadgeClass(item.taxa_presenca_pct)"
+                        class="px-2.5 py-1 rounded-lg text-xs font-bold border inline-block">
+                        {{ item.taxa_presenca_pct !== null ? item.taxa_presenca_pct + '%' : '-' }}
+                      </span>
+                    </td>
+                    <td class="py-3 px-4 text-center text-rose-400 font-semibold">
+                      {{ item.taxa_falta_pct !== null ? item.taxa_falta_pct + '%' : '-' }}
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- TAB 2: COBERTURA DE VAGAS -->
+  @if (!relatorioService.loading() && activeTab() === 'cobertura') {
+    <div class="space-y-4">
+      <!-- Filter Bar -->
+      <div class="glass-panel rounded-2xl p-4 border border-slate-800/80 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <label class="text-xs font-bold text-slate-300 uppercase tracking-wider">Mês:</label>
+          <select 
+            [ngModel]="selectedMesId()"
+            (ngModelChange)="onMesChange($event)"
+            class="px-3.5 py-2 bg-slate-900 border border-slate-700/80 rounded-xl text-xs font-semibold text-slate-100 focus:outline-none focus:border-indigo-500">
+            @for (m of mesService.meses(); track m.id_mes) {
+              <option [value]="m.id_mes">{{ formatMesReferencia(m) }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="relative w-full sm:w-64">
+          <input 
+            type="text"
+            [ngModel]="searchQuery()"
+            (ngModelChange)="searchQuery.set($event)"
+            placeholder="Buscar por culto..."
+            class="w-full pl-9 pr-4 py-2 bg-slate-900/90 border border-slate-700/70 rounded-xl text-slate-100 placeholder-slate-500 text-xs focus:outline-none focus:border-indigo-500"
+          />
+          <svg class="w-4 h-4 text-slate-500 absolute left-3 top-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </div>
+      </div>
+
+      <!-- Cobertura Table -->
+      <div class="glass-panel rounded-2xl border border-slate-800/80 overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-300">
+            <thead class="bg-slate-900/90 border-b border-slate-800 uppercase tracking-wider text-[10px] font-bold text-slate-400">
+              <tr>
+                <th class="py-3.5 px-4">Data / Turno</th>
+                <th class="py-3.5 px-4">Culto / Evento</th>
+                <th class="py-3.5 px-4 text-center">Vagas Previstas</th>
+                <th class="py-3.5 px-4 text-center">Escalados</th>
+                <th class="py-3.5 px-4 text-center">Diáconos</th>
+                <th class="py-3.5 px-4 text-center">Púlpito</th>
+                <th class="py-3.5 px-4 text-center">Vagas Abertas</th>
+                <th class="py-3.5 px-4 text-center">Ocupação</th>
+                <th class="py-3.5 px-4 text-center">Presenças</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800/60">
+              @for (item of filteredCobertura(); track item.id_evento) {
+                <tr class="hover:bg-slate-800/30 transition-colors">
+                  <td class="py-3 px-4 whitespace-nowrap">
+                    <div class="font-bold text-white text-sm">{{ item.data_evento | date:'dd/MM/yyyy' }}</div>
+                    <span 
+                      [class]="getTurnoStyle(item.id_turno).bg + ' ' + getTurnoStyle(item.id_turno).text + ' ' + getTurnoStyle(item.id_turno).border"
+                      class="text-[9px] uppercase font-bold px-1.5 py-0.2 rounded border inline-block mt-0.5">
+                      {{ item.turno_nome }}
+                    </span>
+                  </td>
+                  <td class="py-3 px-4 font-semibold text-slate-200">{{ item.descricao_evento }}</td>
+                  <td class="py-3 px-4 text-center font-mono font-bold text-white">{{ item.total_vagas_previstas }}</td>
+                  <td class="py-3 px-4 text-center font-mono font-bold text-indigo-400">{{ item.total_escalados }}</td>
+                  <td class="py-3 px-4 text-center font-mono text-purple-400">{{ item.total_diaconos_escalados }}</td>
+                  <td class="py-3 px-4 text-center font-mono text-amber-400">{{ item.total_pulpito_escalados }}</td>
+                  <td class="py-3 px-4 text-center">
+                    @if (item.vagas_em_aberto > 0) {
+                      <span class="px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 font-bold border border-rose-500/30">
+                        {{ item.vagas_em_aberto }} aberta(s)
+                      </span>
+                    } @else {
+                      <span class="text-emerald-400 font-bold">Completo ✓</span>
+                    }
+                  </td>
+                  <td class="py-3 px-4 text-center">
+                    <span 
+                      [class]="getOcupacaoBadgeClass(item.taxa_ocupacao_pct)"
+                      class="px-2.5 py-1 rounded-lg text-xs font-bold border inline-block">
+                      {{ item.taxa_ocupacao_pct !== null ? item.taxa_ocupacao_pct + '%' : '0%' }}
+                    </span>
+                  </td>
+                  <td class="py-3 px-4 text-center">
+                    <span class="font-bold text-emerald-400">{{ item.total_presentes }}</span>
+                    <span class="text-slate-500"> / </span>
+                    <span class="font-bold text-rose-400">{{ item.total_faltas }}</span>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="9" class="py-8 text-center text-slate-500 italic">
+                    Nenhum culto encontrado para este mês.
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- TAB 3: DISTRIBUIÇÃO ANUAL POR TIPO DE CULTO -->
+  @if (!relatorioService.loading() && activeTab() === 'distribuicao') {
+    <div class="space-y-6">
+      <!-- Filter Bar -->
+      <div class="glass-panel rounded-2xl p-4 border border-slate-800/80 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+        <div class="flex items-center gap-3 flex-wrap">
+          <div class="flex items-center gap-2">
+            <label class="text-xs font-bold text-slate-300 uppercase tracking-wider">Ano:</label>
+            <select 
+              [ngModel]="selectedAno()"
+              (ngModelChange)="onAnoChange($event)"
+              class="px-3.5 py-2 bg-slate-900 border border-slate-700/80 rounded-xl text-xs font-semibold text-slate-100 focus:outline-none focus:border-indigo-500">
+              @for (ano of anosDisponiveis(); track ano) {
+                <option [value]="ano">{{ ano }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <label class="text-xs font-bold text-slate-300 uppercase tracking-wider">Culto:</label>
+            <select 
+              [ngModel]="selectedDescricaoFilter()"
+              (ngModelChange)="selectedDescricaoFilter.set($event)"
+              class="px-3.5 py-2 bg-slate-900 border border-slate-700/80 rounded-xl text-xs font-semibold text-slate-100 focus:outline-none focus:border-indigo-500">
+              <option value="">Todos os Cultos</option>
+              @for (desc of descricoesDisponiveis(); track desc) {
+                <option [value]="desc">{{ desc }}</option>
+              }
+            </select>
+          </div>
+        </div>
+
+        <div class="relative w-full md:w-64">
+          <input 
+            type="text"
+            [ngModel]="searchQuery()"
+            (ngModelChange)="searchQuery.set($event)"
+            placeholder="Filtrar por obreiro..."
+            class="w-full pl-9 pr-4 py-2 bg-slate-900/90 border border-slate-700/70 rounded-xl text-slate-100 placeholder-slate-500 text-xs focus:outline-none focus:border-indigo-500"
+          />
+          <svg class="w-4 h-4 text-slate-500 absolute left-3 top-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </div>
+      </div>
+
+      <!-- Overview Cards per Tipo de Evento -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        @for (r of relatorioService.resumoPorDescricao(); track r.descricao_evento) {
+          <div class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3">
+            <div class="flex items-center justify-between">
+              <h3 class="text-sm font-bold text-white">{{ r.descricao_evento }}</h3>
+              <span class="text-xs px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-mono">
+                {{ r.total_cultos_realizados }} cultos
+              </span>
+            </div>
+            <div class="grid grid-cols-3 gap-2 text-center text-xs">
+              <div class="bg-slate-900/80 p-2 rounded-xl border border-slate-800">
+                <div class="text-[10px] text-slate-400">Total Escalas</div>
+                <div class="font-bold text-indigo-400 text-sm mt-0.5">{{ r.total_escalados_acumulado }}</div>
+              </div>
+              <div class="bg-slate-900/80 p-2 rounded-xl border border-slate-800">
+                <div class="text-[10px] text-slate-400">Obreiros Únicos</div>
+                <div class="font-bold text-purple-400 text-sm mt-0.5">{{ r.total_obreiros_distintos_atendidos }}</div>
+              </div>
+              <div class="bg-slate-900/80 p-2 rounded-xl border border-slate-800">
+                <div class="text-[10px] text-slate-400">Média/Culto</div>
+                <div class="font-bold text-amber-400 text-sm mt-0.5">{{ r.media_obreiros_por_culto }}</div>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- Detail Table -->
+      <div class="glass-panel rounded-2xl border border-slate-800/80 overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-300">
+            <thead class="bg-slate-900/90 border-b border-slate-800 uppercase tracking-wider text-[10px] font-bold text-slate-400">
+              <tr>
+                <th class="py-3 px-4">#</th>
+                <th class="py-3 px-4">Culto / Evento</th>
+                <th class="py-3 px-4">Obreiro</th>
+                <th class="py-3 px-4 text-center">Escalas no Ano</th>
+                <th class="py-3 px-4 text-center">Presenças</th>
+                <th class="py-3 px-4 text-center">Faltas</th>
+                <th class="py-3 px-4">Última Escala</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800/60">
+              @for (item of filteredDistribuicao(); track item.id_obreiro + '-' + item.descricao_evento; let idx = $index) {
+                <tr class="hover:bg-slate-800/30 transition-colors">
+                  <td class="py-3 px-4 font-mono text-slate-500">{{ idx + 1 }}</td>
+                  <td class="py-3 px-4 font-bold text-white">{{ item.descricao_evento }}</td>
+                  <td class="py-3 px-4">
+                    <div class="font-bold text-slate-100 flex items-center gap-1.5">
+                      <span>{{ item.nome_obreiro }}</span>
+                      @if (item.is_diacono) {
+                        <span class="text-[9px] px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">Diácono</span>
+                      }
+                    </div>
+                  </td>
+                  <td class="py-3 px-4 text-center font-mono font-extrabold text-indigo-400">{{ item.total_escalas_no_ano }}</td>
+                  <td class="py-3 px-4 text-center font-mono text-emerald-400 font-bold">{{ item.total_presencas }}</td>
+                  <td class="py-3 px-4 text-center font-mono text-rose-400 font-bold">{{ item.total_faltas }}</td>
+                  <td class="py-3 px-4 font-mono text-slate-400">{{ item.data_ultima_escala | date:'dd/MM/yyyy' }}</td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="7" class="py-8 text-center text-slate-500 italic">
+                    Nenhum registro encontrado para este ano/filtro.
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- TAB 4: RESUMO EXECUTIVO MENSAL -->
+  @if (!relatorioService.loading() && activeTab() === 'resumo') {
+    <div class="space-y-4">
+      <div class="glass-panel rounded-2xl border border-slate-800/80 overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-300">
+            <thead class="bg-slate-900/90 border-b border-slate-800 uppercase tracking-wider text-[10px] font-bold text-slate-400">
+              <tr>
+                <th class="py-3.5 px-4">Mês de Referência</th>
+                <th class="py-3.5 px-4 text-center">Cultos</th>
+                <th class="py-3.5 px-4 text-center">Vagas Ofertadas</th>
+                <th class="py-3.5 px-4 text-center">Escalas Feitas</th>
+                <th class="py-3.5 px-4 text-center">Obreiros Ativos</th>
+                <th class="py-3.5 px-4 text-center">Presenças</th>
+                <th class="py-3.5 px-4 text-center">Faltas</th>
+                <th class="py-3.5 px-4 text-center">Taxa Presença</th>
+                <th class="py-3.5 px-4 text-center">Bloqueios Registrados</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800/60">
+              @for (item of relatorioService.resumoMensal(); track item.id_mes) {
+                <tr class="hover:bg-slate-800/30 transition-colors">
+                  <td class="py-3.5 px-4 font-bold text-white text-sm">
+                    {{ formatMesReferencia(item) }}
+                  </td>
+                  <td class="py-3.5 px-4 text-center font-mono font-bold text-white">{{ item.total_cultos_mes }}</td>
+                  <td class="py-3.5 px-4 text-center font-mono font-bold text-purple-400">{{ item.total_vagas_ofertadas }}</td>
+                  <td class="py-3.5 px-4 text-center font-mono font-bold text-indigo-400">{{ item.total_escalas_realizadas }}</td>
+                  <td class="py-3.5 px-4 text-center font-mono font-bold text-amber-400">{{ item.total_obreiros_engajados }}</td>
+                  <td class="py-3.5 px-4 text-center font-mono text-emerald-400 font-bold">{{ item.total_presencas_mes }}</td>
+                  <td class="py-3.5 px-4 text-center font-mono text-rose-400 font-bold">{{ item.total_faltas_mes }}</td>
+                  <td class="py-3.5 px-4 text-center">
+                    <span 
+                      [class]="getTaxaBadgeClass(item.taxa_presenca_geral_pct)"
+                      class="px-2.5 py-1 rounded-lg text-xs font-bold border inline-block">
+                      {{ item.taxa_presenca_geral_pct !== null ? item.taxa_presenca_geral_pct + '%' : '-' }}
+                    </span>
+                  </td>
+                  <td class="py-3.5 px-4 text-center font-mono text-rose-300 font-semibold">{{ item.total_bloqueios_registrados }}</td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="9" class="py-8 text-center text-slate-500 italic">
+                    Nenhum histórico mensal disponível.
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- TAB 5: AUDITORIA DE CONFLITOS -->
+  @if (!relatorioService.loading() && activeTab() === 'conflitos') {
+    <div class="space-y-4">
+      @if (relatorioService.conflitosBloqueio().length === 0) {
+        <div class="glass-panel rounded-3xl p-12 text-center border border-emerald-500/20 max-w-md mx-auto space-y-4">
+          <div class="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 mx-auto flex items-center justify-center">
+            <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-lg font-bold text-white">Nenhum Conflito Detectado!</h3>
+            <p class="text-xs text-slate-400 mt-1">Todas as escalas ativas estão 100% em conformidade com os bloqueios e indisponibilidades cadastradas.</p>
+          </div>
+        </div>
+      } @else {
+        <div class="glass-panel rounded-2xl border border-rose-500/30 overflow-hidden">
+          <div class="p-4 bg-rose-500/10 border-b border-rose-500/20 flex items-center justify-between">
+            <div class="flex items-center gap-2 text-rose-400">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <h3 class="font-bold text-sm">Foram detectados {{ relatorioService.conflitosBloqueio().length }} conflito(s) de escala!</h3>
+            </div>
+            <a routerLink="/escalas" class="text-xs font-semibold text-rose-300 hover:text-white underline">
+              Ir para Escalas →
+            </a>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-300">
+              <thead class="bg-slate-900/90 border-b border-slate-800 uppercase tracking-wider text-[10px] font-bold text-slate-400">
+                <tr>
+                  <th class="py-3 px-4">Data Conflito</th>
+                  <th class="py-3 px-4">Culto</th>
+                  <th class="py-3 px-4">Obreiro Escalado</th>
+                  <th class="py-3 px-4">Telefone</th>
+                  <th class="py-3 px-4">Motivo do Bloqueio</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800/60">
+                @for (c of relatorioService.conflitosBloqueio(); track c.id_escala) {
+                  <tr class="hover:bg-slate-800/30 transition-colors">
+                    <td class="py-3 px-4 font-mono font-bold text-rose-400">{{ c.data_evento | date:'dd/MM/yyyy' }}</td>
+                    <td class="py-3 px-4 font-semibold text-white">{{ c.descricao_evento }}</td>
+                    <td class="py-3 px-4 font-bold text-slate-100">{{ c.nome_obreiro }}</td>
+                    <td class="py-3 px-4 text-slate-400">{{ c.telefone || '-' }}</td>
+                    <td class="py-3 px-4 italic text-slate-300">"{{ c.motivo_bloqueio || 'Indisponibilidade cadastrada' }}"</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

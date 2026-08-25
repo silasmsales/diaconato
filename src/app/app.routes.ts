@@ -53,6 +53,11 @@ export const routes: Routes = [
     loadComponent: () => import('./features/escalas/escalas-list.component').then(m => m.EscalasListComponent)
   },
   {
+    path: 'relatorios',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/relatorios/relatorios.component').then(m => m.RelatoriosComponent)
+  },
+  {
     path: '**',
     redirectTo: ''
   }
