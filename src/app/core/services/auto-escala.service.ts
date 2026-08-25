@@ -50,9 +50,19 @@ export class AutoEscalaService {
     const idMes = Number(idMesInput);
     const avisos: string[] = [];
 
-    // 1. Filtrar obreiros elegíveis
-    // Regra: Apenas ativos === true E lider === false (líderes não são escalados)
+    // 1. Filtrar obreiros elegíveis (Ativos e não líderes) e embaralhar aleatoriamente
     const elegiveis = (obreiros || []).filter(o => o.ativo && !o.lider);
+    for (let i = elegiveis.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [elegiveis[i], elegiveis[j]] = [elegiveis[j], elegiveis[i]];
+    }
+
+    // Estatísticas iniciais de obreiros (mesmo se não houver eventos)
+    const defaultObreiroStats = elegiveis.map(ob => ({
+      obreiro: ob,
+      totalEscalas: 0,
+      datas: []
+    }));
 
     if (elegiveis.length === 0) {
       return {
@@ -63,7 +73,7 @@ export class AutoEscalaService {
         totalVagasPreenchidas: 0,
         taxaPreenchimento: 0,
         obreiroStats: [],
-        avisos: ['Nenhum obreiro ativo (não líder) disponível no sistema para escalação.']
+        avisos: ['Nenhum obreiro ativo e elegível (não líder) disponível no sistema para escalação. Cadastre obreiros ativos primeiro.']
       };
     }
 
@@ -73,7 +83,7 @@ export class AutoEscalaService {
       .sort((a, b) => {
         const cmp = (a.data || '').localeCompare(b.data || '');
         if (cmp !== 0) return cmp;
-        return (a.turno || 1) - (b.turno || 1);
+        return (Number(a.turno) || 1) - (Number(b.turno) || 1);
       });
 
     if (eventosDoMes.length === 0) {
@@ -84,9 +94,21 @@ export class AutoEscalaService {
         totalVagasNecessarias: 0,
         totalVagasPreenchidas: 0,
         taxaPreenchimento: 0,
-        obreiroStats: [],
-        avisos: ['Nenhum culto/evento cadastrado para este mês de referência.']
+        obreiroStats: defaultObreiroStats,
+        avisos: ['Nenhum culto/evento cadastrado para este mês de referência. Use a função "Gerar Cultos do Mês" para criar os cultos automaticamente.']
       };
+    }
+
+    // Checar se há diáconos disponíveis
+    const totalDiaconos = elegiveis.filter(o => o.diacono).length;
+    if (totalDiaconos === 0) {
+      avisos.push('Aviso: Não há nenhum diácono cadastrado ou ativo. Vagas que exigem consagração ao diaconato ficarão abertas.');
+    }
+
+    // Checar se há obreiros de púlpito disponíveis
+    const totalPulpito = elegiveis.filter(o => o.pulpito).length;
+    if (totalPulpito === 0) {
+      avisos.push('Aviso: Não há nenhum obreiro habilitado a púlpito cadastrado ou ativo. Vagas de púlpito ficarão abertas.');
     }
 
     // 3. Mapa de contadores de escalas por obreiro para equilíbrio e balanceamento
@@ -215,18 +237,28 @@ export class AutoEscalaService {
         });
 
         if (candidatos.length > 0) {
-          // Ordenar por menor número de escalas acumuladas (fairness)
+          // Embaralhar aleatoriamente os candidatos antes da ordenação (Fisher-Yates)
+          // Isso garante que obreiros com mesmo número de escalas tenham chances iguais (desempate aleatório)
+          for (let i = candidatos.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [candidatos[i], candidatos[j]] = [candidatos[j], candidatos[i]];
+          }
+
+          // Ordenar por menor número de escalas acumuladas (fairness) e preservação de especialistas
           candidatos.sort((a, b) => {
             const countA = escalaCountMap.get(Number(a.id_obreiro)) || 0;
             const countB = escalaCountMap.get(Number(b.id_obreiro)) || 0;
             if (countA !== countB) return countA - countB;
 
+            // Se a vaga for geral (não precisa de diácono nem púlpito), economizar os especialistas para vagas restritas
             if (!vaga.precisaDiacono && !vaga.precisaPulpito) {
               const specializedA = (a.diacono ? 1 : 0) + (a.pulpito ? 1 : 0);
               const specializedB = (b.diacono ? 1 : 0) + (b.pulpito ? 1 : 0);
-              return specializedA - specializedB;
+              if (specializedA !== specializedB) return specializedA - specializedB;
             }
-            return (a.nome || '').localeCompare(b.nome || '');
+
+            // Desempate: mantém a ordem aleatória do embaralhamento prévio
+            return 0;
           });
 
           const escolhido = candidatos[0];

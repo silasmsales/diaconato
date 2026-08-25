@@ -115,6 +115,45 @@ export class EventoService {
     }
   }
 
+  
+  async saveGeneratedEvents(idMes: number, dtos: CreateEventoDto[], replaceExisting: boolean = true): Promise<boolean> {
+    this.loading.set(true);
+    try {
+      if (replaceExisting) {
+        // Remover eventos anteriores deste mês (cascade remove escalas relacionadas)
+        const { error: delError } = await this.supabase
+          .from('eventos')
+          .delete()
+          .eq('id_mes', idMes);
+
+        if (delError) throw delError;
+      }
+
+      if (dtos.length > 0) {
+        const { data, error: insError } = await this.supabase
+          .from('eventos')
+          .insert(dtos)
+          .select(`
+            *,
+            mes (*)
+          `);
+
+        if (insError) throw insError;
+      }
+
+      // Atualizar lista local
+      await this.fetchByMes(idMes);
+      this.toast.success('Cultos e Eventos Gerados!', `${dtos.length} cultos foram criados com sucesso para o mês.`);
+      return true;
+    } catch (err: any) {
+      console.error('Erro ao salvar eventos gerados:', err);
+      this.toast.error('Falha ao gerar eventos', err.message);
+      return false;
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
   async delete(id: number): Promise<boolean> {
     this.loading.set(true);
     try {

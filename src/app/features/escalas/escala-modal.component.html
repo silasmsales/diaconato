@@ -55,7 +55,7 @@
             <option [value]="null" disabled>Selecione um obreiro...</option>
             @for (ob of availableObreiros(); track ob.id_obreiro) {
               <option [value]="ob.id_obreiro">
-                {{ ob.nome }} {{ ob.apelido ? '(' + ob.apelido + ')' : '' }} {{ ob.diacono ? '[Diácono]' : '' }}
+                {{ ob.nome }}{{ ob.apelido ? ' (' + ob.apelido + ')' : '' }} {{ ob.diacono ? '[Diácono]' : '[Obreiro]' }}{{ ob.pulpito ? ' [Púlpito]' : '' }}
               </option>
             }
           </select>

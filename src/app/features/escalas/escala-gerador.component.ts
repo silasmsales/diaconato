@@ -8,6 +8,7 @@ import { EventoService } from '../../core/services/evento.service';
 import { ObreiroService } from '../../core/services/obreiro.service';
 import { MesService } from '../../core/services/mes.service';
 import { BloqueioService } from '../../core/services/bloqueio.service';
+import { ToastService } from '../../core/services/toast.service';
 import { formatMesReferencia } from '../../core/models/mes.model';
 import { TURNO_LABELS, TURNO_COLORS } from '../../core/models/turno.enum';
 
@@ -24,6 +25,7 @@ export class EscalaGeradorComponent implements OnInit {
   obreiroService = inject(ObreiroService);
   mesService = inject(MesService);
   bloqueioService = inject(BloqueioService);
+  toast = inject(ToastService);
   router = inject(Router);
 
   formatMesReferencia = formatMesReferencia;
@@ -40,13 +42,16 @@ export class EscalaGeradorComponent implements OnInit {
   }
 
   async carregarDados() {
-    await Promise.all([
-      this.mesService.fetchAll(),
-      this.eventoService.fetchAll(),
-      this.obreiroService.fetchAll(),
-      this.bloqueioService.fetchAll(),
-      this.escalaService.fetchAll()
-    ]);
+    this.mesService.fetchAll();
+    this.eventoService.fetchAll();
+    this.obreiroService.fetchAll();
+    this.bloqueioService.fetchAll();
+    this.escalaService.fetchAll();
+  }
+
+  onMesChange(mesId: number) {
+    this.selectedMesId.set(Number(mesId));
+    this.result = null;
   }
 
   getEventosCountDoMes(): number {
@@ -98,15 +103,14 @@ export class EscalaGeradorComponent implements OnInit {
     return Math.max(...this.result.obreiroStats.map(s => s.totalEscalas));
   }
 
-  async executarGeracaoAutomatica() {
+  executarGeracaoAutomatica() {
     const mesId = Number(this.selectedMesId());
-    if (!mesId) return;
+    if (!mesId) {
+      this.toast.warning('Selecione um mês', 'Por favor, selecione um mês de referência para gerar a escala.');
+      return;
+    }
 
-    this.isGenerating = true;
     try {
-      // Garantir que os dados do banco estejam 100% atualizados
-      await this.carregarDados();
-
       this.result = this.autoEscalaService.generateMonthlySchedule(
         mesId,
         this.eventoService.eventos(),
@@ -115,8 +119,17 @@ export class EscalaGeradorComponent implements OnInit {
         this.escalaService.escalas(),
         this.replaceExisting
       );
+
+      if (this.result.totalVagasNecessarias === 0) {
+        this.toast.warning('Sem cultos', 'Nenhum culto cadastrado para este mês. Use "Gerar Cultos do Mês" para criá-los.');
+      } else if (this.result.totalVagasPreenchidas === this.result.totalVagasNecessarias) {
+        this.toast.success('Escala calculada!', `100% das vagas (${this.result.totalVagasPreenchidas}) foram preenchidas com sucesso.`);
+      } else {
+        this.toast.warning('Escala com vagas abertas', `${this.result.totalVagasPreenchidas} de ${this.result.totalVagasNecessarias} vagas foram preenchidas.`);
+      }
     } catch (err: any) {
       console.error('Erro na execução da geração automática:', err);
+      this.toast.error('Erro ao processar regras', err.message || 'Ocorreu um erro inesperado.');
     } finally {
       this.isGenerating = false;
     }
@@ -136,8 +149,9 @@ export class EscalaGeradorComponent implements OnInit {
       if (success) {
         this.router.navigate(['/escalas'], { queryParams: { mes: this.result.id_mes } });
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Erro ao salvar escala no banco:', err);
+      this.toast.error('Erro ao salvar', err.message);
     } finally {
       this.isSaving = false;
     }
