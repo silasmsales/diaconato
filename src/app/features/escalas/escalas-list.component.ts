@@ -7,6 +7,8 @@ import { EventoService } from '../../core/services/evento.service';
 import { ObreiroService } from '../../core/services/obreiro.service';
 import { MesService } from '../../core/services/mes.service';
 import { BloqueioService } from '../../core/services/bloqueio.service';
+import { EscalaPdfService } from '../../core/services/escala-pdf.service';
+import { ToastService } from '../../core/services/toast.service';
 import { Escala, CreateEscalaDto } from '../../core/models/escala.model';
 import { formatMesReferencia, findCurrentMes } from '../../core/models/mes.model';
 import { TURNO_LABELS, TURNO_COLORS } from '../../core/models/turno.enum';
@@ -25,6 +27,8 @@ export class EscalasListComponent implements OnInit {
   obreiroService = inject(ObreiroService);
   mesService = inject(MesService);
   bloqueioService = inject(BloqueioService);
+  pdfService = inject(EscalaPdfService);
+  toast = inject(ToastService);
   route = inject(ActivatedRoute);
 
   formatMesReferencia = formatMesReferencia;
@@ -36,6 +40,7 @@ export class EscalasListComponent implements OnInit {
 
   isModalOpen = false;
   isConfirmOpen = false;
+  isPdfMenuOpen = false;
 
   filteredEventos = computed(() => {
     const mesId = this.selectedMesId();
@@ -108,6 +113,39 @@ export class EscalasListComponent implements OnInit {
       this.selectedMesId.set(mesId);
     }
     this.isModalOpen = true;
+  }
+
+  exportarPdfPorEventos() {
+    this.isPdfMenuOpen = false;
+    const mesId = this.selectedMesId();
+    const mes = this.mesService.meses().find(m => Number(m.id_mes) === Number(mesId));
+    if (!mes) {
+      this.toast.warning('Selecione um mês', 'Por favor, selecione um mês de referência para exportar o PDF.');
+      return;
+    }
+
+    this.pdfService.gerarPdfPorEventos(
+      mes,
+      this.eventoService.eventos(),
+      this.escalaService.escalas()
+    );
+  }
+
+  exportarPdfPorObreiros() {
+    this.isPdfMenuOpen = false;
+    const mesId = this.selectedMesId();
+    const mes = this.mesService.meses().find(m => Number(m.id_mes) === Number(mesId));
+    if (!mes) {
+      this.toast.warning('Selecione um mês', 'Por favor, selecione um mês de referência para exportar o PDF.');
+      return;
+    }
+
+    this.pdfService.gerarPdfPorObreiros(
+      mes,
+      this.eventoService.eventos(),
+      this.escalaService.escalas(),
+      this.obreiroService.obreiros()
+    );
   }
 
   getTurnoLabel(turno: number): string {
