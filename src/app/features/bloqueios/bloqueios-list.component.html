@@ -1,0 +1,285 @@
+<div class="space-y-6 animate-fade-in pb-20 md:pb-10">
+      <!-- Title Header -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2.5">
+            <span>Bloqueios & Indisponibilidades</span>
+            <span class="text-xs px-2.5 py-1 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20 font-semibold">
+              {{ filteredBloqueios().length }} bloqueios
+            </span>
+          </h1>
+          <p class="text-sm text-slate-400 mt-1">Datas e turnos em que membros da equipe não podem ser escalados</p>
+        </div>
+
+        <button 
+          (click)="openCreateModal()"
+          class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold shadow-lg shadow-indigo-600/25 transition-all transform active:scale-95">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          </svg>
+          <span>Novo Bloqueio</span>
+        </button>
+      </div>
+
+      <!-- Controls & Filters -->
+      <div class="glass-panel rounded-2xl p-3.5 border border-slate-800/80 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+        <!-- View Switcher (Agrupado por Obreiro vs Lista Individual) -->
+        <div class="flex items-center p-1 bg-slate-900/90 border border-slate-800 rounded-xl">
+          <button 
+            (click)="viewMode = 'obreiros'"
+            [class]="viewMode === 'obreiros' ? 'bg-indigo-600 text-white font-bold shadow' : 'text-slate-400 hover:text-slate-200'"
+            class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+            <span>Agrupado por Obreiro</span>
+          </button>
+          <button 
+            (click)="viewMode = 'individual'"
+            [class]="viewMode === 'individual' ? 'bg-indigo-600 text-white font-bold shadow' : 'text-slate-400 hover:text-slate-200'"
+            class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+            </svg>
+            <span>Todos os Bloqueios</span>
+          </button>
+        </div>
+
+        <!-- Search Input -->
+        <div class="relative flex-1 min-w-[200px]">
+          <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input 
+            type="text" 
+            [ngModel]="searchQuery()"
+            (ngModelChange)="searchQuery.set($event)"
+            placeholder="Buscar por obreiro ou motivo..."
+            class="w-full pl-10 pr-4 py-1.5 bg-slate-900/80 border border-slate-700/60 rounded-xl text-xs sm:text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-all"
+          />
+        </div>
+
+        <!-- Filters (Mês & Obreiro) -->
+        <div class="flex items-center gap-2 flex-wrap">
+          <!-- Filtro por Mês -->
+          <div class="flex items-center gap-1.5">
+            <label class="text-xs text-slate-400 font-semibold">Mês:</label>
+            <select 
+              [ngModel]="selectedMesFilter()"
+              (ngModelChange)="selectedMesFilter.set($event)"
+              class="px-2.5 py-1.5 bg-slate-900/80 border border-slate-700/60 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+              <option value="">Todos os Meses</option>
+              @for (m of mesService.meses(); track m.id_mes) {
+                <option [value]="formatMesKey(m)">{{ formatMesReferencia(m) }}</option>
+              }
+            </select>
+          </div>
+
+          <!-- Filtro por Obreiro -->
+          <div class="flex items-center gap-1.5">
+            <select 
+              [ngModel]="selectedObreiroFilter()"
+              (ngModelChange)="selectedObreiroFilter.set(Number($event))"
+              class="px-2.5 py-1.5 bg-slate-900/80 border border-slate-700/60 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+              <option [value]="0">Todos os Obreiros</option>
+              @for (ob of obreiroService.obreiros(); track ob.id_obreiro) {
+                <option [value]="ob.id_obreiro">{{ ob.nome }}</option>
+              }
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Loading State -->
+      @if (bloqueioService.loading() && bloqueios().length === 0) {
+        <div class="space-y-3">
+          @for (i of [1,2,3]; track i) {
+            <div class="glass-card rounded-2xl p-4 border border-slate-800 animate-pulse flex items-center justify-between">
+              <div class="space-y-2">
+                <div class="h-4 bg-slate-800 rounded w-48"></div>
+                <div class="h-3 bg-slate-800 rounded w-32"></div>
+              </div>
+              <div class="h-8 bg-slate-800 rounded w-20"></div>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- Empty State -->
+      @if (!bloqueioService.loading() && filteredBloqueios().length === 0) {
+        <div class="glass-panel rounded-3xl p-12 text-center border border-slate-800/80 max-w-md mx-auto space-y-4">
+          <div class="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 mx-auto flex items-center justify-center">
+            <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-lg font-bold text-white">Nenhum bloqueio encontrado</h3>
+            <p class="text-xs text-slate-400 mt-1">Todos os obreiros estão disponíveis para escalas neste período!</p>
+          </div>
+          <button 
+            (click)="openCreateModal()"
+            class="px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500 rounded-xl shadow-md transition-all">
+            Adicionar Bloqueio
+          </button>
+        </div>
+      }
+
+      <!-- VIEW 1: Agrupado por Obreiro -->
+      @if (viewMode === 'obreiros') {
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          @for (group of groupedByObreiro(); track group.obreiro.id_obreiro) {
+            <div class="glass-panel rounded-2xl p-5 border border-slate-800/80 hover:border-slate-700 space-y-3.5 flex flex-col justify-between transition-all">
+              <!-- Group Header -->
+              <div>
+                <div class="flex items-start justify-between gap-3 border-b border-slate-800/80 pb-3">
+                  <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-sm text-indigo-400">
+                      {{ getInitials(group.obreiro.nome) }}
+                    </div>
+                    <div>
+                      <h3 class="text-sm font-bold text-white">{{ group.obreiro.nome }}</h3>
+                      <div class="text-[11px] text-slate-400 flex items-center gap-1.5">
+                        @if (group.obreiro.apelido) {
+                          <span class="font-medium text-slate-300">"{{ group.obreiro.apelido }}"</span>
+                        }
+                        <span>• {{ group.obreiro.diacono ? 'Diácono' : 'Obreiro' }}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <span class="text-xs font-extrabold px-2.5 py-1 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20 shrink-0">
+                    {{ group.bloqueios.length }} {{ group.bloqueios.length === 1 ? 'bloqueio' : 'bloqueios' }}
+                  </span>
+                </div>
+
+                <!-- Blockages List of this Obreiro -->
+                <div class="space-y-2 pt-3">
+                  @for (item of group.bloqueios; track item.id_bloqueio) {
+                    <div class="bg-slate-900/70 border border-slate-800/90 rounded-xl p-2.5 flex items-center justify-between gap-2 group hover:border-slate-700 transition-all">
+                      <div class="min-w-0 space-y-0.5">
+                        <div class="flex items-center gap-2 flex-wrap">
+                          <span class="text-xs font-bold text-rose-300">
+                            {{ item.data | date:'dd/MM/yyyy' }}
+                          </span>
+                          <span 
+                            [class]="getTurnoStyle(item.turno).bg + ' ' + getTurnoStyle(item.turno).text + ' ' + getTurnoStyle(item.turno).border"
+                            class="text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.2 rounded border">
+                            {{ getTurnoLabel(item.turno) }}
+                          </span>
+                        </div>
+                        @if (item.motivo) {
+                          <p class="text-[11px] text-slate-400 italic truncate max-w-[200px]" [title]="item.motivo">
+                            "{{ item.motivo }}"
+                          </p>
+                        }
+                      </div>
+
+                      <div class="flex items-center gap-1 shrink-0">
+                        <button 
+                          (click)="openEditModal(item)"
+                          class="p-1 text-slate-400 hover:text-white rounded hover:bg-slate-800 transition-colors"
+                          title="Editar">
+                          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                          </svg>
+                        </button>
+                        <button 
+                          (click)="openDeleteConfirm(item)"
+                          class="p-1 text-slate-400 hover:text-rose-400 rounded hover:bg-rose-500/10 transition-colors"
+                          title="Excluir">
+                          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  }
+                </div>
+              </div>
+
+              <!-- Quick Add for this Obreiro -->
+              <div class="pt-2 border-t border-slate-800/80 flex items-center justify-end">
+                <button 
+                  (click)="openCreateModal(group.obreiro.id_obreiro)"
+                  class="text-[11px] font-semibold text-indigo-400 hover:text-indigo-300 flex items-center gap-1">
+                  <span>+ Adicionar bloqueio</span>
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+      } @else {
+        <!-- VIEW 2: Lista Individual de Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          @for (item of filteredBloqueios(); track item.id_bloqueio) {
+            <div class="glass-panel rounded-2xl p-4 border border-slate-800/80 hover:border-rose-500/30 transition-all flex flex-col justify-between space-y-3">
+              <div class="space-y-2">
+                <div class="flex items-start justify-between gap-2">
+                  <div>
+                    <span class="text-sm font-bold text-white block">
+                      {{ item.obreiros?.nome || ('Obreiro #' + item.id_obreiro) }}
+                    </span>
+                    @if (item.obreiros?.apelido) {
+                      <span class="text-xs text-slate-400 font-medium">"{{ item.obreiros?.apelido }}"</span>
+                    }
+                  </div>
+
+                  <span 
+                    [class]="getTurnoStyle(item.turno).bg + ' ' + getTurnoStyle(item.turno).text + ' ' + getTurnoStyle(item.turno).border"
+                    class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full border">
+                    {{ getTurnoLabel(item.turno) }}
+                  </span>
+                </div>
+
+                <div class="flex items-center gap-1.5 text-xs text-rose-400 font-medium bg-rose-500/10 border border-rose-500/20 px-2.5 py-1 rounded-lg w-fit">
+                  <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <span>Indisponível em {{ item.data | date:'dd/MM/yyyy' }}</span>
+                </div>
+
+                @if (item.motivo) {
+                  <p class="text-xs text-slate-300 italic bg-slate-900/60 p-2 rounded-lg border border-slate-800">
+                    "{{ item.motivo }}"
+                  </p>
+                }
+              </div>
+
+              <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-800/80">
+                <button 
+                  (click)="openEditModal(item)"
+                  class="px-3 py-1.5 text-xs font-medium text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-700 rounded-lg transition-all">
+                  Editar
+                </button>
+                <button 
+                  (click)="openDeleteConfirm(item)"
+                  class="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-all">
+                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+      }
+
+      <app-bloqueio-modal 
+        [isOpen]="isModalOpen"
+        [bloqueio]="selectedBloqueio"
+        [defaultObreiroId]="defaultObreiroId"
+        [obreiros]="obreiroService.obreiros()"
+        [loading]="bloqueioService.loading()"
+        (save)="handleSave($event)"
+        (close)="closeModal()"
+      />
+
+      <app-confirm-modal 
+        [isOpen]="isConfirmOpen"
+        title="Excluir Bloqueio"
+        message="Tem certeza que deseja remover este bloqueio? O obreiro voltará a figurar como disponível nesta data."
+        (confirm)="handleDelete()"
+        (cancel)="closeConfirm()"
+      />
+    </div>

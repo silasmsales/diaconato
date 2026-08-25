@@ -1,0 +1,277 @@
+<div class="space-y-6 animate-fade-in pb-20 md:pb-10">
+      <!-- Top Title & Global Actions -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2.5">
+            <span>Escalas & Presença</span>
+            <span class="text-xs px-2.5 py-1 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-semibold">
+              {{ filteredEscalas().length }} escalados
+            </span>
+          </h1>
+          <p class="text-sm text-slate-400 mt-1">Organização de equipes por culto e controle de check-in / presença</p>
+        </div>
+
+        <div class="flex items-center gap-2.5">
+          <button 
+            (click)="openAddModal()"
+            class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold shadow-lg shadow-indigo-600/25 transition-all transform active:scale-95">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+            <span>Escalar Obreiro</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Controls & Filters -->
+      <div class="glass-panel rounded-2xl p-3.5 border border-slate-800/80 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+        <!-- View Mode Switcher -->
+        <div class="flex items-center p-1 bg-slate-900/90 border border-slate-800 rounded-xl">
+          <button 
+            (click)="viewMode = 'eventos'"
+            [class]="viewMode === 'eventos' ? 'bg-indigo-600 text-white font-bold shadow' : 'text-slate-400 hover:text-slate-200'"
+            class="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all">
+            Por Eventos / Cultos
+          </button>
+          <button 
+            (click)="viewMode = 'obreiros'"
+            [class]="viewMode === 'obreiros' ? 'bg-indigo-600 text-white font-bold shadow' : 'text-slate-400 hover:text-slate-200'"
+            class="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all">
+            Por Obreiros
+          </button>
+        </div>
+
+        <!-- Month Filter Selector -->
+        <div class="flex items-center gap-2">
+          <label class="text-xs text-slate-400 font-semibold">Mês:</label>
+          <select 
+            [ngModel]="selectedMesId()"
+            (ngModelChange)="onMesChange(+$event)"
+            class="px-3 py-1.5 bg-slate-900/80 border border-slate-700/60 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+            <option [value]="0">Todos os Meses</option>
+            @for (m of mesService.meses(); track m.id_mes) {
+              <option [value]="m.id_mes">{{ formatMesReferencia(m) }}</option>
+            }
+          </select>
+        </div>
+      </div>
+
+      <!-- Main Content Views -->
+      @if (viewMode === 'eventos') {
+        <div class="space-y-4">
+          @if (filteredEventos().length === 0) {
+            <div class="glass-panel rounded-3xl p-12 text-center border border-slate-800/80 max-w-md mx-auto space-y-3">
+              <div class="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 mx-auto flex items-center justify-center">
+                <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <h3 class="text-base font-bold text-white">Nenhum evento encontrado</h3>
+              <p class="text-xs text-slate-400">Cadastre eventos ou selecione outro mês no filtro superior.</p>
+            </div>
+          }
+
+          @for (ev of filteredEventos(); track ev.id_evento) {
+            <div class="glass-panel rounded-2xl p-5 border border-slate-800/80 space-y-4">
+              <!-- Event Header -->
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-3">
+                <div class="space-y-1">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span 
+                      [class]="getTurnoStyle(ev.turno).bg + ' ' + getTurnoStyle(ev.turno).text + ' ' + getTurnoStyle(ev.turno).border"
+                      class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full border">
+                      {{ getTurnoLabel(ev.turno) }}
+                    </span>
+                    @if (ev.mes) {
+                      <span class="text-[10px] font-semibold text-indigo-300 bg-indigo-500/10 px-2 py-0.5 rounded-md border border-indigo-500/20">
+                        {{ formatMesReferencia(ev.mes) }}
+                      </span>
+                    }
+                    <span class="text-xs font-semibold text-slate-400">
+                      {{ ev.data | date:'dd/MM/yyyy' }}
+                    </span>
+                  </div>
+                  <h3 class="text-base font-bold text-white">{{ ev.descricao || 'Culto' }}</h3>
+                </div>
+
+                <div class="flex items-center gap-3 flex-wrap">
+                  <!-- Check-in stats for this event -->
+                  @if (getEscaladosByEvent(ev.id_evento!).length > 0) {
+                    <div class="flex items-center gap-2 text-xs bg-slate-900/80 border border-slate-800 px-3 py-1.5 rounded-xl">
+                      <span class="text-slate-400">Presença:</span>
+                      <span class="font-bold text-emerald-400">
+                        {{ getCheckinStats(ev.id_evento!).presentes }}/{{ getEscaladosByEvent(ev.id_evento!).length }}
+                      </span>
+                      @if (getCheckinStats(ev.id_evento!).faltas > 0) {
+                        <span class="text-rose-400 text-[11px]">({{ getCheckinStats(ev.id_evento!).faltas }} ausente)</span>
+                      }
+                    </div>
+                  }
+
+                  <button 
+                    (click)="openAddModal(ev.id_evento, ev.id_mes)"
+                    class="px-3 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600 text-xs font-semibold text-indigo-300 hover:text-white border border-indigo-500/30 transition-all flex items-center gap-1.5">
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    <span>Escalar</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Escalados Grid -->
+              @if (getEscaladosByEvent(ev.id_evento!).length === 0) {
+                <div class="py-6 text-center text-xs text-slate-500">
+                  Nenhum obreiro escalado neste evento ainda.
+                </div>
+              } @else {
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  @for (esc of getEscaladosByEvent(ev.id_evento!); track esc.id_escala) {
+                    <div class="bg-slate-900/70 border border-slate-800 hover:border-slate-700 rounded-xl p-3 flex items-center justify-between gap-2 group transition-all">
+                      <!-- Obreiro Info -->
+                      <div class="flex items-center gap-2.5 min-w-0">
+                        <div class="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-xs text-indigo-400 shrink-0">
+                          {{ getInitials(esc.obreiros?.nome) }}
+                        </div>
+                        <div class="min-w-0">
+                          <div class="text-xs font-bold text-white truncate">{{ esc.obreiros?.nome }}</div>
+                          <div class="text-[10px] text-slate-400">
+                            {{ esc.obreiros?.diacono ? 'Diácono' : 'Obreiro' }}
+                            {{ esc.obreiros?.lider ? '• Líder' : '' }}
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Check-in Actions & Status -->
+                      <div class="flex items-center gap-1.5 shrink-0">
+                        <!-- Checkin Button Toggle -->
+                        <div class="flex items-center rounded-lg bg-slate-950/80 border border-slate-800 p-0.5">
+                          <!-- Presente button -->
+                          <button 
+                            type="button"
+                            (click)="toggleCheckin(esc, esc.checkin === true ? null : true)"
+                            [class]="esc.checkin === true ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50 shadow font-bold' : 'text-slate-500 hover:text-emerald-400'"
+                            class="px-2 py-1 rounded text-[10px] transition-all flex items-center gap-1"
+                            title="Marcar Presente">
+                            <span>✓</span>
+                            <span class="hidden sm:inline">Presente</span>
+                          </button>
+
+                          <!-- Ausente button -->
+                          <button 
+                            type="button"
+                            (click)="toggleCheckin(esc, esc.checkin === false ? null : false)"
+                            [class]="esc.checkin === false ? 'bg-rose-500/20 text-rose-400 border-rose-500/50 shadow font-bold' : 'text-slate-500 hover:text-rose-400'"
+                            class="px-2 py-1 rounded text-[10px] transition-all flex items-center gap-1"
+                            title="Marcar Falta / Ausente">
+                            <span>✕</span>
+                            <span class="hidden sm:inline">Falta</span>
+                          </button>
+                        </div>
+
+                        <!-- Remove Button -->
+                        <button 
+                          (click)="confirmDeleteEscala(esc)"
+                          class="p-1 text-slate-500 hover:text-rose-400 transition-colors opacity-60 group-hover:opacity-100"
+                          title="Remover da escala">
+                          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+      } @else {
+        <!-- View Mode: Obreiros -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          @for (ob of obreiroService.obreiros(); track ob.id_obreiro) {
+            <div class="glass-panel rounded-2xl p-4 border border-slate-800/80 space-y-3">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                  <div class="w-9 h-9 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-xs text-indigo-400">
+                    {{ getInitials(ob.nome) }}
+                  </div>
+                  <div>
+                    <h4 class="text-sm font-bold text-white">{{ ob.nome }}</h4>
+                    <span class="text-[10px] text-slate-400">{{ ob.diacono ? 'Diácono' : 'Obreiro' }}</span>
+                  </div>
+                </div>
+
+                <span class="text-xs font-extrabold px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                  {{ getEscalasByObreiro(ob.id_obreiro!).length }} escalas
+                </span>
+              </div>
+
+              <div class="space-y-1.5 pt-2 border-t border-slate-800">
+                @if (getEscalasByObreiro(ob.id_obreiro!).length === 0) {
+                  <p class="text-xs text-slate-500 italic">Nenhuma escala neste período.</p>
+                }
+                @for (esc of getEscalasByObreiro(ob.id_obreiro!); track esc.id_escala) {
+                  <div class="text-xs bg-slate-900/60 border border-slate-800 p-2 rounded-lg flex items-center justify-between gap-2">
+                    <div class="min-w-0">
+                      <div class="flex items-center gap-1.5">
+                        <span class="text-slate-300 font-semibold">{{ esc.eventos?.data | date:'dd/MM' }}</span>
+                        <!-- Check-in status pill -->
+                        @if (esc.checkin === true) {
+                          <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">✓ Presente</span>
+                        } @else if (esc.checkin === false) {
+                          <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-rose-500/15 text-rose-400 border border-rose-500/30">✕ Falta</span>
+                        } @else {
+                          <span class="text-[9px] text-slate-500 px-1.5 py-0.2 rounded bg-slate-800 border border-slate-700">⏳ Pendente</span>
+                        }
+                      </div>
+                      <p class="text-slate-400 text-[11px] truncate">{{ esc.eventos?.descricao }}</p>
+                    </div>
+
+                    <div class="flex items-center gap-1 shrink-0">
+                      <button 
+                        (click)="toggleCheckin(esc, esc.checkin === true ? null : true)"
+                        class="p-1 text-slate-400 hover:text-emerald-400" 
+                        title="Alternar presença">
+                        <span>✓</span>
+                      </button>
+                      <button 
+                        (click)="confirmDeleteEscala(esc)"
+                        class="p-1 text-slate-500 hover:text-rose-400"
+                        title="Remover">
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- Escala Modal -->
+      <app-escala-modal 
+        [isOpen]="isModalOpen"
+        [meses]="mesService.meses()"
+        [eventos]="eventoService.eventos()"
+        [obreiros]="obreiroService.obreiros()"
+        [bloqueios]="bloqueioService.bloqueios()"
+        [defaultMesId]="selectedMesId() > 0 ? selectedMesId() : null"
+        [defaultEventoId]="selectedEventoId"
+        [loading]="escalaService.loading()"
+        (save)="handleSave($event)"
+        (close)="closeModal()"
+      />
+
+      <!-- Confirm Delete Modal -->
+      <app-confirm-modal 
+        [isOpen]="isConfirmOpen"
+        title="Remover da Escala"
+        [message]="'Tem certeza que deseja desescalar ' + (selectedEscala?.obreiros?.nome || 'este obreiro') + ' deste evento?'"
+        (confirm)="handleDelete()"
+        (cancel)="closeConfirm()"
+      />
+    </div>

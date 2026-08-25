@@ -7,71 +7,7 @@ import { AuthService } from '../../core/services/auth.service';
   selector: 'app-bottom-nav',
   standalone: true,
   imports: [RouterLink, RouterLinkActive, CommonModule],
-  template: `
-    @if (authService.isAuthenticated()) {
-      <nav class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-950/95 backdrop-blur-lg border-t border-slate-800/90 px-2 py-1.5">
-        <div class="grid grid-cols-5 gap-1 items-center max-w-lg mx-auto">
-          <!-- Dashboard -->
-          <a 
-            routerLink="/" 
-            routerLinkActive="text-indigo-400 font-semibold"
-            [routerLinkActiveOptions]="{ exact: true }"
-            class="flex flex-col items-center justify-center py-1 text-slate-400 hover:text-slate-200 transition-colors">
-            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-            </svg>
-            <span class="text-[10px] mt-0.5">Início</span>
-          </a>
-
-          <!-- Obreiros -->
-          <a 
-            routerLink="/obreiros" 
-            routerLinkActive="text-indigo-400 font-semibold"
-            class="flex flex-col items-center justify-center py-1 text-slate-400 hover:text-slate-200 transition-colors">
-            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-            </svg>
-            <span class="text-[10px] mt-0.5">Obreiros</span>
-          </a>
-
-          <!-- Escalas (Destaque Central) -->
-          <a 
-            routerLink="/escalas" 
-            routerLinkActive="text-indigo-400 font-semibold"
-            class="flex flex-col items-center justify-center -mt-4">
-            <div class="w-12 h-12 rounded-full bg-gradient-to-tr from-indigo-600 to-amber-500 flex items-center justify-center shadow-lg shadow-indigo-600/30 text-white transform active:scale-95 transition-transform">
-              <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-            </div>
-            <span class="text-[10px] mt-1 text-slate-300">Escalas</span>
-          </a>
-
-          <!-- Eventos -->
-          <a 
-            routerLink="/eventos" 
-            routerLinkActive="text-indigo-400 font-semibold"
-            class="flex flex-col items-center justify-center py-1 text-slate-400 hover:text-slate-200 transition-colors">
-            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-            </svg>
-            <span class="text-[10px] mt-0.5">Eventos</span>
-          </a>
-
-          <!-- Bloqueios -->
-          <a 
-            routerLink="/bloqueios" 
-            routerLinkActive="text-indigo-400 font-semibold"
-            class="flex flex-col items-center justify-center py-1 text-slate-400 hover:text-slate-200 transition-colors">
-            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-            </svg>
-            <span class="text-[10px] mt-0.5">Bloqueios</span>
-          </a>
-        </div>
-      </nav>
-    }
-  `
+  templateUrl: './bottom-nav.component.html'
 })
 export class BottomNavComponent {
   authService = inject(AuthService);
