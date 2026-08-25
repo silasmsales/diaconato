@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterModule } from '@angular/router';
 import { EscalaService } from '../../core/services/escala.service';
 import { EventoService } from '../../core/services/evento.service';
 import { ObreiroService } from '../../core/services/obreiro.service';
@@ -16,7 +16,7 @@ import { ConfirmModalComponent } from '../../shared/components/confirm-modal.com
 @Component({
   selector: 'app-escalas-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, EscalaModalComponent, ConfirmModalComponent],
+  imports: [CommonModule, FormsModule, RouterModule, EscalaModalComponent, ConfirmModalComponent],
   templateUrl: './escalas-list.component.html'
 })
 export class EscalasListComponent implements OnInit {

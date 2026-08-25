@@ -38,6 +38,11 @@ export const routes: Routes = [
     loadComponent: () => import('./features/meses/meses-list.component').then(m => m.MesesListComponent)
   },
   {
+    path: 'escalas/gerador',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/escalas/escala-gerador.component').then(m => m.EscalaGeradorComponent)
+  },
+  {
     path: 'escalas',
     canActivate: [authGuard],
     loadComponent: () => import('./features/escalas/escalas-list.component').then(m => m.EscalasListComponent)

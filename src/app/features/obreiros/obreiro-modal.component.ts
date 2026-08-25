@@ -44,7 +44,16 @@ export class ObreiroModalComponent implements OnInit {
 
   onSubmit() {
     if (this.form.valid) {
-      this.save.emit(this.form.value);
+      const raw = this.form.value;
+      this.save.emit({
+        ...raw,
+        nome: raw.nome.trim(),
+        apelido: raw.apelido ? raw.apelido.trim() : null,
+        telefone: raw.telefone ? raw.telefone.trim() : null,
+        email: raw.email ? raw.email.trim() : null,
+        data_nascimento: raw.data_nascimento ? raw.data_nascimento : null,
+        foto: raw.foto ? raw.foto.trim() : null
+      });
     }
   }
 

@@ -128,6 +128,47 @@ export class EscalaService {
     }
   }
 
+  
+  async saveGeneratedSchedule(idMes: number, dtos: CreateEscalaDto[], replaceExisting: boolean = true): Promise<boolean> {
+    this.loading.set(true);
+    try {
+      if (replaceExisting) {
+        // Remover escalas anteriores deste mês
+        const { error: delError } = await this.supabase
+          .from('escala')
+          .delete()
+          .eq('id_mes', idMes);
+
+        if (delError) throw delError;
+      }
+
+      if (dtos.length > 0) {
+        const { data, error: insError } = await this.supabase
+          .from('escala')
+          .insert(dtos)
+          .select(`
+            *,
+            eventos (*),
+            obreiros (*),
+            mes (*)
+          `);
+
+        if (insError) throw insError;
+      }
+
+      // Atualizar lista local
+      await this.fetchByMes(idMes);
+      this.toast.success('Escala Mensal Gerada!', `${dtos.length} escalas foram gravadas com sucesso.`);
+      return true;
+    } catch (err: any) {
+      console.error('Erro ao salvar escala gerada:', err);
+      this.toast.error('Falha ao salvar escala', err.message);
+      return false;
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
   async removeObreiroFromEvento(idEscala: number): Promise<boolean> {
     this.loading.set(true);
     try {
