@@ -6,7 +6,7 @@ import { ObreiroService } from '../../core/services/obreiro.service';
 import { MesService } from '../../core/services/mes.service';
 import { Bloqueio, CreateBloqueioDto } from '../../core/models/bloqueio.model';
 import { Obreiro } from '../../core/models/obreiro.model';
-import { formatMesReferencia } from '../../core/models/mes.model';
+import { formatMesReferencia, findCurrentMes } from '../../core/models/mes.model';
 import { TURNO_LABELS, TURNO_COLORS, TurnoEnum } from '../../core/models/turno.enum';
 import { BloqueioModalComponent, BloqueioBatchPayload } from './bloqueio-modal.component';
 import { ConfirmModalComponent } from '../../shared/components/confirm-modal.component';
@@ -40,6 +40,7 @@ export class BloqueiosListComponent implements OnInit {
   isModalOpen = false;
   isConfirmOpen = false;
   selectedBloqueio: Bloqueio | null = null;
+  selectedGroupToDelete: ObreiroBloqueioGroup | null = null;
   defaultObreiroId: number | null = null;
 
   filteredBloqueios = computed(() => {
@@ -93,10 +94,16 @@ export class BloqueiosListComponent implements OnInit {
     );
   });
 
-  ngOnInit() {
+  async ngOnInit() {
     this.bloqueioService.fetchAll();
     this.obreiroService.fetchAll();
-    this.mesService.fetchAll();
+    const meses = await this.mesService.fetchAll();
+    if (!this.selectedMesFilter()) {
+      const cur = findCurrentMes(meses);
+      if (cur) {
+        this.selectedMesFilter.set(this.formatMesKey(cur));
+      }
+    }
   }
 
   formatMesKey(m: any): string {
@@ -120,12 +127,14 @@ export class BloqueiosListComponent implements OnInit {
 
   openCreateModal(preselectedObreiroId?: number) {
     this.selectedBloqueio = null;
+    this.selectedGroupToDelete = null;
     this.defaultObreiroId = preselectedObreiroId || null;
     this.isModalOpen = true;
   }
 
   openEditModal(item: Bloqueio) {
     this.selectedBloqueio = item;
+    this.selectedGroupToDelete = null;
     this.defaultObreiroId = null;
     this.isModalOpen = true;
   }
@@ -133,17 +142,41 @@ export class BloqueiosListComponent implements OnInit {
   closeModal() {
     this.isModalOpen = false;
     this.selectedBloqueio = null;
+    this.selectedGroupToDelete = null;
     this.defaultObreiroId = null;
   }
 
   openDeleteConfirm(item: Bloqueio) {
     this.selectedBloqueio = item;
+    this.selectedGroupToDelete = null;
     this.isConfirmOpen = true;
+  }
+
+  openDeleteGroupConfirm(group: ObreiroBloqueioGroup) {
+    this.selectedBloqueio = null;
+    this.selectedGroupToDelete = group;
+    this.isConfirmOpen = true;
+  }
+
+  getDeleteConfirmTitle(): string {
+    if (this.selectedGroupToDelete) {
+      return `Excluir Bloqueios de ${this.selectedGroupToDelete.obreiro.nome}`;
+    }
+    return 'Excluir Bloqueio';
+  }
+
+  getDeleteConfirmMessage(): string {
+    if (this.selectedGroupToDelete) {
+      const count = this.selectedGroupToDelete.bloqueios.length;
+      return `Tem certeza que deseja remover todos os ${count} bloqueio(s) listados de ${this.selectedGroupToDelete.obreiro.nome} de acordo com os filtros atuais?`;
+    }
+    return 'Tem certeza que deseja remover este bloqueio? O obreiro voltará a figurar como disponível nesta data.';
   }
 
   closeConfirm() {
     this.isConfirmOpen = false;
     this.selectedBloqueio = null;
+    this.selectedGroupToDelete = null;
   }
 
   async handleSave(payload: BloqueioBatchPayload) {
@@ -176,7 +209,13 @@ export class BloqueiosListComponent implements OnInit {
   }
 
   async handleDelete() {
-    if (this.selectedBloqueio && this.selectedBloqueio.id_bloqueio) {
+    if (this.selectedGroupToDelete) {
+      const ids = this.selectedGroupToDelete.bloqueios
+        .map(b => b.id_bloqueio)
+        .filter(id => typeof id === 'number') as number[];
+      const success = await this.bloqueioService.deleteBatch(ids);
+      if (success) this.closeConfirm();
+    } else if (this.selectedBloqueio && this.selectedBloqueio.id_bloqueio) {
       const success = await this.bloqueioService.delete(this.selectedBloqueio.id_bloqueio);
       if (success) this.closeConfirm();
     }

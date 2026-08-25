@@ -8,7 +8,7 @@ import { MesService } from '../../core/services/mes.service';
 import { ToastService } from '../../core/services/toast.service';
 import { CreateEventoDto } from '../../core/models/evento.model';
 import { TipoEvento, DIAS_SEMANA_LABELS } from '../../core/models/tipo-evento.model';
-import { formatMesReferencia } from '../../core/models/mes.model';
+import { formatMesReferencia, findCurrentMes } from '../../core/models/mes.model';
 import { TURNO_LABELS, TURNO_COLORS } from '../../core/models/turno.enum';
 
 @Component({
@@ -40,11 +40,19 @@ export class EventoGeradorComponent implements OnInit {
   }
 
   async carregarDados() {
-    await Promise.all([
+    const [meses] = await Promise.all([
       this.mesService.fetchAll(),
       this.tipoEventoService.fetchAll(),
       this.eventoService.fetchAll()
     ]);
+
+    // Pré-selecionar o mês atual
+    if (this.selectedMesId() === 0) {
+      const cur = findCurrentMes(meses);
+      if (cur && cur.id_mes) {
+        this.selectedMesId.set(cur.id_mes);
+      }
+    }
 
     // Selecionar todos os modelos com dia fixo por padrão
     this.selecionarTodosModelos(true);

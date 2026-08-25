@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { EventoService } from '../../core/services/evento.service';
 import { MesService } from '../../core/services/mes.service';
 import { Evento, CreateEventoDto } from '../../core/models/evento.model';
-import { formatMesReferencia } from '../../core/models/mes.model';
+import { formatMesReferencia, findCurrentMes } from '../../core/models/mes.model';
 import { TURNO_LABELS, TURNO_COLORS, TurnoEnum } from '../../core/models/turno.enum';
 import { EventoModalComponent } from './evento-modal.component';
 import { ConfirmModalComponent } from '../../shared/components/confirm-modal.component';
@@ -52,9 +52,15 @@ export class EventosListComponent implements OnInit {
     return list;
   });
 
-  ngOnInit() {
+  async ngOnInit() {
     this.eventoService.fetchAll();
-    this.mesService.fetchAll();
+    const meses = await this.mesService.fetchAll();
+    if (this.selectedMesFilter() === 0) {
+      const cur = findCurrentMes(meses);
+      if (cur && cur.id_mes) {
+        this.selectedMesFilter.set(cur.id_mes);
+      }
+    }
   }
 
   getTurnoLabel(turno: number): string {

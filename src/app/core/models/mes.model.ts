@@ -28,3 +28,21 @@ export function formatMesReferencia(mes?: Mes | null): string {
   const nome = MESES_NOMES[mes.mes_referencia] || `Mês ${mes.mes_referencia}`;
   return `${nome}/${mes.ano_referencia}`;
 }
+
+export function findCurrentMes(meses: Mes[]): Mes | undefined {
+  if (!meses || meses.length === 0) return undefined;
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1; // 1 a 12
+
+  // 1. Tentar encontrar o mês e ano exatos de hoje
+  const exact = meses.find(m => Number(m.ano_referencia) === currentYear && Number(m.mes_referencia) === currentMonth);
+  if (exact) return exact;
+
+  // 2. Tentar encontrar o mês atual ou seguinte no mesmo ano
+  const futureOrCurrentYear = meses.find(m => Number(m.ano_referencia) === currentYear && Number(m.mes_referencia) >= currentMonth);
+  if (futureOrCurrentYear) return futureOrCurrentYear;
+
+  // 3. Fallback para o primeiro mês cadastrado
+  return meses[0];
+}

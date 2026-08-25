@@ -101,20 +101,29 @@ export class BloqueioService {
   }
 
   async delete(id: number): Promise<boolean> {
+    return this.deleteBatch([id]);
+  }
+
+  async deleteBatch(ids: number[]): Promise<boolean> {
+    if (!ids || ids.length === 0) return true;
     this.loading.set(true);
     try {
       const { error } = await this.supabase
         .from('bloqueios')
         .delete()
-        .eq('id_bloqueio', id);
+        .in('id_bloqueio', ids);
 
       if (error) throw error;
-      this.bloqueios.update(list => list.filter(item => item.id_bloqueio !== id));
-      this.toast.success('Bloqueio removido', 'Registro excluído com sucesso.');
+      const idSet = new Set(ids);
+      this.bloqueios.update(list => list.filter(item => !idSet.has(item.id_bloqueio!)));
+      this.toast.success(
+        ids.length > 1 ? `${ids.length} bloqueios removidos` : 'Bloqueio removido',
+        'Registro(s) excluído(s) com sucesso.'
+      );
       return true;
     } catch (err: any) {
-      console.error('Erro ao deletar bloqueio:', err);
-      this.toast.error('Falha ao excluir bloqueio', err.message);
+      console.error('Erro ao deletar bloqueios:', err);
+      this.toast.error('Falha ao excluir bloqueio(s)', err.message);
       return false;
     } finally {
       this.loading.set(false);

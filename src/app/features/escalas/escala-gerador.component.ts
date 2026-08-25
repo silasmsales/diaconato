@@ -9,7 +9,7 @@ import { ObreiroService } from '../../core/services/obreiro.service';
 import { MesService } from '../../core/services/mes.service';
 import { BloqueioService } from '../../core/services/bloqueio.service';
 import { ToastService } from '../../core/services/toast.service';
-import { formatMesReferencia } from '../../core/models/mes.model';
+import { formatMesReferencia, findCurrentMes } from '../../core/models/mes.model';
 import { TURNO_LABELS, TURNO_COLORS } from '../../core/models/turno.enum';
 
 @Component({
@@ -42,11 +42,20 @@ export class EscalaGeradorComponent implements OnInit {
   }
 
   async carregarDados() {
-    this.mesService.fetchAll();
-    this.eventoService.fetchAll();
-    this.obreiroService.fetchAll();
-    this.bloqueioService.fetchAll();
-    this.escalaService.fetchAll();
+    const [meses] = await Promise.all([
+      this.mesService.fetchAll(),
+      this.eventoService.fetchAll(),
+      this.obreiroService.fetchAll(),
+      this.bloqueioService.fetchAll(),
+      this.escalaService.fetchAll()
+    ]);
+
+    if (this.selectedMesId() === 0) {
+      const cur = findCurrentMes(meses);
+      if (cur && cur.id_mes) {
+        this.selectedMesId.set(cur.id_mes);
+      }
+    }
   }
 
   onMesChange(mesId: number) {

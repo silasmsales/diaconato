@@ -8,7 +8,7 @@ import { ObreiroService } from '../../core/services/obreiro.service';
 import { MesService } from '../../core/services/mes.service';
 import { BloqueioService } from '../../core/services/bloqueio.service';
 import { Escala, CreateEscalaDto } from '../../core/models/escala.model';
-import { formatMesReferencia } from '../../core/models/mes.model';
+import { formatMesReferencia, findCurrentMes } from '../../core/models/mes.model';
 import { TURNO_LABELS, TURNO_COLORS } from '../../core/models/turno.enum';
 import { EscalaModalComponent } from './escala-modal.component';
 import { ConfirmModalComponent } from '../../shared/components/confirm-modal.component';
@@ -51,7 +51,7 @@ export class EscalasListComponent implements OnInit {
     return all.filter(e => e.id_mes === mesId);
   });
 
-  ngOnInit() {
+  async ngOnInit() {
     this.route.queryParams.subscribe(params => {
       if (params['mes']) {
         const id = Number(params['mes']);
@@ -61,11 +61,20 @@ export class EscalasListComponent implements OnInit {
       }
     });
 
-    this.mesService.fetchAll();
-    this.eventoService.fetchAll();
-    this.obreiroService.fetchAll();
-    this.bloqueioService.fetchAll();
-    this.escalaService.fetchAll();
+    const [meses] = await Promise.all([
+      this.mesService.fetchAll(),
+      this.eventoService.fetchAll(),
+      this.obreiroService.fetchAll(),
+      this.bloqueioService.fetchAll(),
+      this.escalaService.fetchAll()
+    ]);
+
+    if (this.selectedMesId() === 0) {
+      const cur = findCurrentMes(meses);
+      if (cur && cur.id_mes) {
+        this.selectedMesId.set(cur.id_mes);
+      }
+    }
   }
 
   onMesChange(mesId: number) {

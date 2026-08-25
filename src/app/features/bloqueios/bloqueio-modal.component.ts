@@ -101,23 +101,32 @@ export class BloqueioModalComponent implements OnInit {
   private initForm() {
     const isEditing = !!this.bloqueio;
     const currentTurno = this.bloqueio?.turno;
+
+    // Próximo mês ao atual por padrão (1º dia do próximo mês)
     const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
-    const defaultMesKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+    const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+    const nextYear = nextMonth.getFullYear();
+    const nextMonthNum = nextMonth.getMonth() + 1; // 1 a 12
+    const defaultDateNextMonth = `${nextYear}-${String(nextMonthNum).padStart(2, '0')}-01`;
+    const defaultMesKeyNextMonth = `${nextYear}-${String(nextMonthNum).padStart(2, '0')}`;
 
     this.mode = 'especifico';
 
+    // Procurar mês correspondente na lista de meses cadastrados ou usar a chave calculada
+    const matchingMes = this.mesesList.find(m => m.key === defaultMesKeyNextMonth);
+    const initialMesRef = matchingMes ? matchingMes.key : (this.mesesList[0]?.key || defaultMesKeyNextMonth);
+
     this.form = this.fb.group({
       id_obreiro: [this.bloqueio?.id_obreiro || this.defaultObreiroId || null, [Validators.required]],
-      data: [this.bloqueio?.data || todayStr],
-      data_inicio: [todayStr],
-      data_fim: [todayStr],
-      mes_ref: [this.mesesList[0]?.key || defaultMesKey],
+      data: [this.bloqueio?.data || defaultDateNextMonth, [Validators.required]],
+      data_inicio: [defaultDateNextMonth, [Validators.required]],
+      data_fim: [defaultDateNextMonth, [Validators.required]],
+      mes_ref: [initialMesRef],
       paridade: ['pares'],
       dia_semana: [1], // Domingo
-      manha: [isEditing ? currentTurno === TurnoEnum.MANHA || currentTurno === TurnoEnum.INTEGRAL : true],
-      tarde: [isEditing ? currentTurno === TurnoEnum.TARDE || currentTurno === TurnoEnum.INTEGRAL : false],
-      noite: [isEditing ? currentTurno === TurnoEnum.NOITE || currentTurno === TurnoEnum.INTEGRAL : false],
+      manha: [isEditing ? (currentTurno === TurnoEnum.MANHA || currentTurno === TurnoEnum.INTEGRAL) : true],
+      tarde: [isEditing ? (currentTurno === TurnoEnum.TARDE || currentTurno === TurnoEnum.INTEGRAL) : true],
+      noite: [isEditing ? (currentTurno === TurnoEnum.NOITE || currentTurno === TurnoEnum.INTEGRAL) : true],
       motivo: [this.bloqueio?.motivo || '']
     });
   }
