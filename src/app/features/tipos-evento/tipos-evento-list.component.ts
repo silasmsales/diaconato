@@ -1,0 +1,238 @@
+import { Component, OnInit, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { TipoEventoService } from '../../core/services/tipo-evento.service';
+import { TipoEvento, CreateTipoEventoDto, DIAS_SEMANA_LABELS } from '../../core/models/tipo-evento.model';
+import { TURNO_LABELS, TURNO_COLORS } from '../../core/models/turno.enum';
+import { TipoEventoModalComponent } from './tipo-evento-modal.component';
+import { ConfirmModalComponent } from '../../shared/components/confirm-modal.component';
+
+@Component({
+  selector: 'app-tipos-evento-list',
+  standalone: true,
+  imports: [CommonModule, TipoEventoModalComponent, ConfirmModalComponent],
+  template: `
+    <div class="space-y-6 animate-fade-in pb-20 md:pb-10 max-w-5xl mx-auto">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2.5">
+            <span>Modelos de Cultos / Eventos</span>
+            <span class="text-xs px-2.5 py-1 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-semibold">
+              {{ tiposEvento().length }} modelos
+            </span>
+          </h1>
+          <p class="text-sm text-slate-400 mt-1">Configuração de padrões de vagas, horários e púlpito para cultos frequentes</p>
+        </div>
+
+        <button 
+          (click)="openCreateModal()"
+          class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold shadow-lg shadow-indigo-600/25 transition-all transform active:scale-95">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          </svg>
+          <span>Novo Modelo</span>
+        </button>
+      </div>
+
+      @if (tipoEventoService.loading() && tiposEvento().length === 0) {
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          @for (i of [1,2,3,4]; track i) {
+            <div class="glass-card rounded-2xl p-5 border border-slate-800 animate-pulse h-36"></div>
+          }
+        </div>
+      }
+
+      @if (!tipoEventoService.loading() && tiposEvento().length === 0) {
+        <div class="glass-panel rounded-3xl p-12 text-center border border-slate-800/80 space-y-4">
+          <div class="w-16 h-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 mx-auto flex items-center justify-center">
+            <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-lg font-bold text-white">Nenhum modelo cadastrado</h3>
+            <p class="text-xs text-slate-400 mt-1">Crie modelos de culto (ex: Domingo Noite, Quinta Doutrina) para preencher eventos com 1 clique.</p>
+          </div>
+          <button 
+            (click)="openCreateModal()"
+            class="px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500 rounded-xl shadow-md transition-all">
+            Cadastrar Primeiro Modelo
+          </button>
+        </div>
+      }
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        @for (item of tiposEvento(); track item.id_tipo_evento) {
+          <div class="glass-panel rounded-2xl p-5 border border-slate-800/80 hover:border-indigo-500/30 transition-all flex flex-col justify-between space-y-4">
+            <div class="space-y-2.5">
+              <div class="flex items-start justify-between gap-2">
+                <div class="space-y-1">
+                  <div class="flex items-center gap-2">
+                    <span 
+                      [class]="getTurnoStyle(item.turno_padrao).bg + ' ' + getTurnoStyle(item.turno_padrao).text + ' ' + getTurnoStyle(item.turno_padrao).border"
+                      class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full border">
+                      {{ getTurnoLabel(item.turno_padrao) }}
+                    </span>
+                    @if (item.dia_semana_padrao) {
+                      <span class="text-xs font-semibold text-slate-300 bg-slate-800/90 px-2 py-0.5 rounded-md border border-slate-700">
+                        {{ getDiaSemanaLabel(item.dia_semana_padrao) }}
+                      </span>
+                    }
+                  </div>
+                  <h3 class="text-base font-bold text-white">{{ item.descricao_padrao }}</h3>
+                </div>
+
+                <span class="text-xs font-extrabold text-indigo-400">
+                  {{ getTotalVagasPadrao(item) }} vagas
+                </span>
+              </div>
+
+              <!-- Slots breakdown -->
+              <div class="grid grid-cols-3 gap-2 pt-2">
+                <div class="bg-slate-900/60 border border-slate-800/80 rounded-xl p-2 text-center space-y-1">
+                  <div class="text-[10px] text-slate-400">1º Horário</div>
+                  <div class="text-sm font-bold text-slate-200">{{ item.n_primeiro_horario_padrao }}</div>
+                  <div class="flex flex-col gap-0.5 text-[9px] font-semibold">
+                    @if (item.exclusivo_diacono_primeiro_padrao) {
+                      <span class="text-amber-400">Diáconos</span>
+                    }
+                    @if (item.pulpito_primeiro) {
+                      <span class="text-purple-400">Púlpito</span>
+                    }
+                  </div>
+                </div>
+
+                <div class="bg-slate-900/60 border border-slate-800/80 rounded-xl p-2 text-center space-y-1">
+                  <div class="text-[10px] text-slate-400">2º Horário</div>
+                  <div class="text-sm font-bold text-slate-200">{{ item.n_segundo_horario_padrao }}</div>
+                  <div class="flex flex-col gap-0.5 text-[9px] font-semibold">
+                    @if (item.exclusivo_diacono_segundo_padrao) {
+                      <span class="text-amber-400">Diáconos</span>
+                    }
+                    @if (item.pulpito_segundo) {
+                      <span class="text-purple-400">Púlpito</span>
+                    }
+                  </div>
+                </div>
+
+                <div class="bg-slate-900/60 border border-slate-800/80 rounded-xl p-2 text-center space-y-1">
+                  <div class="text-[10px] text-slate-400">3º Horário</div>
+                  <div class="text-sm font-bold text-slate-200">{{ item.n_terceiro_horario_padrao }}</div>
+                  <div class="flex flex-col gap-0.5 text-[9px] font-semibold">
+                    @if (item.exclusivo_diacono_terceiro_padrao) {
+                      <span class="text-amber-400">Diáconos</span>
+                    }
+                    @if (item.pulpito_terceiro) {
+                      <span class="text-purple-400">Púlpito</span>
+                    }
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-800/80">
+              <button 
+                (click)="openEditModal(item)"
+                class="px-3 py-1.5 text-xs font-medium text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-700 rounded-lg transition-all">
+                Editar
+              </button>
+              <button 
+                (click)="openDeleteConfirm(item)"
+                class="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-all">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+
+      <app-tipo-evento-modal 
+        [isOpen]="isModalOpen"
+        [tipoEvento]="selectedTipoEvento"
+        [loading]="tipoEventoService.loading()"
+        (save)="handleSave($event)"
+        (close)="closeModal()"
+      />
+
+      <app-confirm-modal 
+        [isOpen]="isConfirmOpen"
+        title="Excluir Modelo de Evento"
+        [message]="'Tem certeza que deseja excluir o modelo ' + (selectedTipoEvento?.descricao_padrao || '') + '?'"
+        (confirm)="handleDelete()"
+        (cancel)="closeConfirm()"
+      />
+    </div>
+  `
+})
+export class TiposEventoListComponent implements OnInit {
+  tipoEventoService = inject(TipoEventoService);
+  tiposEvento = this.tipoEventoService.tiposEvento;
+
+  isModalOpen = false;
+  isConfirmOpen = false;
+  selectedTipoEvento: TipoEvento | null = null;
+
+  ngOnInit() {
+    this.tipoEventoService.fetchAll();
+  }
+
+  getTurnoLabel(turno: number): string {
+    return TURNO_LABELS[turno] || 'Geral';
+  }
+
+  getTurnoStyle(turno: number) {
+    return TURNO_COLORS[turno] || { bg: 'bg-slate-800', text: 'text-slate-300', border: 'border-slate-700' };
+  }
+
+  getDiaSemanaLabel(dia: number): string {
+    return DIAS_SEMANA_LABELS[dia] || '';
+  }
+
+  getTotalVagasPadrao(item: TipoEvento): number {
+    return (item.n_primeiro_horario_padrao || 0) + (item.n_segundo_horario_padrao || 0) + (item.n_terceiro_horario_padrao || 0);
+  }
+
+  openCreateModal() {
+    this.selectedTipoEvento = null;
+    this.isModalOpen = true;
+  }
+
+  openEditModal(item: TipoEvento) {
+    this.selectedTipoEvento = item;
+    this.isModalOpen = true;
+  }
+
+  closeModal() {
+    this.isModalOpen = false;
+    this.selectedTipoEvento = null;
+  }
+
+  openDeleteConfirm(item: TipoEvento) {
+    this.selectedTipoEvento = item;
+    this.isConfirmOpen = true;
+  }
+
+  closeConfirm() {
+    this.isConfirmOpen = false;
+    this.selectedTipoEvento = null;
+  }
+
+  async handleSave(dto: CreateTipoEventoDto) {
+    if (this.selectedTipoEvento && this.selectedTipoEvento.id_tipo_evento) {
+      const res = await this.tipoEventoService.update(this.selectedTipoEvento.id_tipo_evento, dto);
+      if (res) this.closeModal();
+    } else {
+      const res = await this.tipoEventoService.create(dto);
+      if (res) this.closeModal();
+    }
+  }
+
+  async handleDelete() {
+    if (this.selectedTipoEvento && this.selectedTipoEvento.id_tipo_evento) {
+      const success = await this.tipoEventoService.delete(this.selectedTipoEvento.id_tipo_evento);
+      if (success) this.closeConfirm();
+    }
+  }
+}

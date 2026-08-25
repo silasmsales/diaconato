@@ -1,0 +1,230 @@
+import { Component, EventEmitter, Input, Output, OnInit, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Obreiro, CreateObreiroDto } from '../../core/models/obreiro.model';
+
+@Component({
+  selector: 'app-obreiro-modal',
+  standalone: true,
+  imports: [CommonModule, ReactiveFormsModule],
+  template: `
+    @if (isOpen) {
+      <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto animate-fade-in">
+        <div class="glass-panel border border-slate-700/60 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5 my-8">
+          <!-- Header -->
+          <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+            <div>
+              <h3 class="text-lg font-bold text-white">
+                {{ obreiro ? 'Editar Obreiro' : 'Novo Obreiro' }}
+              </h3>
+              <p class="text-xs text-slate-400">Preencha os dados do membro do diaconato</p>
+            </div>
+            <button 
+              type="button" 
+              (click)="onCancel()"
+              class="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          <!-- Form -->
+          <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-4">
+            <!-- Nome -->
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                Nome Completo *
+              </label>
+              <input 
+                type="text" 
+                formControlName="nome"
+                placeholder="Ex: João da Silva"
+                class="w-full px-3.5 py-2.5 bg-slate-900/90 border border-slate-700/70 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm transition-all"
+              />
+              @if (form.get('nome')?.touched && form.get('nome')?.hasError('required')) {
+                <span class="text-xs text-rose-400 mt-1 block">O nome é obrigatório</span>
+              }
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <!-- Apelido -->
+              <div>
+                <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                  Apelido
+                </label>
+                <input 
+                  type="text" 
+                  formControlName="apelido"
+                  placeholder="Ex: Joãozinho"
+                  class="w-full px-3.5 py-2.5 bg-slate-900/90 border border-slate-700/70 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm transition-all"
+                />
+              </div>
+
+              <!-- Telefone -->
+              <div>
+                <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                  WhatsApp / Telefone
+                </label>
+                <input 
+                  type="tel" 
+                  formControlName="telefone"
+                  placeholder="Ex: (11) 98765-4321"
+                  class="w-full px-3.5 py-2.5 bg-slate-900/90 border border-slate-700/70 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm transition-all"
+                />
+              </div>
+            </div>
+
+            <!-- Email -->
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                E-mail (opcional)
+              </label>
+              <input 
+                type="email" 
+                formControlName="email"
+                placeholder="Ex: joao.silva@email.com"
+                class="w-full px-3.5 py-2.5 bg-slate-900/90 border border-slate-700/70 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm transition-all"
+              />
+              @if (form.get('email')?.touched && form.get('email')?.hasError('email')) {
+                <span class="text-xs text-rose-400 mt-1 block">Insira um e-mail válido</span>
+              }
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <!-- Data Nascimento -->
+              <div>
+                <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                  Data de Nascimento
+                </label>
+                <input 
+                  type="date" 
+                  formControlName="data_nascimento"
+                  class="w-full px-3.5 py-2.5 bg-slate-900/90 border border-slate-700/70 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm transition-all"
+                />
+              </div>
+
+              <!-- Foto URL -->
+              <div>
+                <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                  URL da Foto (opcional)
+                </label>
+                <input 
+                  type="url" 
+                  formControlName="foto"
+                  placeholder="https://..."
+                  class="w-full px-3.5 py-2.5 bg-slate-900/90 border border-slate-700/70 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm transition-all"
+                />
+              </div>
+            </div>
+
+            <!-- Funções e Flags -->
+            <div class="border border-slate-800 rounded-xl p-4 bg-slate-900/50 space-y-3">
+              <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Funções & Status</span>
+              
+              <div class="grid grid-cols-2 gap-3">
+                <label class="flex items-center gap-2.5 cursor-pointer select-none">
+                  <input 
+                    type="checkbox" 
+                    formControlName="diacono" 
+                    class="w-4 h-4 rounded border-slate-700 text-indigo-600 focus:ring-indigo-500 bg-slate-900"
+                  />
+                  <span class="text-sm font-medium text-slate-200">Diácono</span>
+                </label>
+
+                <label class="flex items-center gap-2.5 cursor-pointer select-none">
+                  <input 
+                    type="checkbox" 
+                    formControlName="lider" 
+                    class="w-4 h-4 rounded border-slate-700 text-amber-600 focus:ring-amber-500 bg-slate-900"
+                  />
+                  <span class="text-sm font-medium text-slate-200">Líder</span>
+                </label>
+
+                <label class="flex items-center gap-2.5 cursor-pointer select-none">
+                  <input 
+                    type="checkbox" 
+                    formControlName="pulpito" 
+                    class="w-4 h-4 rounded border-slate-700 text-purple-600 focus:ring-purple-500 bg-slate-900"
+                  />
+                  <span class="text-sm font-medium text-slate-200">Púlpito</span>
+                </label>
+
+                <label class="flex items-center gap-2.5 cursor-pointer select-none">
+                  <input 
+                    type="checkbox" 
+                    formControlName="ativo" 
+                    class="w-4 h-4 rounded border-slate-700 text-emerald-600 focus:ring-emerald-500 bg-slate-900"
+                  />
+                  <span class="text-sm font-medium text-emerald-400">Ativo</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+              <button 
+                type="button" 
+                (click)="onCancel()"
+                class="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-xl transition-all">
+                Cancelar
+              </button>
+              <button 
+                type="submit" 
+                [disabled]="form.invalid || loading"
+                class="px-5 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl shadow-lg shadow-indigo-600/30 transition-all flex items-center gap-2">
+                @if (loading) {
+                  <span class="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></span>
+                }
+                Salvar Obreiro
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    }
+  `
+})
+export class ObreiroModalComponent implements OnInit {
+  @Input() isOpen = false;
+  @Input() obreiro: Obreiro | null = null;
+  @Input() loading = false;
+  @Output() save = new EventEmitter<CreateObreiroDto>();
+  @Output() close = new EventEmitter<void>();
+
+  private fb = inject(FormBuilder);
+  form!: FormGroup;
+
+  ngOnInit() {
+    this.initForm();
+  }
+
+  ngOnChanges() {
+    this.initForm();
+  }
+
+  private initForm() {
+    this.form = this.fb.group({
+      nome: [this.obreiro?.nome || '', [Validators.required]],
+      apelido: [this.obreiro?.apelido || ''],
+      telefone: [this.obreiro?.telefone || ''],
+      email: [this.obreiro?.email || '', [Validators.email]],
+      data_nascimento: [this.obreiro?.data_nascimento || ''],
+      foto: [this.obreiro?.foto || ''],
+      diacono: [this.obreiro?.diacono ?? false],
+      pulpito: [this.obreiro?.pulpito ?? false],
+      lider: [this.obreiro?.lider ?? false],
+      ativo: [this.obreiro?.ativo ?? true]
+    });
+  }
+
+  onSubmit() {
+    if (this.form.valid) {
+      this.save.emit(this.form.value);
+    }
+  }
+
+  onCancel() {
+    this.close.emit();
+  }
+}

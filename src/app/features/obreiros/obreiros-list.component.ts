@@ -1,0 +1,411 @@
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { ObreiroService } from '../../core/services/obreiro.service';
+import { Obreiro, CreateObreiroDto } from '../../core/models/obreiro.model';
+import { ObreiroModalComponent } from './obreiro-modal.component';
+import { ConfirmModalComponent } from '../../shared/components/confirm-modal.component';
+
+@Component({
+  selector: 'app-obreiros-list',
+  standalone: true,
+  imports: [CommonModule, FormsModule, ObreiroModalComponent, ConfirmModalComponent],
+  template: `
+    <div class="space-y-6 animate-fade-in pb-20 md:pb-10">
+      <!-- Top Title & Action Bar -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2.5">
+            <span>Obreiros do Diaconato</span>
+            <span class="text-xs px-2.5 py-1 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-semibold">
+              {{ obreiros().length }} total
+            </span>
+          </h1>
+          <p class="text-sm text-slate-400 mt-1">Gerencie a equipe ministerial, dados de contato e funções</p>
+        </div>
+
+        <button 
+          (click)="openCreateModal()"
+          class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold shadow-lg shadow-indigo-600/25 transition-all transform active:scale-95">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          </svg>
+          <span>Novo Obreiro</span>
+        </button>
+      </div>
+
+      <!-- Stats Bar -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div class="glass-card rounded-2xl p-3.5 border border-slate-800/80 flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
+            {{ activeCount() }}
+          </div>
+          <div>
+            <div class="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Ativos</div>
+            <div class="text-xs font-semibold text-slate-200">Disponíveis</div>
+          </div>
+        </div>
+
+        <div class="glass-card rounded-2xl p-3.5 border border-slate-800/80 flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold">
+            {{ diaconosCount() }}
+          </div>
+          <div>
+            <div class="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Diáconos</div>
+            <div class="text-xs font-semibold text-slate-200">Consagrados</div>
+          </div>
+        </div>
+
+        <div class="glass-card rounded-2xl p-3.5 border border-slate-800/80 flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center font-bold">
+            {{ lideresCount() }}
+          </div>
+          <div>
+            <div class="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Líderes</div>
+            <div class="text-xs font-semibold text-slate-200">Coordenação</div>
+          </div>
+        </div>
+
+        <div class="glass-card rounded-2xl p-3.5 border border-slate-800/80 flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center font-bold">
+            {{ pulpitoCount() }}
+          </div>
+          <div>
+            <div class="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Púlpito</div>
+            <div class="text-xs font-semibold text-slate-200">Apoio Altar</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filters & Search -->
+      <div class="glass-panel rounded-2xl p-3.5 border border-slate-800/80 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+        <!-- Search -->
+        <div class="relative flex-1">
+          <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input 
+            type="text" 
+            [ngModel]="searchQuery()"
+            (ngModelChange)="searchQuery.set($event)"
+            placeholder="Buscar por nome, apelido ou telefone..."
+            class="w-full pl-10 pr-4 py-2 bg-slate-900/80 border border-slate-700/60 rounded-xl text-xs sm:text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-all"
+          />
+        </div>
+
+        <!-- Filter Tabs -->
+        <div class="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
+          <button 
+            (click)="currentFilter.set('todos')"
+            [class]="currentFilter() === 'todos' ? 'bg-indigo-600 text-white font-medium' : 'bg-slate-900/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800'"
+            class="px-3 py-1.5 rounded-lg text-xs transition-all whitespace-nowrap">
+            Todos
+          </button>
+          <button 
+            (click)="currentFilter.set('diaconos')"
+            [class]="currentFilter() === 'diaconos' ? 'bg-indigo-600 text-white font-medium' : 'bg-slate-900/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800'"
+            class="px-3 py-1.5 rounded-lg text-xs transition-all whitespace-nowrap">
+            Diáconos
+          </button>
+          <button 
+            (click)="currentFilter.set('lideres')"
+            [class]="currentFilter() === 'lideres' ? 'bg-indigo-600 text-white font-medium' : 'bg-slate-900/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800'"
+            class="px-3 py-1.5 rounded-lg text-xs transition-all whitespace-nowrap">
+            Líderes
+          </button>
+          <button 
+            (click)="currentFilter.set('pulpito')"
+            [class]="currentFilter() === 'pulpito' ? 'bg-indigo-600 text-white font-medium' : 'bg-slate-900/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800'"
+            class="px-3 py-1.5 rounded-lg text-xs transition-all whitespace-nowrap">
+            Púlpito
+          </button>
+          <button 
+            (click)="currentFilter.set('inativos')"
+            [class]="currentFilter() === 'inativos' ? 'bg-indigo-600 text-white font-medium' : 'bg-slate-900/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800'"
+            class="px-3 py-1.5 rounded-lg text-xs transition-all whitespace-nowrap">
+            Inativos
+          </button>
+        </div>
+      </div>
+
+      <!-- Loading State -->
+      @if (obreiroService.loading() && obreiros().length === 0) {
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          @for (i of [1,2,3,4,5,6]; track i) {
+            <div class="glass-card rounded-2xl p-5 border border-slate-800 animate-pulse space-y-3">
+              <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-full bg-slate-800"></div>
+                <div class="space-y-2 flex-1">
+                  <div class="h-4 bg-slate-800 rounded w-2/3"></div>
+                  <div class="h-3 bg-slate-800 rounded w-1/3"></div>
+                </div>
+              </div>
+              <div class="h-3 bg-slate-800 rounded w-1/2"></div>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- Empty State -->
+      @if (!obreiroService.loading() && filteredObreiros().length === 0) {
+        <div class="glass-panel rounded-3xl p-12 text-center border border-slate-800/80 max-w-md mx-auto space-y-4">
+          <div class="w-16 h-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 mx-auto flex items-center justify-center">
+            <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-lg font-bold text-white">Nenhum obreiro encontrado</h3>
+            <p class="text-xs text-slate-400 mt-1">Nenhum registro corresponde aos filtros ou à busca atual.</p>
+          </div>
+          <button 
+            (click)="openCreateModal()"
+            class="px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500 rounded-xl shadow-md transition-all">
+            Cadastrar Primeiro Obreiro
+          </button>
+        </div>
+      }
+
+      <!-- Obreiros Grid / Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        @for (item of filteredObreiros(); track item.id_obreiro) {
+          <div class="glass-panel rounded-2xl p-5 border border-slate-800/80 hover:border-indigo-500/40 hover:shadow-xl hover:shadow-indigo-500/5 transition-all duration-300 flex flex-col justify-between group">
+            <div class="space-y-3">
+              <!-- Top Row: Avatar + Name + Actions -->
+              <div class="flex items-start justify-between gap-3">
+                <div class="flex items-center gap-3">
+                  <!-- Avatar -->
+                  @if (item.foto) {
+                    <img 
+                      [src]="item.foto" 
+                      [alt]="item.nome"
+                      class="w-12 h-12 rounded-full object-cover border-2 border-indigo-500/30"
+                    />
+                  } @else {
+                    <div class="w-12 h-12 rounded-full bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 flex items-center justify-center font-bold text-indigo-400 shadow-inner">
+                      {{ getInitials(item.nome) }}
+                    </div>
+                  }
+
+                  <div>
+                    <h3 class="text-base font-bold text-white group-hover:text-indigo-300 transition-colors">
+                      {{ item.nome }}
+                    </h3>
+                    @if (item.apelido) {
+                      <span class="text-xs text-slate-400 font-medium">"{{ item.apelido }}"</span>
+                    }
+                  </div>
+                </div>
+
+                <!-- Status indicator -->
+                <span 
+                  [class]="item.ativo ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-slate-800 text-slate-400 border-slate-700'"
+                  class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full border">
+                  {{ item.ativo ? 'Ativo' : 'Inativo' }}
+                </span>
+              </div>
+
+              <!-- Contact & Info -->
+              <div class="space-y-1.5 text-xs text-slate-300">
+                @if (item.telefone) {
+                  <div class="flex items-center justify-between">
+                    <span class="text-slate-400 flex items-center gap-1.5">
+                      <svg class="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                      </svg>
+                      {{ item.telefone }}
+                    </span>
+                    <a 
+                      [href]="getWhatsAppUrl(item.telefone)" 
+                      target="_blank"
+                      class="text-[11px] font-semibold text-emerald-400 hover:text-emerald-300 hover:underline inline-flex items-center gap-1">
+                      <span>WhatsApp</span>
+                      <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </a>
+                  </div>
+                }
+
+                @if (item.email) {
+                  <div class="flex items-center gap-1.5 text-slate-400 truncate">
+                    <svg class="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    <a [href]="'mailto:' + item.email" class="hover:text-indigo-400 transition-colors truncate">{{ item.email }}</a>
+                  </div>
+                }
+
+                @if (item.data_nascimento) {
+                  <div class="flex items-center gap-1.5 text-slate-400">
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <span>Nasc: {{ item.data_nascimento | date:'dd/MM/yyyy' }}</span>
+                  </div>
+                }
+              </div>
+
+              <!-- Roles Badges -->
+              <div class="flex flex-wrap gap-1.5 pt-1">
+                @if (item.diacono) {
+                  <span class="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                    Diácono
+                  </span>
+                }
+                @if (item.lider) {
+                  <span class="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                    Líder
+                  </span>
+                }
+                @if (item.pulpito) {
+                  <span class="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                    Púlpito
+                  </span>
+                }
+              </div>
+            </div>
+
+            <!-- Card Bottom Actions -->
+            <div class="flex items-center justify-end gap-2 pt-4 mt-4 border-t border-slate-800/80">
+              <button 
+                (click)="openEditModal(item)"
+                class="px-3 py-1.5 text-xs font-medium text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-700 rounded-lg transition-all flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                <span>Editar</span>
+              </button>
+
+              <button 
+                (click)="openDeleteConfirm(item)"
+                class="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-all"
+                title="Excluir Obreiro">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- Modals -->
+      <app-obreiro-modal 
+        [isOpen]="isModalOpen"
+        [obreiro]="selectedObreiro"
+        [loading]="obreiroService.loading()"
+        (save)="handleSave($event)"
+        (close)="closeModal()"
+      />
+
+      <app-confirm-modal 
+        [isOpen]="isConfirmOpen"
+        title="Excluir Obreiro"
+        [message]="'Tem certeza que deseja excluir ' + (selectedObreiro?.nome || 'este obreiro') + '? Todos os registros vinculados (bloqueios, escalas) serão removidos.'"
+        (confirm)="handleDelete()"
+        (cancel)="closeConfirm()"
+      />
+    </div>
+  `
+})
+export class ObreirosListComponent implements OnInit {
+  obreiroService = inject(ObreiroService);
+
+  obreiros = this.obreiroService.obreiros;
+  searchQuery = signal<string>('');
+  currentFilter = signal<'todos' | 'diaconos' | 'lideres' | 'pulpito' | 'inativos'>('todos');
+
+  // Modal States
+  isModalOpen = false;
+  isConfirmOpen = false;
+  selectedObreiro: Obreiro | null = null;
+
+  // Computed Counters
+  activeCount = computed(() => this.obreiros().filter(o => o.ativo).length);
+  diaconosCount = computed(() => this.obreiros().filter(o => o.diacono).length);
+  lideresCount = computed(() => this.obreiros().filter(o => o.lider).length);
+  pulpitoCount = computed(() => this.obreiros().filter(o => o.pulpito).length);
+
+  // Filtered List
+  filteredObreiros = computed(() => {
+    let list = this.obreiros();
+    const query = this.searchQuery().toLowerCase().trim();
+
+    if (query) {
+      list = list.filter(o => 
+        o.nome.toLowerCase().includes(query) ||
+        (o.apelido && o.apelido.toLowerCase().includes(query)) ||
+        (o.telefone && o.telefone.includes(query)) ||
+        (o.email && o.email.toLowerCase().includes(query))
+      );
+    }
+
+    const filter = this.currentFilter();
+    if (filter === 'diaconos') list = list.filter(o => o.diacono);
+    else if (filter === 'lideres') list = list.filter(o => o.lider);
+    else if (filter === 'pulpito') list = list.filter(o => o.pulpito);
+    else if (filter === 'inativos') list = list.filter(o => !o.ativo);
+
+    return list;
+  });
+
+  ngOnInit() {
+    this.obreiroService.fetchAll();
+  }
+
+  getInitials(name: string): string {
+    if (!name) return 'OB';
+    const parts = name.trim().split(' ');
+    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+
+  getWhatsAppUrl(phone: string): string {
+    const digits = phone.replace(/\D/g, '');
+    const cleanNumber = digits.startsWith('55') ? digits : '55' + digits;
+    return `https://wa.me/${cleanNumber}`;
+  }
+
+  openCreateModal() {
+    this.selectedObreiro = null;
+    this.isModalOpen = true;
+  }
+
+  openEditModal(item: Obreiro) {
+    this.selectedObreiro = item;
+    this.isModalOpen = true;
+  }
+
+  closeModal() {
+    this.isModalOpen = false;
+    this.selectedObreiro = null;
+  }
+
+  openDeleteConfirm(item: Obreiro) {
+    this.selectedObreiro = item;
+    this.isConfirmOpen = true;
+  }
+
+  closeConfirm() {
+    this.isConfirmOpen = false;
+    this.selectedObreiro = null;
+  }
+
+  async handleSave(dto: CreateObreiroDto) {
+    if (this.selectedObreiro && this.selectedObreiro.id_obreiro) {
+      const res = await this.obreiroService.update(this.selectedObreiro.id_obreiro, dto);
+      if (res) this.closeModal();
+    } else {
+      const res = await this.obreiroService.create(dto);
+      if (res) this.closeModal();
+    }
+  }
+
+  async handleDelete() {
+    if (this.selectedObreiro && this.selectedObreiro.id_obreiro) {
+      const success = await this.obreiroService.delete(this.selectedObreiro.id_obreiro);
+      if (success) this.closeConfirm();
+    }
+  }
+}
