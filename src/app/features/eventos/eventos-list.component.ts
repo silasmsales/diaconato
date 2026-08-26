@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { EventoService } from '../../core/services/evento.service';
 import { MesService } from '../../core/services/mes.service';
+import { AuthService } from '../../core/services/auth.service';
 import { Evento, CreateEventoDto } from '../../core/models/evento.model';
 import { formatMesReferencia, findCurrentMes } from '../../core/models/mes.model';
 import { TURNO_LABELS, TURNO_COLORS, TurnoEnum } from '../../core/models/turno.enum';
@@ -17,6 +18,7 @@ import { RouterLink } from '@angular/router';
   templateUrl: './eventos-list.component.html'
 })
 export class EventosListComponent implements OnInit {
+  authService = inject(AuthService);
   eventoService = inject(EventoService);
   mesService = inject(MesService);
 

@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard, guestGuard } from './core/guards/auth.guard';
+import { roleGuard } from './core/guards/role.guard';
 
 export const routes: Routes = [
   {
@@ -14,12 +15,12 @@ export const routes: Routes = [
   },
   {
     path: 'obreiros',
-    canActivate: [authGuard],
+    canActivate: [authGuard, roleGuard(['admin', 'manager'])],
     loadComponent: () => import('./features/obreiros/obreiros-list.component').then(m => m.ObreirosListComponent)
   },
   {
     path: 'eventos/gerador',
-    canActivate: [authGuard],
+    canActivate: [authGuard, roleGuard(['admin'])],
     loadComponent: () => import('./features/eventos/evento-gerador.component').then(m => m.EventoGeradorComponent)
   },
   {
@@ -29,22 +30,22 @@ export const routes: Routes = [
   },
   {
     path: 'tipos-evento',
-    canActivate: [authGuard],
+    canActivate: [authGuard, roleGuard(['admin'])],
     loadComponent: () => import('./features/tipos-evento/tipos-evento-list.component').then(m => m.TiposEventoListComponent)
   },
   {
     path: 'bloqueios',
-    canActivate: [authGuard],
+    canActivate: [authGuard, roleGuard(['admin', 'manager'])],
     loadComponent: () => import('./features/bloqueios/bloqueios-list.component').then(m => m.BloqueiosListComponent)
   },
   {
     path: 'meses',
-    canActivate: [authGuard],
+    canActivate: [authGuard, roleGuard(['admin'])],
     loadComponent: () => import('./features/meses/meses-list.component').then(m => m.MesesListComponent)
   },
   {
     path: 'escalas/gerador',
-    canActivate: [authGuard],
+    canActivate: [authGuard, roleGuard(['admin'])],
     loadComponent: () => import('./features/escalas/escala-gerador.component').then(m => m.EscalaGeradorComponent)
   },
   {
@@ -54,7 +55,7 @@ export const routes: Routes = [
   },
   {
     path: 'relatorios',
-    canActivate: [authGuard],
+    canActivate: [authGuard, roleGuard(['admin', 'manager'])],
     loadComponent: () => import('./features/relatorios/relatorios.component').then(m => m.RelatoriosComponent)
   },
   {

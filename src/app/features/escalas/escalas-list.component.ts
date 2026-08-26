@@ -8,6 +8,7 @@ import { ObreiroService } from '../../core/services/obreiro.service';
 import { MesService } from '../../core/services/mes.service';
 import { BloqueioService } from '../../core/services/bloqueio.service';
 import { EscalaPdfService } from '../../core/services/escala-pdf.service';
+import { AuthService } from '../../core/services/auth.service';
 import { ToastService } from '../../core/services/toast.service';
 import { Escala, CreateEscalaDto } from '../../core/models/escala.model';
 import { formatMesReferencia, findCurrentMes } from '../../core/models/mes.model';
@@ -22,6 +23,7 @@ import { ConfirmModalComponent } from '../../shared/components/confirm-modal.com
   templateUrl: './escalas-list.component.html'
 })
 export class EscalasListComponent implements OnInit {
+  authService = inject(AuthService);
   escalaService = inject(EscalaService);
   eventoService = inject(EventoService);
   obreiroService = inject(ObreiroService);

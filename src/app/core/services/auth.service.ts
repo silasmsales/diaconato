@@ -2,7 +2,7 @@ import { Injectable, inject, signal, computed } from '@angular/core';
 import { Router } from '@angular/router';
 import { SupabaseService } from './supabase.service';
 import { ToastService } from './toast.service';
-import { Usuario } from '../models/usuario.model';
+import { Usuario, UserRole } from '../models/usuario.model';
 import { User, Session } from '@supabase/supabase-js';
 
 @Injectable({
@@ -19,6 +19,24 @@ export class AuthService {
   loading = signal<boolean>(true);
 
   isAuthenticated = computed(() => !!this.currentUser());
+  userRole = computed<UserRole>(() => this.currentProfile()?.role || 'operator');
+
+  // Role Checks
+  isAdmin = computed(() => this.userRole() === 'admin');
+  isManager = computed(() => this.userRole() === 'manager');
+  isOperator = computed(() => this.userRole() === 'operator');
+
+  // Specific Permission Helpers
+  canManageAll = computed(() => this.isAdmin());
+  canManageEscalas = computed(() => this.isAdmin() || this.isManager());
+  canManageBloqueios = computed(() => this.isAdmin() || this.isManager());
+  canCheckin = computed(() => this.isAdmin() || this.isManager() || this.isOperator());
+  canViewReports = computed(() => this.isAdmin() || this.isManager());
+  canViewObreiros = computed(() => this.isAdmin() || this.isManager());
+
+  hasRole(allowedRoles: UserRole[]): boolean {
+    return allowedRoles.includes(this.userRole());
+  }
 
   constructor() {
     this.initAuth();
@@ -64,9 +82,10 @@ export class AuthService {
         .maybeSingle();
 
       if (error) {
-        console.warn('Erro ao carregar perfil do usuário:', error);
+        console.warn('Erro ao carregar perfil do usuário do Supabase:', error);
         return;
       }
+      console.log('✅ Perfil carregado do Supabase:', data);
       this.currentProfile.set(data as Usuario);
     } catch (err) {
       console.error('Erro ao buscar perfil:', err);

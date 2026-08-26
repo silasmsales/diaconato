@@ -7,12 +7,16 @@ AS $$
 BEGIN
   INSERT INTO public.usuarios (
     user_id,
-    nome_completo
+    nome_completo,
+    role
   )
   VALUES (
     NEW.id,
-    NEW.raw_user_meta_data->>'nome_completo'
-  );
+    NEW.raw_user_meta_data->>'nome_completo',
+    COALESCE(NEW.raw_app_meta_data->>'role', NEW.raw_user_meta_data->>'role', 'operator')
+  )
+  ON CONFLICT (user_id) DO UPDATE 
+  SET nome_completo = COALESCE(EXCLUDED.nome_completo, public.usuarios.nome_completo);
 
   RETURN NEW;
 END;

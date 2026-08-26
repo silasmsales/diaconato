@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { BloqueioService } from '../../core/services/bloqueio.service';
 import { ObreiroService } from '../../core/services/obreiro.service';
 import { MesService } from '../../core/services/mes.service';
+import { AuthService } from '../../core/services/auth.service';
 import { Bloqueio, CreateBloqueioDto } from '../../core/models/bloqueio.model';
 import { Obreiro } from '../../core/models/obreiro.model';
 import { formatMesReferencia, findCurrentMes } from '../../core/models/mes.model';
@@ -23,6 +24,7 @@ export interface ObreiroBloqueioGroup {
   templateUrl: './bloqueios-list.component.html'
 })
 export class BloqueiosListComponent implements OnInit {
+  authService = inject(AuthService);
   bloqueioService = inject(BloqueioService);
   obreiroService = inject(ObreiroService);
   mesService = inject(MesService);

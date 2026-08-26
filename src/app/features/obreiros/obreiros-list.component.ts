@@ -2,6 +2,7 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ObreiroService } from '../../core/services/obreiro.service';
+import { AuthService } from '../../core/services/auth.service';
 import { Obreiro, CreateObreiroDto } from '../../core/models/obreiro.model';
 import { ObreiroModalComponent } from './obreiro-modal.component';
 import { ConfirmModalComponent } from '../../shared/components/confirm-modal.component';
@@ -13,6 +14,7 @@ import { ConfirmModalComponent } from '../../shared/components/confirm-modal.com
   templateUrl: './obreiros-list.component.html'
 })
 export class ObreirosListComponent implements OnInit {
+  authService = inject(AuthService);
   obreiroService = inject(ObreiroService);
 
   obreiros = this.obreiroService.obreiros;
