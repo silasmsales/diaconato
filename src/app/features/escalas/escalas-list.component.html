@@ -297,12 +297,6 @@
                     </div>
 
                     <div class="flex items-center gap-1 shrink-0">
-                      <button 
-                        (click)="toggleCheckin(esc, esc.checkin === true ? null : true)"
-                        class="p-1 text-slate-400 hover:text-emerald-400" 
-                        title="Alternar presença">
-                        <span>✓</span>
-                      </button>
                       @if (authService.canManageEscalas()) {
                         <button 
                           (click)="confirmDeleteEscala(esc)"

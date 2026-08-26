@@ -59,6 +59,11 @@ export const routes: Routes = [
     loadComponent: () => import('./features/relatorios/relatorios.component').then(m => m.RelatoriosComponent)
   },
   {
+    path: 'locais',
+    canActivate: [authGuard, roleGuard(['admin'])],
+    loadComponent: () => import('./features/locais/locais-list.component').then(m => m.LocaisListComponent)
+  },
+  {
     path: '**',
     redirectTo: ''
   }

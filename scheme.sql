@@ -8,7 +8,7 @@ DROP TABLE IF EXISTS public.eventos CASCADE;
 DROP TABLE IF EXISTS public.tipo_evento CASCADE;
 DROP TABLE IF EXISTS public.mes CASCADE;
 DROP TABLE IF EXISTS public.obreiros CASCADE;
-DROP TABLE IF EXISTS public.usuarios CASCADE;
+DROP TABLE IF EXISTS public.locais CASCADE;
 
 -- 1. Tabela Obreiros
 CREATE TABLE IF NOT EXISTS public.obreiros (
@@ -117,3 +117,14 @@ ON public.usuarios
 FOR UPDATE 
 TO authenticated 
 USING (auth.uid() = user_id);
+
+-- 8. Tabela de Locais de Atuação dos Obreiros
+CREATE TABLE IF NOT EXISTS public.locais (
+    id_local SERIAL PRIMARY KEY,
+    nome VARCHAR(150) NOT NULL,
+    area VARCHAR(100) NOT NULL DEFAULT 'Igreja', -- 'Igreja', 'Estacionamento', etc.
+    descricao TEXT,
+    ordem INTEGER DEFAULT 0,
+    ativo BOOLEAN NOT NULL DEFAULT TRUE,
+    criado_em TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);

@@ -9,9 +9,11 @@ TRUNCATE TABLE public.bloqueios CASCADE;
 TRUNCATE TABLE public.eventos CASCADE;
 TRUNCATE TABLE public.tipo_evento CASCADE;
 TRUNCATE TABLE public.obreiros CASCADE;
+TRUNCATE TABLE public.locais CASCADE;
 
 ALTER SEQUENCE public.obreiros_id_obreiro_seq RESTART WITH 1;
 ALTER SEQUENCE public.tipo_evento_id_tipo_evento_seq RESTART WITH 1;
+ALTER SEQUENCE public.locais_id_local_seq RESTART WITH 1;
 
 -- ====================================================================
 -- 2. Tabela Obreiros (62 Obreiros/Diáconos)
@@ -102,10 +104,25 @@ INSERT INTO public.tipo_evento (
     criado_em
 ) VALUES
 (1, 'Primícias + EBD', 1, 1, 3, FALSE, 0, FALSE, 0, FALSE, TRUE, FALSE, FALSE, '2026-08-25 13:56:46.938113+00'),
-(2, 'Primícias', 1, 1, 3, FALSE, 3, FALSE, 0, FALSE, TRUE, TRUE, FALSE, '2026-08-25 13:57:18.911716+00'),
+(2, 'Primícias', NULL, 1, 3, FALSE, 3, FALSE, 0, FALSE, TRUE, TRUE, FALSE, '2026-08-25 13:57:18.911716+00'),
 (3, 'Culto de Domingo', 1, 3, 8, FALSE, 8, FALSE, 0, FALSE, TRUE, TRUE, FALSE, '2026-08-25 13:57:59.021044+00'),
 (4, 'Santa Ceia', NULL, 3, 12, TRUE, 0, FALSE, 0, FALSE, FALSE, FALSE, FALSE, '2026-08-25 13:58:31.026289+00'),
 (5, 'Culto de Ensino', 3, 3, 6, FALSE, 4, FALSE, 0, FALSE, TRUE, TRUE, FALSE, '2026-08-25 13:59:31.761581+00'),
 (6, 'Culto Profético', 5, 3, 3, FALSE, 2, FALSE, 0, FALSE, TRUE, TRUE, FALSE, '2026-08-25 14:00:49.170036+00');
 
 SELECT setval('public.tipo_evento_id_tipo_evento_seq', 6, true);
+
+-- ====================================================================
+-- 4. Tabela Locais de Atuação dos Obreiros
+-- ====================================================================
+
+INSERT INTO public.locais (id_local, nome, area, descricao, ordem, ativo) VALUES
+(1, 'Porta Principal', 'Igreja', 'Recepção e acolhimento na entrada principal da igreja', 1, TRUE),
+(2, 'Porta Lateral', 'Igreja', 'Apoio e fluxo na entrada lateral', 2, TRUE),
+(3, 'Púlpito', 'Igreja', 'Serviço e apoio ao altar e púlpito ministerial', 3, TRUE),
+(4, 'Anexo', 'Igreja', 'Apoio às dependências anexas e circulação', 4, TRUE),
+(5, 'SAMU', 'Estacionamento', 'Coordenação da área de estacionamento próxima ao SAMU', 1, TRUE),
+(6, 'Frente Igreja', 'Estacionamento', 'Organização de vagas e fluxo na frente da igreja', 2, TRUE);
+
+SELECT setval('public.locais_id_local_seq', 6, true);
+
