@@ -52,7 +52,11 @@ export class EventosListComponent implements OnInit {
       list = list.filter(e => e.turno === turno);
     }
 
-    return list;
+    return [...list].sort((a, b) => {
+      const d = (a.data || '').localeCompare(b.data || '');
+      if (d !== 0) return d;
+      return (a.turno || 0) - (b.turno || 0);
+    });
   });
 
   async ngOnInit() {

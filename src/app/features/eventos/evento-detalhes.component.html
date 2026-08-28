@@ -18,19 +18,33 @@
 
       <h1 class="text-xl sm:text-2xl md:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2.5 flex-wrap">
         <span>{{ operacaoService.evento()?.descricao || 'Culto / Evento' }}</span>
+        
+        <!-- Data Badge -->
+        @if (operacaoService.evento()?.data) {
+          <span class="text-xs sm:text-sm px-3 py-1 rounded-xl bg-slate-800/90 text-indigo-300 border border-slate-700/80 font-bold flex items-center gap-1.5 shadow-sm">
+            <span>📅</span>
+            <span>{{ operacaoService.evento()?.data | date:'dd/MM/yyyy' }}</span>
+          </span>
+        }
+
+        <!-- Turno Badge -->
         @if (operacaoService.evento()?.turno === 1) {
-          <span class="text-[11px] px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30 font-semibold">☀️ Manhã</span>
+          <span class="text-xs sm:text-sm px-3 py-1 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/30 font-bold flex items-center gap-1">☀️ Manhã</span>
         } @else if (operacaoService.evento()?.turno === 2) {
-          <span class="text-[11px] px-2.5 py-0.5 rounded-full bg-orange-500/10 text-orange-400 border border-orange-500/30 font-semibold">🌤️ Tarde</span>
+          <span class="text-xs sm:text-sm px-3 py-1 rounded-xl bg-orange-500/10 text-orange-400 border border-orange-500/30 font-bold flex items-center gap-1">🌤️ Tarde</span>
         } @else {
-          <span class="text-[11px] px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 font-semibold">🌙 Noite</span>
+          <span class="text-xs sm:text-sm px-3 py-1 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 font-bold flex items-center gap-1">🌙 Noite</span>
         }
       </h1>
 
-      <p class="text-xs text-slate-400 flex items-center gap-2 flex-wrap">
-        <span>📅 {{ operacaoService.evento()?.data | date:'fullDate':'':'pt-BR' }}</span>
-        <span>•</span>
-        <span>Mês Ref: {{ operacaoService.evento()?.mes?.mes_referencia }}/{{ operacaoService.evento()?.mes?.ano_referencia }}</span>
+      <p class="text-xs text-slate-400 flex items-center gap-2 flex-wrap pt-0.5">
+        @if (operacaoService.evento()?.data) {
+          <span class="font-semibold text-slate-200">{{ formatDataEvento(operacaoService.evento()?.data) }}</span>
+          <span>•</span>
+        }
+        @if (operacaoService.evento()?.mes) {
+          <span>Mês de Referência: {{ operacaoService.evento()?.mes?.mes_referencia }}/{{ operacaoService.evento()?.mes?.ano_referencia }}</span>
+        }
       </p>
     </div>
 
@@ -105,7 +119,7 @@
   </div>
 
   <!-- ========================================================================= -->
-  <!-- PASSO 1: ⭐ DIÁCONOS LÍDERES RESPONSÁVEIS -->
+  <!-- PASSO 1: ⭐ LIDERANÇA RESPONSÁVEL -->
   <!-- ========================================================================= -->
   <section class="glass-panel rounded-2xl p-4 sm:p-5 border border-slate-800/90 space-y-3.5 shadow-lg">
     <div class="flex items-center justify-between border-b border-slate-800/80 pb-3 flex-wrap gap-2">
@@ -115,7 +129,7 @@
         </div>
         <div>
           <h2 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">
-            <span>1. Diáconos Líderes Responsáveis</span>
+            <span>1. Liderança Responsável</span>
             <span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-300 font-semibold">
               {{ trajeConfig().lideres_responsaveis_ids.length }} selecionados
             </span>
@@ -168,10 +182,57 @@
           type="button" 
           [disabled]="!authService.canManageOperacao()"
           (click)="authService.canManageOperacao() ? setTrajeTipo(op.value) : null"
-          [class]="trajeConfig().traje_tipo === op.value ? 'ring-2 ring-indigo-500 bg-indigo-950/80 border-indigo-500 shadow' : 'bg-slate-900/80 border-slate-800 hover:border-slate-700'"
-          class="p-3 sm:p-3.5 rounded-xl border text-center space-y-1.5 transition-all group active:scale-95 disabled:cursor-not-allowed">
-          <div class="text-xl">{{ op.icon }}</div>
-          <div class="text-xs font-bold text-white group-hover:text-indigo-300 transition-colors truncate">
+          [class]="op.value === 'Camisa Preta' ? (trajeConfig().traje_tipo === op.value ? 'ring-2 ring-zinc-400 border-zinc-400 bg-zinc-950 text-white shadow-lg' : 'bg-zinc-950/80 border border-zinc-700 text-zinc-300 hover:border-zinc-500') :
+                  op.value === 'Camisa Vinho' ? (trajeConfig().traje_tipo === op.value ? 'ring-2 ring-rose-500 border-rose-500 bg-rose-950/80 text-white shadow-lg' : 'bg-rose-950/30 border border-[#881337] text-rose-200 hover:border-rose-500') :
+                  op.value === 'Camisa Cinza' ? (trajeConfig().traje_tipo === op.value ? 'ring-2 ring-slate-300 border-slate-300 bg-slate-900 text-white shadow-lg' : 'bg-slate-900/60 border border-[#64748b] text-slate-200 hover:border-slate-300') :
+                  (trajeConfig().traje_tipo === op.value ? 'ring-2 ring-indigo-500 border-indigo-500 bg-indigo-950/90 text-white shadow-lg' : 'bg-indigo-950/30 border border-indigo-700/70 text-indigo-200 hover:border-indigo-400')"
+          class="p-3 sm:p-3.5 rounded-2xl text-center space-y-2 transition-all group active:scale-95 disabled:cursor-not-allowed flex flex-col items-center justify-center">
+          
+          <!-- Ícone Visual de Camisa / Terno com a Cor Real -->
+          <div class="flex items-center justify-center">
+            @if (op.value === 'Camisa Preta') {
+              <div class="w-10 h-10 rounded-xl bg-black/80 border border-zinc-600 flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform">
+                <svg viewBox="0 0 24 24" class="w-6 h-6" fill="none">
+                  <!-- Camisa Preta -->
+                  <path d="M6 4L2 8L5 11L7 9V20H17V9L19 11L22 8L18 4L14 6C13.5 6.5 12.8 7 12 7C11.2 7 10.5 6.5 10 6L6 4Z" fill="#09090b" stroke="#71717a" stroke-width="1.2" stroke-linejoin="round"/>
+                  <!-- Gola -->
+                  <path d="M9.5 4.5L12 8L14.5 4.5" stroke="#a1a1aa" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+            } @else if (op.value === 'Camisa Vinho') {
+              <div class="w-10 h-10 rounded-xl bg-rose-950/60 border border-[#881337] flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform">
+                <svg viewBox="0 0 24 24" class="w-6 h-6" fill="none">
+                  <!-- Camisa Vinho -->
+                  <path d="M6 4L2 8L5 11L7 9V20H17V9L19 11L22 8L18 4L14 6C13.5 6.5 12.8 7 12 7C11.2 7 10.5 6.5 10 6L6 4Z" fill="#881337" stroke="#f43f5e" stroke-width="1.2" stroke-linejoin="round"/>
+                  <!-- Gola -->
+                  <path d="M9.5 4.5L12 8L14.5 4.5" stroke="#fecdd3" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+            } @else if (op.value === 'Camisa Cinza') {
+              <div class="w-10 h-10 rounded-xl bg-slate-900 border border-[#64748b] flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform">
+                <svg viewBox="0 0 24 24" class="w-6 h-6" fill="none">
+                  <!-- Camisa Cinza -->
+                  <path d="M6 4L2 8L5 11L7 9V20H17V9L19 11L22 8L18 4L14 6C13.5 6.5 12.8 7 12 7C11.2 7 10.5 6.5 10 6L6 4Z" fill="#64748b" stroke="#cbd5e1" stroke-width="1.2" stroke-linejoin="round"/>
+                  <!-- Gola -->
+                  <path d="M9.5 4.5L12 8L14.5 4.5" stroke="#f8fafc" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+            } @else {
+              <!-- Terno Completo -->
+              <div class="w-10 h-10 rounded-xl bg-indigo-950/70 border border-indigo-600 flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform">
+                <svg viewBox="0 0 24 24" class="w-6 h-6" fill="none">
+                  <!-- Blazer -->
+                  <path d="M4 4L2 8L5 11L7 9V20H17V9L19 11L22 8L20 4L16 6L12 8L8 6L4 4Z" fill="#1e1b4b" stroke="#818cf8" stroke-width="1.2" stroke-linejoin="round"/>
+                  <!-- Camisa Branca interna -->
+                  <path d="M8 6L12 8L16 6L14 4L10 4L8 6Z" fill="#f8fafc"/>
+                  <!-- Gravata Vermelha -->
+                  <path d="M12 7.5L13 11L12 14L11 11L12 7.5Z" fill="#e11d48"/>
+                </svg>
+              </div>
+            }
+          </div>
+
+          <div class="text-xs font-bold transition-colors truncate">
             {{ op.label }}
           </div>
         </button>
@@ -770,11 +831,11 @@
               <button 
                 type="button"
                 (click)="selectColorOption(cor)"
-                [class]="getColorPickerCurrentValue() === cor ? 'bg-indigo-600/30 text-indigo-200 border-indigo-500 font-bold ring-1 ring-indigo-400 shadow-md' : 'bg-slate-950 text-slate-300 border-slate-800 hover:border-indigo-500/50 hover:bg-slate-800 hover:text-white'"
+                [class]="getColorPickerCurrentValue() === cor ? 'ring-2 ring-indigo-400 font-bold text-white shadow-md ' + getColorBorderStyle(cor) : 'text-slate-300 hover:text-white ' + getColorBorderStyle(cor)"
                 class="px-3.5 py-2.5 rounded-xl text-xs border text-left flex items-center justify-between gap-2 transition-all active:scale-95 group">
                 <span class="truncate">{{ cor }}</span>
                 @if (getColorPickerCurrentValue() === cor) {
-                  <span class="text-xs font-bold text-indigo-400">✓ Atual</span>
+                  <span class="text-xs font-bold text-indigo-300 shrink-0">✓ Atual</span>
                 }
               </button>
             }

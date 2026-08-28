@@ -128,6 +128,45 @@ export class EscalaService {
     }
   }
 
+  async substituirObreiro(idEscala: number, novoIdObreiro: number): Promise<Escala | null> {
+    this.loading.set(true);
+    try {
+      const { data, error } = await this.supabase
+        .from('escala')
+        .update({ 
+          id_obreiro: novoIdObreiro,
+          checkin: null // redefinir check-in para pendente
+        })
+        .eq('id_escala', idEscala)
+        .select(`
+          *,
+          eventos (*),
+          obreiros (*),
+          mes (*)
+        `)
+        .single();
+
+      if (error) {
+        if (error.code === '23505') {
+          this.toast.warning('Obreiro já escalado', 'Este obreiro substituto já faz parte da escala deste culto.');
+          return null;
+        }
+        throw error;
+      }
+
+      const updated = data as Escala;
+      this.escalas.update(list => list.map(item => item.id_escala === idEscala ? updated : item));
+      this.toast.success('Substituição realizada!', `Obreiro substituído com sucesso por ${updated.obreiros?.nome}.`);
+      return updated;
+    } catch (err: any) {
+      console.error('Erro ao substituir obreiro:', err);
+      this.toast.error('Falha ao substituir obreiro', err.message);
+      return null;
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
   
   async saveGeneratedSchedule(idMes: number, dtos: CreateEscalaDto[], replaceExisting: boolean = true): Promise<boolean> {
     this.loading.set(true);

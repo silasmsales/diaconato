@@ -11,32 +11,27 @@ export const TRAJE_OPCOES: { label: string; value: TrajeTipo; bg: string; text: 
 
 export const CORES_TERNO = [
   'Preto',
-  'Azul Marinho',
-  'Cinza Escuro / Chumbo',
-  'Cinza Claro',
-  'Grafite',
-  'Azul Petróleo',
-  'Marrom / Café'
+  'Azul',
+  'Cinza',
+  'Marrom'
 ];
 
 export const CORES_GRAVATA = [
-  'Vermelho / Bordô',
-  'Azul Marinho',
-  'Azul Real / Caneta',
+  'Vermelho',
+  'Azul',
   'Preto',
-  'Prata / Cinza',
-  'Dourado / Amarelo',
-  'Rosa / Rosê',
-  'Vinho',
-  'Laranja'
+  'Branco',
+  'Cinza',
+  'Marrom'
 ];
 
 export const CORES_CAMISA = [
-  'Branca',
-  'Azul Claro',
-  'Preta',
-  'Cinza Claro',
-  'Rosa Claro'
+  'Vermelho',
+  'Azul',
+  'Preto',
+  'Branco',
+  'Cinza',
+  'Marrom'
 ];
 
 export interface EventoAreaHorario {

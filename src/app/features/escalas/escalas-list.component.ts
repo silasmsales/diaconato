@@ -11,6 +11,7 @@ import { EscalaPdfService } from '../../core/services/escala-pdf.service';
 import { AuthService } from '../../core/services/auth.service';
 import { ToastService } from '../../core/services/toast.service';
 import { Escala, CreateEscalaDto } from '../../core/models/escala.model';
+import { Obreiro } from '../../core/models/obreiro.model';
 import { formatMesReferencia, findCurrentMes } from '../../core/models/mes.model';
 import { TURNO_LABELS, TURNO_COLORS } from '../../core/models/turno.enum';
 import { EscalaModalComponent } from './escala-modal.component';
@@ -47,8 +48,12 @@ export class EscalasListComponent implements OnInit {
   filteredEventos = computed(() => {
     const mesId = this.selectedMesId();
     const all = this.eventoService.eventos();
-    if (mesId === 0) return all;
-    return all.filter(e => e.id_mes === mesId);
+    const list = mesId === 0 ? all : all.filter(e => e.id_mes === mesId);
+    return [...list].sort((a, b) => {
+      const d = (a.data || '').localeCompare(b.data || '');
+      if (d !== 0) return d;
+      return (a.turno || 0) - (b.turno || 0);
+    });
   });
 
   filteredEscalas = computed(() => {
@@ -57,6 +62,168 @@ export class EscalasListComponent implements OnInit {
     if (mesId === 0) return all;
     return all.filter(e => e.id_mes === mesId);
   });
+
+  // Estado de Substituição de Obreiro
+  isSubstituirModalOpen = false;
+  selectedEscalaParaSubstituir = signal<Escala | null>(null);
+  substitutoSearchQuery = signal<string>('');
+  substitutoSelecionadoId = signal<number | null>(null);
+
+  candidatosSubstitutos = computed(() => {
+    const esc = this.selectedEscalaParaSubstituir();
+    if (!esc) return [];
+
+    const obreiros = this.obreiroService.obreiros().filter(o => o.ativo);
+    const bloqueios = this.bloqueioService.bloqueios();
+    const query = this.substitutoSearchQuery().toLowerCase().trim();
+
+    // Evento desta escala
+    const idEvento = esc.id_evento;
+    const evento = esc.eventos || this.eventoService.eventos().find(e => e.id_evento === idEvento);
+    const dataEvento = evento?.data;
+    const turnoEvento = evento?.turno;
+
+    // IDs de obreiros já escalados neste evento
+    const escaladosNesteEvento = new Set(
+      this.filteredEscalas()
+        .filter(e => e.id_evento === idEvento)
+        .map(e => e.id_obreiro)
+    );
+
+    return obreiros
+      .filter((ob): ob is Obreiro & { id_obreiro: number } => typeof ob.id_obreiro === 'number')
+      .filter(ob => ob.id_obreiro !== esc.id_obreiro) // Não é o próprio obreiro sendo substituído
+      .filter(ob => !escaladosNesteEvento.has(ob.id_obreiro)) // Não está já escalado no evento
+      .map(ob => {
+        // Verificar se tem bloqueio nesta data/turno
+        let isBloqueado = false;
+        let motivoBloqueio = '';
+
+        if (dataEvento) {
+          const block = bloqueios.find(b => 
+            b.id_obreiro === ob.id_obreiro && 
+            b.data === dataEvento && 
+            (b.turno === turnoEvento || b.turno === 4 || b.turno === 0)
+          );
+          if (block) {
+            isBloqueado = true;
+            motivoBloqueio = block.motivo || 'Indisponibilidade informada';
+          }
+        }
+
+        return {
+          ...ob,
+          isBloqueado,
+          motivoBloqueio
+        };
+      })
+      .filter(ob => {
+        if (!query) return true;
+        return (
+          ob.nome.toLowerCase().includes(query) ||
+          (ob.apelido && ob.apelido.toLowerCase().includes(query))
+        );
+      })
+      .sort((a, b) => {
+        // Disponíveis primeiro
+        if (a.isBloqueado !== b.isBloqueado) {
+          return a.isBloqueado ? 1 : -1;
+        }
+        return a.nome.localeCompare(b.nome);
+      });
+  });
+
+  openSubstituirModal(esc: Escala) {
+    this.selectedEscalaParaSubstituir.set(esc);
+    this.substitutoSearchQuery.set('');
+    this.substitutoSelecionadoId.set(null);
+    this.isSubstituirModalOpen = true;
+  }
+
+  closeSubstituirModal() {
+    this.isSubstituirModalOpen = false;
+    this.selectedEscalaParaSubstituir.set(null);
+    this.substitutoSelecionadoId.set(null);
+    this.substitutoSearchQuery.set('');
+  }
+
+  selecionarSubstituto(idObreiro?: number) {
+    if (!idObreiro) return;
+    this.substitutoSelecionadoId.set(idObreiro);
+  }
+
+  async confirmarSubstituicao() {
+    const esc = this.selectedEscalaParaSubstituir();
+    const novoId = this.substitutoSelecionadoId();
+    if (!esc || !esc.id_escala || !novoId) return;
+
+    const res = await this.escalaService.substituirObreiro(esc.id_escala, novoId);
+    if (res) {
+      this.closeSubstituirModal();
+    }
+  }
+
+  // Estado de Colapso para Eventos e Obreiros
+  expandedEventos = signal<Set<number>>(new Set<number>());
+  expandedObreiros = signal<Set<number>>(new Set<number>());
+
+  isEventoExpanded(idEvento?: number): boolean {
+    if (!idEvento) return false;
+    return this.expandedEventos().has(idEvento);
+  }
+
+  toggleEventoExpand(idEvento?: number) {
+    if (!idEvento) return;
+    this.expandedEventos.update(prev => {
+      const next = new Set(prev);
+      if (next.has(idEvento)) {
+        next.delete(idEvento);
+      } else {
+        next.add(idEvento);
+      }
+      return next;
+    });
+  }
+
+  expandAllEventos() {
+    const allIds = this.filteredEventos()
+      .map(e => e.id_evento)
+      .filter((id): id is number => typeof id === 'number');
+    this.expandedEventos.set(new Set(allIds));
+  }
+
+  collapseAllEventos() {
+    this.expandedEventos.set(new Set());
+  }
+
+  isObreiroExpanded(idObreiro?: number): boolean {
+    if (!idObreiro) return false;
+    return this.expandedObreiros().has(idObreiro);
+  }
+
+  toggleObreiroExpand(idObreiro?: number) {
+    if (!idObreiro) return;
+    this.expandedObreiros.update(prev => {
+      const next = new Set(prev);
+      if (next.has(idObreiro)) {
+        next.delete(idObreiro);
+      } else {
+        next.add(idObreiro);
+      }
+      return next;
+    });
+  }
+
+  expandAllObreiros() {
+    const allIds = this.obreiroService.obreiros()
+      .map(o => o.id_obreiro)
+      .filter((id): id is number => typeof id === 'number');
+    this.expandedObreiros.set(new Set(allIds));
+  }
+
+  collapseAllObreiros() {
+    this.expandedObreiros.set(new Set());
+  }
 
   async ngOnInit() {
     this.route.queryParams.subscribe(params => {
@@ -82,10 +249,60 @@ export class EscalasListComponent implements OnInit {
         this.selectedMesId.set(cur.id_mes);
       }
     }
+
+    // No desktop (>= 768px), inicia expandido; no mobile (< 768px), inicia colapsado por padrão
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+    if (!isMobile) {
+      this.expandAllEventos();
+      this.expandAllObreiros();
+    } else {
+      this.collapseAllEventos();
+      this.collapseAllObreiros();
+    }
+
+    // Scroll para o culto de hoje ou o próximo culto cadastrado caso seja o mês atual
+    this.scrollToCurrentOrNextEvento();
+  }
+
+  scrollToCurrentOrNextEvento() {
+    const selectedMes = this.mesService.meses().find(m => m.id_mes === this.selectedMesId());
+    if (!selectedMes) return;
+
+    const now = new Date();
+    const isCurrentMonth = 
+      selectedMes.ano_referencia === now.getFullYear() && 
+      selectedMes.mes_referencia === (now.getMonth() + 1);
+
+    if (!isCurrentMonth) return;
+
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const todayStr = `${year}-${month}-${day}`;
+
+    const eventos = this.filteredEventos();
+    let targetEvento = eventos.find(e => e.data === todayStr);
+    if (!targetEvento) {
+      targetEvento = eventos.find(e => e.data > todayStr);
+    }
+
+    if (targetEvento && targetEvento.id_evento) {
+      setTimeout(() => {
+        const el = document.getElementById(`evento-card-${targetEvento!.id_evento}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 150);
+    }
   }
 
   onMesChange(mesId: number) {
     this.selectedMesId.set(mesId);
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+    if (!isMobile) {
+      this.expandAllEventos();
+    }
+    this.scrollToCurrentOrNextEvento();
   }
 
   getEscaladosByEvent(idEvento: number): Escala[] {

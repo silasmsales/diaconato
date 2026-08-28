@@ -65,6 +65,20 @@ export class EventoDetalhesComponent implements OnInit {
   coresCamisa = CORES_CAMISA;
   getAreaBadgeStyle = getAreaBadgeStyle;
 
+  formatDataEvento(dataStr?: string): string {
+    if (!dataStr) return '';
+    try {
+      const parts = dataStr.split('-');
+      if (parts.length === 3) {
+        const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+        const diasSemana = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
+        const diaSemana = diasSemana[d.getDay()];
+        return `${diaSemana}, ${parts[2]}/${parts[1]}/${parts[0]}`;
+      }
+    } catch (_) {}
+    return dataStr;
+  }
+
   // Formulário de Traje & Liderança em Signal Reativo
   trajeConfig = signal<TrajeAndLideresConfigDto>({
     traje_tipo: 'Camisa Preta',
@@ -206,6 +220,7 @@ export class EventoDetalhesComponent implements OnInit {
   }
 
   ngOnInit() {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     this.route.paramMap.subscribe(params => {
       const id = Number(params.get('id'));
       if (id) {
@@ -221,6 +236,7 @@ export class EventoDetalhesComponent implements OnInit {
 
   async carregarDados(id: number) {
     await this.operacaoService.loadEventoOperacao(id);
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     const ev = this.operacaoService.evento();
     if (ev) {
       this.trajeConfig.set({
@@ -302,6 +318,38 @@ export class EventoDetalhesComponent implements OnInit {
     const field = this.activeColorPickerField();
     if (!field) return '';
     return (this.trajeConfig()[field] as string) || '';
+  }
+
+  getColorBorderStyle(cor: string): string {
+    const lower = cor.toLowerCase();
+    if (lower.includes('vermelho') || lower.includes('bordô') || lower.includes('vinho')) {
+      return 'border-rose-600/70 hover:border-rose-500 bg-rose-950/20';
+    }
+    if (lower.includes('azul') || lower.includes('marinho') || lower.includes('caneta') || lower.includes('petróleo')) {
+      return 'border-blue-600/70 hover:border-blue-500 bg-blue-950/20';
+    }
+    if (lower.includes('preto') || lower.includes('preta')) {
+      return 'border-zinc-600 hover:border-zinc-400 bg-zinc-950/40';
+    }
+    if (lower.includes('branco') || lower.includes('branca') || lower.includes('prata')) {
+      return 'border-slate-300 hover:border-white bg-slate-800/30';
+    }
+    if (lower.includes('cinza') || lower.includes('grafite') || lower.includes('chumbo')) {
+      return 'border-slate-500/80 hover:border-slate-300 bg-slate-900/40';
+    }
+    if (lower.includes('marrom') || lower.includes('café')) {
+      return 'border-amber-800/80 hover:border-amber-600 bg-amber-950/20';
+    }
+    if (lower.includes('dourado') || lower.includes('amarelo')) {
+      return 'border-amber-500/80 hover:border-amber-400 bg-amber-950/20';
+    }
+    if (lower.includes('rosa') || lower.includes('rosê')) {
+      return 'border-pink-500/80 hover:border-pink-400 bg-pink-950/20';
+    }
+    if (lower.includes('laranja')) {
+      return 'border-orange-500/80 hover:border-orange-400 bg-orange-950/20';
+    }
+    return 'border-slate-700 hover:border-slate-500 bg-slate-950';
   }
 
   async selectColorOption(color: string) {

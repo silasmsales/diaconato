@@ -22,7 +22,8 @@ export class EventoService {
           *,
           mes (*)
         `)
-        .order('data', { ascending: true });
+        .order('data', { ascending: true })
+        .order('turno', { ascending: true });
 
       if (error) throw error;
       const list = (data as Evento[]) || [];
@@ -47,7 +48,8 @@ export class EventoService {
           mes (*)
         `)
         .eq('id_mes', idMes)
-        .order('data', { ascending: true });
+        .order('data', { ascending: true })
+        .order('turno', { ascending: true });
 
       if (error) throw error;
       const list = (data as Evento[]) || [];
@@ -76,7 +78,11 @@ export class EventoService {
 
       if (error) throw error;
       const created = data as Evento;
-      this.eventos.update(list => [...list, created].sort((a, b) => a.data.localeCompare(b.data)));
+      this.eventos.update(list => [...list, created].sort((a, b) => {
+        const d = (a.data || '').localeCompare(b.data || '');
+        if (d !== 0) return d;
+        return (a.turno || 0) - (b.turno || 0);
+      }));
       this.toast.success('Evento criado!', `${created.descricao || 'Novo culto/evento'} registrado com sucesso.`);
       return created;
     } catch (err: any) {

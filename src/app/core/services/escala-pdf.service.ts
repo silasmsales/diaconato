@@ -65,7 +65,11 @@ export class EscalaPdfService {
     
     return semanas.map((s, idx) => ({
       titulo: `SEMANA ${idx + 1} (${s.startFmt} a ${s.endFmt})`,
-      eventos: s.eventos
+      eventos: s.eventos.sort((a, b) => {
+        const d = (a.data || '').localeCompare(b.data || '');
+        if (d !== 0) return d;
+        return (a.turno || 0) - (b.turno || 0);
+      })
     }));
   }
 

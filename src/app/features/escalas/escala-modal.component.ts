@@ -1,24 +1,26 @@
-import { Component, EventEmitter, Input, Output, OnInit, inject } from '@angular/core';
+import { Component, EventEmitter, Input, Output, OnChanges, SimpleChanges, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormsModule } from '@angular/forms';
 import { Evento } from '../../core/models/evento.model';
 import { Obreiro } from '../../core/models/obreiro.model';
 import { Mes, formatMesReferencia } from '../../core/models/mes.model';
 import { Bloqueio } from '../../core/models/bloqueio.model';
-import { CreateEscalaDto } from '../../core/models/escala.model';
+import { Escala, CreateEscalaDto } from '../../core/models/escala.model';
+import { TURNO_LABELS, TURNO_COLORS } from '../../core/models/turno.enum';
 
 @Component({
   selector: 'app-escala-modal',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './escala-modal.component.html'
 })
-export class EscalaModalComponent implements OnInit {
+export class EscalaModalComponent implements OnChanges {
   @Input() isOpen = false;
   @Input() meses: Mes[] = [];
   @Input() eventos: Evento[] = [];
   @Input() obreiros: Obreiro[] = [];
   @Input() bloqueios: Bloqueio[] = [];
+  @Input() escalas: Escala[] = [];
   @Input() defaultMesId: number | null = null;
   @Input() defaultEventoId: number | null = null;
   @Input() loading = false;
@@ -27,53 +29,191 @@ export class EscalaModalComponent implements OnInit {
   @Output() close = new EventEmitter<void>();
 
   formatMesReferencia = formatMesReferencia;
+  TURNO_LABELS = TURNO_LABELS;
+  TURNO_COLORS = TURNO_COLORS;
 
-  private fb = inject(FormBuilder);
-  form!: FormGroup;
+  escalasData = signal<Escala[]>([]);
+  obreirosData = signal<Obreiro[]>([]);
+  bloqueiosData = signal<Bloqueio[]>([]);
+  eventosData = signal<Evento[]>([]);
+  mesesData = signal<Mes[]>([]);
 
-  ngOnInit() {
-    this.initForm();
-  }
+  selectedMesId = signal<number | null>(null);
+  selectedEventoId = signal<number | null>(null);
+  selectedObreiroId = signal<number | null>(null);
+  searchQuery = signal<string>('');
 
-  ngOnChanges() {
-    this.initForm();
-  }
-
-  private initForm() {
-    this.form = this.fb.group({
-      id_mes: [this.defaultMesId || (this.meses[0]?.id_mes ?? null), [Validators.required]],
-      id_evento: [this.defaultEventoId || (this.eventos[0]?.id_evento ?? null), [Validators.required]],
-      id_obreiro: [null, [Validators.required]]
-    });
-  }
-
-  availableObreiros() {
-    return this.obreiros.filter(o => o.ativo);
-  }
-
-  conflictWarning(): string | null {
-    const obreiroId = Number(this.form?.get('id_obreiro')?.value);
-    const eventoId = Number(this.form?.get('id_evento')?.value);
-    if (!obreiroId || !eventoId) return null;
-
-    const evento = this.eventos.find(e => e.id_evento === eventoId);
-    if (!evento) return null;
-
-    const block = this.bloqueios.find(b => b.id_obreiro === obreiroId && b.data === evento.data && (b.turno === evento.turno || b.turno === 4));
-    if (block) {
-      return `Este obreiro possui bloqueio cadastrado para a data ${evento.data} no turno correspondente${block.motivo ? ' (' + block.motivo + ')' : ''}.`;
+  ngOnChanges(changes: SimpleChanges) {
+    if (changes['escalas']) {
+      this.escalasData.set(this.escalas || []);
+    }
+    if (changes['obreiros']) {
+      this.obreirosData.set(this.obreiros || []);
+    }
+    if (changes['bloqueios']) {
+      this.bloqueiosData.set(this.bloqueios || []);
+    }
+    if (changes['eventos']) {
+      this.eventosData.set(this.eventos || []);
+    }
+    if (changes['meses']) {
+      this.mesesData.set(this.meses || []);
     }
 
-    return null;
+    if (changes['isOpen'] && this.isOpen) {
+      this.escalasData.set(this.escalas || []);
+      this.obreirosData.set(this.obreiros || []);
+      this.bloqueiosData.set(this.bloqueios || []);
+      this.eventosData.set(this.eventos || []);
+      this.mesesData.set(this.meses || []);
+
+      const initialMesId = this.defaultMesId || this.meses[0]?.id_mes || null;
+      this.selectedMesId.set(initialMesId);
+      
+      const initialEventoId = this.defaultEventoId || 
+        this.eventos.find(e => !initialMesId || e.id_mes === initialMesId)?.id_evento || 
+        this.eventos[0]?.id_evento || 
+        null;
+      
+      this.selectedEventoId.set(initialEventoId);
+      this.selectedObreiroId.set(null);
+      this.searchQuery.set('');
+    } else if (changes['defaultEventoId'] || changes['defaultMesId']) {
+      if (this.defaultMesId) this.selectedMesId.set(this.defaultMesId);
+      if (this.defaultEventoId) this.selectedEventoId.set(this.defaultEventoId);
+    }
+  }
+
+  filteredEventos = computed(() => {
+    const mesId = this.selectedMesId();
+    const all = this.eventosData();
+    if (!mesId) return all;
+    return all
+      .filter(e => e.id_mes === mesId)
+      .sort((a, b) => {
+        const d = (a.data || '').localeCompare(b.data || '');
+        if (d !== 0) return d;
+        return (a.turno || 0) - (b.turno || 0);
+      });
+  });
+
+  currentEvento = computed(() => {
+    const evId = this.selectedEventoId();
+    if (!evId) return null;
+    return this.eventosData().find(e => e.id_evento === evId) || null;
+  });
+
+  escaladosNesteEvento = computed(() => {
+    const evId = this.selectedEventoId();
+    if (!evId) return new Set<number>();
+    return new Set(
+      this.escalasData()
+        .filter(e => e.id_evento === evId)
+        .map(e => e.id_obreiro)
+        .filter((id): id is number => typeof id === 'number')
+    );
+  });
+
+  candidatosObreiros = computed(() => {
+    const evento = this.currentEvento();
+    const query = this.searchQuery().toLowerCase().trim();
+    const dataEvento = evento?.data;
+    const turnoEvento = evento?.turno;
+    const jaEscalados = this.escaladosNesteEvento();
+    const allBloqueios = this.bloqueiosData();
+
+    return this.obreirosData()
+      .filter((ob): ob is Obreiro & { id_obreiro: number } => typeof ob.id_obreiro === 'number' && !!ob.ativo)
+      .map(ob => {
+        const isJaEscalado = jaEscalados.has(ob.id_obreiro);
+        let isBloqueado = false;
+        let motivoBloqueio = '';
+
+        if (dataEvento) {
+          const block = allBloqueios.find(b =>
+            b.id_obreiro === ob.id_obreiro &&
+            b.data === dataEvento &&
+            (b.turno === turnoEvento || b.turno === 4 || b.turno === 0)
+          );
+          if (block) {
+            isBloqueado = true;
+            motivoBloqueio = block.motivo || 'Indisponibilidade informada';
+          }
+        }
+
+        return {
+          ...ob,
+          isJaEscalado,
+          isBloqueado,
+          motivoBloqueio
+        };
+      })
+      .filter(ob => {
+        if (!query) return true;
+        return (
+          ob.nome.toLowerCase().includes(query) ||
+          (ob.apelido && ob.apelido.toLowerCase().includes(query))
+        );
+      })
+      .sort((a, b) => {
+        // Já escalados vão pro final
+        if (a.isJaEscalado !== b.isJaEscalado) {
+          return a.isJaEscalado ? 1 : -1;
+        }
+        // Disponíveis primeiro
+        if (a.isBloqueado !== b.isBloqueado) {
+          return a.isBloqueado ? 1 : -1;
+        }
+        return a.nome.localeCompare(b.nome);
+      });
+  });
+
+  getInitials(name?: string): string {
+    if (!name) return 'OB';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase();
+  }
+
+  getTurnoLabel(turno?: number): string {
+    if (!turno) return 'Culto';
+    return TURNO_LABELS[turno] || 'Culto';
+  }
+
+  onMesSelect(idMes: any) {
+    const mesId = Number(idMes);
+    this.selectedMesId.set(mesId);
+    const evs = this.eventos.filter(e => e.id_mes === mesId);
+    if (evs.length > 0) {
+      this.selectedEventoId.set(evs[0].id_evento || null);
+    } else {
+      this.selectedEventoId.set(null);
+    }
+    this.selectedObreiroId.set(null);
+  }
+
+  onEventoSelect(idEvento: any) {
+    this.selectedEventoId.set(Number(idEvento));
+    this.selectedObreiroId.set(null);
+  }
+
+  selecionarObreiro(idObreiro: number, isJaEscalado: boolean) {
+    if (isJaEscalado) return;
+    this.selectedObreiroId.set(idObreiro);
   }
 
   onSubmit() {
-    if (this.form.valid) {
-      const raw = this.form.value;
+    const mesId = this.selectedMesId();
+    const evId = this.selectedEventoId();
+    const obId = this.selectedObreiroId();
+
+    if (mesId && evId && obId) {
       this.save.emit({
-        id_mes: Number(raw.id_mes),
-        id_evento: Number(raw.id_evento),
-        id_obreiro: Number(raw.id_obreiro)
+        id_mes: mesId,
+        id_evento: evId,
+        id_obreiro: obId
       });
     }
   }
