@@ -42,6 +42,7 @@
               </label>
               <select 
                 formControlName="id_mes"
+                (change)="onMesChange($event)"
                 class="w-full px-3.5 py-2.5 bg-slate-900/90 border border-slate-700/70 rounded-xl text-slate-100 focus:outline-none focus:border-indigo-500 text-sm transition-all">
                 <option [value]="null" disabled>Selecione o mês de referência...</option>
                 @for (m of mesService.meses(); track m.id_mes) {

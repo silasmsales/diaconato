@@ -15,7 +15,7 @@ export const routes: Routes = [
   },
   {
     path: 'obreiros',
-    canActivate: [authGuard, roleGuard(['admin', 'manager'])],
+    canActivate: [authGuard, roleGuard(['admin', 'manager', 'operator'])],
     loadComponent: () => import('./features/obreiros/obreiros-list.component').then(m => m.ObreirosListComponent)
   },
   {
@@ -35,7 +35,7 @@ export const routes: Routes = [
   },
   {
     path: 'bloqueios',
-    canActivate: [authGuard, roleGuard(['admin', 'manager'])],
+    canActivate: [authGuard, roleGuard(['admin', 'manager', 'operator'])],
     loadComponent: () => import('./features/bloqueios/bloqueios-list.component').then(m => m.BloqueiosListComponent)
   },
   {
@@ -55,13 +55,18 @@ export const routes: Routes = [
   },
   {
     path: 'relatorios',
-    canActivate: [authGuard, roleGuard(['admin', 'manager'])],
+    canActivate: [authGuard, roleGuard(['admin', 'manager', 'operator'])],
     loadComponent: () => import('./features/relatorios/relatorios.component').then(m => m.RelatoriosComponent)
   },
   {
     path: 'locais',
     canActivate: [authGuard, roleGuard(['admin'])],
     loadComponent: () => import('./features/locais/locais-list.component').then(m => m.LocaisListComponent)
+  },
+  {
+    path: 'eventos/:id/operacao',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/eventos/evento-detalhes.component').then(m => m.EventoDetalhesComponent)
   },
   {
     path: '**',

@@ -30,9 +30,12 @@ export class AuthService {
   canManageAll = computed(() => this.isAdmin());
   canManageEscalas = computed(() => this.isAdmin() || this.isManager());
   canManageBloqueios = computed(() => this.isAdmin() || this.isManager());
+  canManageObreiros = computed(() => this.isAdmin() || this.isManager());
+  canManageOperacao = computed(() => this.isAdmin() || this.isManager());
   canCheckin = computed(() => this.isAdmin() || this.isManager() || this.isOperator());
-  canViewReports = computed(() => this.isAdmin() || this.isManager());
-  canViewObreiros = computed(() => this.isAdmin() || this.isManager());
+  canViewReports = computed(() => this.isAdmin() || this.isManager() || this.isOperator());
+  canViewObreiros = computed(() => this.isAdmin() || this.isManager() || this.isOperator());
+  canViewBloqueios = computed(() => this.isAdmin() || this.isManager() || this.isOperator());
 
   hasRole(allowedRoles: UserRole[]): boolean {
     return allowedRoles.includes(this.userRole());

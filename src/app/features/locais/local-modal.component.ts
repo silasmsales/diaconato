@@ -1,7 +1,9 @@
-import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, computed, signal } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Local, CreateLocalDto, PRESET_AREAS, getAreaStyle } from '../../core/models/local.model';
+import { Local, CreateLocalDto } from '../../core/models/local.model';
+import { Area } from '../../core/models/area.model';
+import { AreaService } from '../../core/services/area.service';
 
 @Component({
   selector: 'app-local-modal',
@@ -64,7 +66,7 @@ import { Local, CreateLocalDto, PRESET_AREAS, getAreaStyle } from '../../core/mo
             <!-- Área de Atuação -->
             <div>
               <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-                Área de Atuação <span class="text-rose-400">*</span>
+                Área de Atuação (Setor) <span class="text-rose-400">*</span>
               </label>
               
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -73,8 +75,8 @@ import { Local, CreateLocalDto, PRESET_AREAS, getAreaStyle } from '../../core/mo
                   name="selectedAreaOption"
                   (change)="onAreaOptionChange()"
                   class="w-full px-3.5 py-2.5 bg-slate-950/80 border border-slate-700/80 rounded-xl text-sm text-white focus:outline-none focus:border-indigo-500 transition-all">
-                  @for (area of availableAreas(); track area) {
-                    <option [value]="area">{{ area }}</option>
+                  @for (area of areas; track area.id_area) {
+                    <option [value]="area.id_area">{{ area.icone || '📍' }} {{ area.nome }}</option>
                   }
                   <option value="__NEW__">+ Nova Área Personalizada...</option>
                 </select>
@@ -85,13 +87,13 @@ import { Local, CreateLocalDto, PRESET_AREAS, getAreaStyle } from '../../core/mo
                     [(ngModel)]="customAreaName" 
                     name="customAreaName"
                     required
-                    placeholder="Digite o nome da nova área..."
+                    placeholder="Nome do novo setor..."
                     class="w-full px-3.5 py-2.5 bg-slate-950/80 border border-indigo-500/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-all animate-fade-in"
                   />
                 }
               </div>
               <p class="text-[11px] text-slate-400 mt-1">
-                Classifica se o posto pertence à Igreja, Estacionamento ou uma área personalizada.
+                Classifica se o posto pertence à Igreja, Estacionamento ou um setor personalizado.
               </p>
             </div>
 
@@ -177,82 +179,53 @@ import { Local, CreateLocalDto, PRESET_AREAS, getAreaStyle } from '../../core/mo
   `
 })
 export class LocalModalComponent implements OnChanges {
+  private areaService = inject(AreaService);
+
   @Input() isOpen = false;
   @Input() local: Local | null = null;
-  @Input() defaultArea: string | null = null;
-  @Input() existingAreas: string[] = [];
+  @Input() defaultAreaId: number | null = null;
+  @Input() areas: Area[] = [];
   @Input() loading = false;
 
   @Output() save = new EventEmitter<CreateLocalDto>();
   @Output() close = new EventEmitter<void>();
 
   isEditMode = false;
-  selectedAreaOption = 'Igreja';
+  selectedAreaOption: string | number = '';
   customAreaName = '';
   isCustomArea = false;
 
   formData: CreateLocalDto = {
     nome: '',
-    area: 'Igreja',
+    id_area: 1,
     descricao: '',
     ordem: 0,
     ativo: true
   };
 
-  // Signal interno para reatividade com as áreas vindas do pai
-  areasListSignal = signal<string[]>([]);
-
-  availableAreas = computed(() => {
-    const list = new Set([...PRESET_AREAS, ...this.areasListSignal()]);
-    return Array.from(list).filter(Boolean);
-  });
-
   ngOnChanges(changes: SimpleChanges) {
-    if (changes['existingAreas'] && this.existingAreas) {
-      this.areasListSignal.set(this.existingAreas);
-    }
-
     if (changes['isOpen'] && this.isOpen) {
-      // Atualiza lista de áreas disponíveis
-      if (this.existingAreas) {
-        this.areasListSignal.set(this.existingAreas);
-      }
-
       if (this.local) {
         this.isEditMode = true;
         this.formData = {
           nome: this.local.nome,
-          area: this.local.area,
+          id_area: this.local.id_area,
           descricao: this.local.descricao || '',
           ordem: this.local.ordem ?? 0,
           ativo: this.local.ativo
         };
-        if (this.availableAreas().includes(this.local.area)) {
-          this.selectedAreaOption = this.local.area;
-          this.isCustomArea = false;
-          this.customAreaName = '';
-        } else {
-          this.selectedAreaOption = '__NEW__';
-          this.isCustomArea = true;
-          this.customAreaName = this.local.area;
-        }
+        this.selectedAreaOption = this.local.id_area;
+        this.isCustomArea = false;
+        this.customAreaName = '';
       } else {
         this.isEditMode = false;
-        const targetArea = this.defaultArea || 'Igreja';
-        
-        if (this.availableAreas().includes(targetArea)) {
-          this.selectedAreaOption = targetArea;
-          this.isCustomArea = false;
-          this.customAreaName = '';
-        } else {
-          this.selectedAreaOption = '__NEW__';
-          this.isCustomArea = true;
-          this.customAreaName = targetArea;
-        }
-
+        const initialAreaId = this.defaultAreaId || (this.areas.length > 0 ? this.areas[0].id_area : 1);
+        this.selectedAreaOption = initialAreaId;
+        this.isCustomArea = false;
+        this.customAreaName = '';
         this.formData = {
           nome: '',
-          area: targetArea,
+          id_area: initialAreaId,
           descricao: '',
           ordem: 0,
           ativo: true
@@ -266,22 +239,28 @@ export class LocalModalComponent implements OnChanges {
       this.isCustomArea = true;
     } else {
       this.isCustomArea = false;
-      this.formData.area = this.selectedAreaOption;
+      this.formData.id_area = Number(this.selectedAreaOption);
     }
   }
 
-  onSubmit() {
+  async onSubmit() {
     if (!this.formData.nome?.trim()) return;
 
-    const finalArea = this.isCustomArea 
-      ? this.customAreaName.trim() 
-      : this.selectedAreaOption.trim();
+    let targetAreaId = Number(this.selectedAreaOption);
 
-    if (!finalArea) return;
+    // Se o usuário digitou uma nova área personalizada, cadastra primeiro na tabela areas
+    if (this.isCustomArea && this.customAreaName.trim()) {
+      const created = await this.areaService.createArea({ nome: this.customAreaName.trim() });
+      if (created) {
+        targetAreaId = created.id_area;
+      } else {
+        return;
+      }
+    }
 
     this.save.emit({
       ...this.formData,
-      area: finalArea
+      id_area: targetAreaId
     });
   }
 }

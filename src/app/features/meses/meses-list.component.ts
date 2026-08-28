@@ -4,12 +4,11 @@ import { MesService } from '../../core/services/mes.service';
 import { Mes, CreateMesDto, formatMesReferencia, MESES_NOMES } from '../../core/models/mes.model';
 import { MesModalComponent } from './mes-modal.component';
 import { ConfirmModalComponent } from '../../shared/components/confirm-modal.component';
-import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-meses-list',
   standalone: true,
-  imports: [CommonModule, MesModalComponent, ConfirmModalComponent, RouterLink],
+  imports: [CommonModule, MesModalComponent, ConfirmModalComponent],
   templateUrl: './meses-list.component.html'
 })
 export class MesesListComponent implements OnInit {

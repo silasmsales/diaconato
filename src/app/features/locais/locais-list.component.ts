@@ -2,13 +2,15 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { LocalService } from '../../core/services/local.service';
+import { AreaService } from '../../core/services/area.service';
 import { AuthService } from '../../core/services/auth.service';
-import { Local, CreateLocalDto, UpdateLocalDto, getAreaStyle } from '../../core/models/local.model';
+import { Local, CreateLocalDto, getAreaStyle } from '../../core/models/local.model';
+import { Area } from '../../core/models/area.model';
 import { LocalModalComponent } from './local-modal.component';
 import { ConfirmModalComponent } from '../../shared/components/confirm-modal.component';
 
 export interface AreaGroup {
-  area: string;
+  area: Area;
   locais: Local[];
   totalAtivos: number;
 }
@@ -21,49 +23,39 @@ export interface AreaGroup {
 })
 export class LocaisListComponent implements OnInit {
   localService = inject(LocalService);
+  areaService = inject(AreaService);
   authService = inject(AuthService);
 
   getAreaStyle = getAreaStyle;
   searchQuery = signal<string>('');
-  selectedAreaFilter = signal<string>('TODAS');
+  selectedAreaFilter = signal<number | 'TODAS'>('TODAS');
   viewMode: 'agrupado' | 'cards' = 'agrupado';
 
   isModalOpen = false;
   isConfirmOpen = false;
   selectedLocal: Local | null = null;
-  defaultArea: string | null = null;
-
-  // Lista única de todas as áreas cadastradas
-  allAreas = computed(() => {
-    const areas = new Set<string>();
-    areas.add('Igreja');
-    areas.add('Estacionamento');
-    this.localService.locais().forEach(l => {
-      if (l.area) areas.add(l.area);
-    });
-    return Array.from(areas);
-  });
+  defaultAreaId: number | null = null;
 
   // Estatísticas
   totalCount = computed(() => this.localService.locais().length);
   activeCount = computed(() => this.localService.locais().filter(l => l.ativo).length);
-  areasCount = computed(() => this.allAreas().length);
+  areasCount = computed(() => this.areaService.areas().length);
 
   // Lista Filtrada
   filteredLocais = computed(() => {
     let list = this.localService.locais();
     const query = this.searchQuery().toLowerCase().trim();
-    const area = this.selectedAreaFilter();
+    const areaId = this.selectedAreaFilter();
 
-    if (area !== 'TODAS') {
-      list = list.filter(l => l.area.toLowerCase() === area.toLowerCase());
+    if (areaId !== 'TODAS') {
+      list = list.filter(l => l.id_area === areaId);
     }
 
     if (query) {
       list = list.filter(l => 
         l.nome.toLowerCase().includes(query) ||
         (l.descricao && l.descricao.toLowerCase().includes(query)) ||
-        l.area.toLowerCase().includes(query)
+        (l.areas?.nome && l.areas.nome.toLowerCase().includes(query))
       );
     }
 
@@ -73,46 +65,47 @@ export class LocaisListComponent implements OnInit {
   // Agrupado por Área
   groupedLocais = computed<AreaGroup[]>(() => {
     const list = this.filteredLocais();
-    const map = new Map<string, Local[]>();
-
-    list.forEach(item => {
-      const current = map.get(item.area) || [];
-      current.push(item);
-      map.set(item.area, current);
-    });
-
+    const allAreas = this.areaService.areas();
     const groups: AreaGroup[] = [];
-    map.forEach((items, area) => {
-      groups.push({
-        area,
-        locais: items.sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0) || a.nome.localeCompare(b.nome)),
-        totalAtivos: items.filter(i => i.ativo).length
-      });
+
+    allAreas.forEach(area => {
+      const locaisDaArea = list
+        .filter(l => l.id_area === area.id_area)
+        .sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0) || a.nome.localeCompare(b.nome));
+
+      if (locaisDaArea.length > 0 || this.selectedAreaFilter() === 'TODAS') {
+        groups.push({
+          area,
+          locais: locaisDaArea,
+          totalAtivos: locaisDaArea.filter(i => i.ativo).length
+        });
+      }
     });
 
-    return groups.sort((a, b) => a.area.localeCompare(b.area));
+    return groups;
   });
 
   ngOnInit() {
     this.localService.fetchLocais();
+    this.areaService.fetchAreas();
   }
 
-  openCreateModal(defaultArea?: string) {
+  openCreateModal(defaultAreaId?: number) {
     this.selectedLocal = null;
-    this.defaultArea = defaultArea || null;
+    this.defaultAreaId = defaultAreaId || null;
     this.isModalOpen = true;
   }
 
   openEditModal(local: Local) {
     this.selectedLocal = local;
-    this.defaultArea = local.area;
+    this.defaultAreaId = local.id_area;
     this.isModalOpen = true;
   }
 
   closeModal() {
     this.isModalOpen = false;
     this.selectedLocal = null;
-    this.defaultArea = null;
+    this.defaultAreaId = null;
   }
 
   async handleSave(dto: CreateLocalDto) {

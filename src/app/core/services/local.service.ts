@@ -25,13 +25,13 @@ export class LocalService {
     try {
       const { data, error } = await this.supabase
         .from('locais')
-        .select('*')
-        .order('area', { ascending: true })
+        .select('*, areas(*)')
+        .order('id_area', { ascending: true })
         .order('ordem', { ascending: true })
         .order('nome', { ascending: true });
 
       if (error) throw error;
-      this.locais.set(data as Local[] || []);
+      this.locais.set((data as Local[]) || []);
     } catch (err: any) {
       console.error('Erro ao buscar locais:', err);
       this.error.set(err.message || 'Erro ao carregar locais');
@@ -47,13 +47,13 @@ export class LocalService {
       const { data, error } = await this.supabase
         .from('locais')
         .insert([{
+          id_area: dto.id_area,
           nome: dto.nome.trim(),
-          area: dto.area.trim(),
           descricao: dto.descricao?.trim() || null,
           ordem: dto.ordem ?? 0,
           ativo: dto.ativo ?? true
         }])
-        .select()
+        .select('*, areas(*)')
         .single();
 
       if (error) throw error;
@@ -75,8 +75,8 @@ export class LocalService {
     this.loading.set(true);
     try {
       const payload: any = {};
+      if (dto.id_area !== undefined) payload.id_area = dto.id_area;
       if (dto.nome !== undefined) payload.nome = dto.nome.trim();
-      if (dto.area !== undefined) payload.area = dto.area.trim();
       if (dto.descricao !== undefined) payload.descricao = dto.descricao?.trim() || null;
       if (dto.ordem !== undefined) payload.ordem = dto.ordem;
       if (dto.ativo !== undefined) payload.ativo = dto.ativo;
@@ -85,7 +85,7 @@ export class LocalService {
         .from('locais')
         .update(payload)
         .eq('id_local', id)
-        .select()
+        .select('*, areas(*)')
         .single();
 
       if (error) throw error;

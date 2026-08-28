@@ -5,14 +5,17 @@
 
 -- 1. Limpeza prévia e reinicialização das sequências
 TRUNCATE TABLE public.escala CASCADE;
+TRUNCATE TABLE public.evento_area_horarios CASCADE;
+TRUNCATE TABLE public.locais CASCADE;
+TRUNCATE TABLE public.areas CASCADE;
 TRUNCATE TABLE public.bloqueios CASCADE;
 TRUNCATE TABLE public.eventos CASCADE;
 TRUNCATE TABLE public.tipo_evento CASCADE;
 TRUNCATE TABLE public.obreiros CASCADE;
-TRUNCATE TABLE public.locais CASCADE;
 
 ALTER SEQUENCE public.obreiros_id_obreiro_seq RESTART WITH 1;
 ALTER SEQUENCE public.tipo_evento_id_tipo_evento_seq RESTART WITH 1;
+ALTER SEQUENCE public.areas_id_area_seq RESTART WITH 1;
 ALTER SEQUENCE public.locais_id_local_seq RESTART WITH 1;
 
 -- ====================================================================
@@ -113,16 +116,25 @@ INSERT INTO public.tipo_evento (
 SELECT setval('public.tipo_evento_id_tipo_evento_seq', 6, true);
 
 -- ====================================================================
--- 4. Tabela Locais de Atuação dos Obreiros
+-- 4. Tabela Áreas de Atuação (Setores)
 -- ====================================================================
+INSERT INTO public.areas (id_area, nome, icone) VALUES
+(1, 'Igreja', '🏛️'),
+(2, 'Estacionamento', '🚗');
 
-INSERT INTO public.locais (id_local, nome, area, descricao, ordem, ativo) VALUES
-(1, 'Porta Principal', 'Igreja', 'Recepção e acolhimento na entrada principal da igreja', 1, TRUE),
-(2, 'Porta Lateral', 'Igreja', 'Apoio e fluxo na entrada lateral', 2, TRUE),
-(3, 'Púlpito', 'Igreja', 'Serviço e apoio ao altar e púlpito ministerial', 3, TRUE),
-(4, 'Anexo', 'Igreja', 'Apoio às dependências anexas e circulação', 4, TRUE),
-(5, 'SAMU', 'Estacionamento', 'Coordenação da área de estacionamento próxima ao SAMU', 1, TRUE),
-(6, 'Frente Igreja', 'Estacionamento', 'Organização de vagas e fluxo na frente da igreja', 2, TRUE);
+SELECT setval('public.areas_id_area_seq', 2, true);
 
-SELECT setval('public.locais_id_local_seq', 6, true);
+-- ====================================================================
+-- 5. Tabela Locais de Atuação dos Obreiros
+-- ====================================================================
+INSERT INTO public.locais (id_local, id_area, nome, descricao, ordem, ativo) VALUES
+(1, 1, 'Porta Principal', 'Recepção e acolhimento na entrada principal da igreja', 1, TRUE),
+(2, 1, 'Porta Lateral', 'Apoio ao fluxo na entrada lateral', 2, TRUE),
+(3, 1, 'Púlpito', 'Serviço e apoio ao altar e pastores', 3, TRUE),
+(4, 1, 'Anexo', 'Apoio às dependências anexas e circulação', 4, TRUE),
+(5, 1, 'Lateral Extintor', 'Apoio a circulação dentro do templo', 5, TRUE),
+(6, 2, 'SAMU', 'Organização de vagas e fluxo próximo ao SAMU', 1, TRUE),
+(7, 2, 'Frente Igreja', 'Organização de vagas e fluxo na frente da igreja', 2, TRUE),
+(8, 2, 'Privativo', 'Organização de vagas e fluxo no estacionamento privativo', 3, TRUE);
 
+SELECT setval('public.locais_id_local_seq', 8, true);

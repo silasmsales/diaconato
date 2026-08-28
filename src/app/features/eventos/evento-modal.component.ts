@@ -41,9 +41,28 @@ export class EventoModalComponent implements OnInit {
     this.initForm();
   }
 
+  private getDefaultDateForMes(idMes: number | null): string {
+    if (!idMes) return new Date().toISOString().split('T')[0];
+    const mes = this.mesService.meses().find(m => m.id_mes === idMes);
+    if (!mes) return new Date().toISOString().split('T')[0];
+
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth() + 1; // 1-indexed (1-12)
+
+    // Se o mês de referência for exatamente o mês e ano atual, preencher com a data de hoje
+    if (mes.ano_referencia === currentYear && mes.mes_referencia === currentMonth) {
+      return today.toISOString().split('T')[0];
+    }
+
+    // Caso contrário, preencher por padrão com o 1º dia do mês de referência (YYYY-MM-01)
+    const mm = String(mes.mes_referencia).padStart(2, '0');
+    return `${mes.ano_referencia}-${mm}-01`;
+  }
+
   private initForm() {
-    const defaultDate = this.evento?.data || new Date().toISOString().split('T')[0];
-    const initialMesId = this.evento?.id_mes || this.defaultMesId || this.findMatchingMesId(defaultDate);
+    const initialMesId = this.evento?.id_mes || this.defaultMesId || this.mesService.meses()[0]?.id_mes || null;
+    const defaultDate = this.evento?.data || this.getDefaultDateForMes(initialMesId);
 
     this.form = this.fb.group({
       id_mes: [initialMesId, [Validators.required]],
@@ -60,6 +79,14 @@ export class EventoModalComponent implements OnInit {
       exclusivo_diacono_terceiro: [this.evento?.exclusivo_diacono_terceiro ?? false],
       pulpito_terceiro: [this.evento?.pulpito_terceiro ?? true]
     });
+  }
+
+  onMesChange(event: any) {
+    const newMesId = Number(event.target.value);
+    if (newMesId && !this.evento) {
+      const newDate = this.getDefaultDateForMes(newMesId);
+      this.form.patchValue({ data: newDate });
+    }
   }
 
   findMatchingMesId(dateStr: string): number | null {

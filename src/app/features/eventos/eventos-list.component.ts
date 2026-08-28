@@ -9,7 +9,7 @@ import { formatMesReferencia, findCurrentMes } from '../../core/models/mes.model
 import { TURNO_LABELS, TURNO_COLORS, TurnoEnum } from '../../core/models/turno.enum';
 import { EventoModalComponent } from './evento-modal.component';
 import { ConfirmModalComponent } from '../../shared/components/confirm-modal.component';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-eventos-list',
@@ -21,6 +21,7 @@ export class EventosListComponent implements OnInit {
   authService = inject(AuthService);
   eventoService = inject(EventoService);
   mesService = inject(MesService);
+  route = inject(ActivatedRoute);
 
   formatMesReferencia = formatMesReferencia;
   eventos = this.eventoService.eventos;
@@ -57,12 +58,17 @@ export class EventosListComponent implements OnInit {
   async ngOnInit() {
     this.eventoService.fetchAll();
     const meses = await this.mesService.fetchAll();
-    if (this.selectedMesFilter() === 0) {
-      const cur = findCurrentMes(meses);
-      if (cur && cur.id_mes) {
-        this.selectedMesFilter.set(cur.id_mes);
+    
+    this.route.queryParams.subscribe(params => {
+      if (params['mes']) {
+        this.selectedMesFilter.set(Number(params['mes']));
+      } else if (this.selectedMesFilter() === 0) {
+        const cur = findCurrentMes(meses);
+        if (cur && cur.id_mes) {
+          this.selectedMesFilter.set(cur.id_mes);
+        }
       }
-    }
+    });
   }
 
   getTurnoLabel(turno: number): string {
