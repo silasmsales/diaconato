@@ -496,48 +496,52 @@ export class EventoDetalhesComponent implements OnInit {
     lines.push(`  • *Crachá:* ${cfg.cracha_obrigatorio ? 'Obrigatório' : 'Dispensado'}`);
     lines.push('');
 
-    // Horários & Escala de Postos por Horário/Turno
-    lines.push(`📍 *ESCALA DE POSTOS POR HORÁRIO:*`);
+    // Postos Agrupados por Área e dentro da Área por Horário
+    lines.push(`📍 *ESCALA DE POSTOS POR ÁREA:*`);
     lines.push(`━━━━━━━━━━━━━━━━━━━━━`);
 
-    const turnos = this.turnosDisponiveis();
     const allEscalas = this.operacaoService.escalas();
     const allAreas = this.areaService.areas();
+    const allTurnos = this.turnosDisponiveis();
     const horarios = this.operacaoService.areaHorarios();
 
-    for (const t of turnos) {
-      const escalasDoTurno = allEscalas.filter(e => !!e.id_local && Number(e.horario_turno ?? 1) === t.id);
-      
-      lines.push(`\n🕒 *${t.label.toUpperCase()}* (${escalasDoTurno.length} alocados)`);
+    let temAlocados = false;
 
-      if (escalasDoTurno.length === 0) {
-        lines.push(`  _Nenhum obreiro alocado neste horário._`);
-        continue;
-      }
+    for (const area of allAreas) {
+      const escArea = allEscalas.filter(e => !!e.id_local && Number(e.locais?.id_area) === area.id_area);
+      if (escArea.length === 0) continue;
+      temAlocados = true;
 
-      // Listar por Área / Setor
-      for (const area of allAreas) {
-        const escArea = escalasDoTurno.filter(e => Number(e.locais?.id_area) === area.id_area);
-        if (escArea.length > 0) {
-          const hArea = horarios.find((h: EventoAreaHorario) => h.id_area === area.id_area && h.horario_turno === t.id);
-          const horaTxt = hArea ? ` (${this.formatHoraAmPm(hArea.hora_inicio)} às ${this.formatHoraAmPm(hArea.hora_fim)})` : '';
-          lines.push(`\n*${area.icone || '📍'} ${area.nome.toUpperCase()}*${horaTxt}:`);
+      lines.push(`\n${area.icone || '📍'} *${area.nome.toUpperCase()}* (${escArea.length} alocados)`);
 
-          // Agrupar por Posto/Local
-          const postosMap = new Map<string, string[]>();
-          for (const esc of escArea) {
-            const postoNome = esc.locais?.nome || 'Posto Geral';
-            const obNome = esc.obreiros?.nome || this.getObreiroNome(esc.id_obreiro);
-            const list = postosMap.get(postoNome) || [];
-            list.push(obNome);
-            postosMap.set(postoNome, list);
-          }
+      // Dentro da Área, agrupar por Horário / Turno
+      for (const turno of allTurnos) {
+        const escTurno = escArea.filter(e => Number(e.horario_turno ?? 1) === turno.id);
+        if (escTurno.length === 0) continue;
 
-          for (const [posto, obreiros] of postosMap.entries()) {
-            lines.push(`  ▫️ ${posto}: ${obreiros.join(', ')}`);
-          }
+        const hArea = horarios.find((h: EventoAreaHorario) => h.id_area === area.id_area && h.horario_turno === turno.id);
+        const horaTxt = hArea ? ` (${this.formatHoraAmPm(hArea.hora_inicio)} às ${this.formatHoraAmPm(hArea.hora_fim)})` : '';
+        
+        lines.push(`\n 🕒 *${turno.label}${horaTxt}*:`);
+
+        // Agrupar por Posto / Local dentro deste horário
+        const postosMap = new Map<string, string[]>();
+        for (const esc of escTurno) {
+          const postoNome = esc.locais?.nome || 'Posto Geral';
+          const obNome = esc.obreiros?.nome || this.getObreiroNome(esc.id_obreiro);
+          const list = postosMap.get(postoNome) || [];
+          list.push(obNome);
+          postosMap.set(postoNome, list);
+        }
+
+        for (const [posto, obreiros] of postosMap.entries()) {
+          lines.push(`  ▫️ ${posto}: ${obreiros.join(', ')}`);
         }
       }
+    }
+
+    if (!temAlocados) {
+      lines.push(`\n_Nenhum obreiro alocado em postos até o momento._`);
     }
 
     // Obreiros Sem Posto (se houver)
@@ -545,7 +549,7 @@ export class EventoDetalhesComponent implements OnInit {
     if (semPosto.length > 0) {
       lines.push(`\n⏳ *Obreiros sem posto definido (${semPosto.length}):*`);
       const nomes = semPosto.map(e => e.obreiros?.nome || this.getObreiroNome(e.id_obreiro));
-      lines.push(`  • ${nomes.join(', ')}`);
+      lines.push(` • ${nomes.join(', ')}`);
     }
 
     lines.push(`\n👥 *Total Geral Escalados:* ${this.totalEscalados()} obreiro(s)`);
