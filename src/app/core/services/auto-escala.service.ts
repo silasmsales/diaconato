@@ -3,6 +3,7 @@ import { Evento } from '../models/evento.model';
 import { Obreiro } from '../models/obreiro.model';
 import { Bloqueio } from '../models/bloqueio.model';
 import { CreateEscalaDto, Escala } from '../models/escala.model';
+import { DistribuicaoObreiroEvento } from '../models/relatorios.model';
 
 export interface VagaDemanda {
   horario: number; // 1, 2 ou 3
@@ -45,7 +46,9 @@ export class AutoEscalaService {
     obreiros: Obreiro[],
     bloqueios: Bloqueio[],
     existingEscalas: Escala[] = [],
-    replaceExisting: boolean = true
+    replaceExisting: boolean = true,
+    equilibrarPorTipoEventoAnual: boolean = false,
+    distribuicaoAnual: DistribuicaoObreiroEvento[] = []
   ): AutoEscalaResult {
     const idMes = Number(idMesInput);
     const avisos: string[] = [];
@@ -115,12 +118,21 @@ export class AutoEscalaService {
     const escalaCountMap = new Map<number, number>();
     const datasEscaladasMap = new Map<number, Set<string>>(); // id_obreiro -> Set of "YYYY-MM-DD"
     const diaTurnoEscaladoMap = new Map<string, Set<number>>(); // "YYYY-MM-DD_turno" -> Set of id_obreiro
+    const historicoTipoEventoAnoMap = new Map<string, number>(); // "idObreiro_descricaoNormalizada" -> totalEscalasAno
 
     elegiveis.forEach(o => {
       const id = Number(o.id_obreiro);
       escalaCountMap.set(id, 0);
       datasEscaladasMap.set(id, new Set<string>());
     });
+
+    // Se a opção de equilibrar por tipo de culto no ano estiver ativa, carregar dados históricos anuais
+    if (equilibrarPorTipoEventoAnual && distribuicaoAnual && distribuicaoAnual.length > 0) {
+      distribuicaoAnual.forEach(d => {
+        const key = `${d.id_obreiro}_${(d.descricao_evento || '').trim().toLowerCase()}`;
+        historicoTipoEventoAnoMap.set(key, Number(d.total_escalas_no_ano) || 0);
+      });
+    }
 
     // Se NÃO for substituir existentes, carregar as escalas já existentes
     if (!replaceExisting && existingEscalas) {
@@ -136,6 +148,11 @@ export class AutoEscalaService {
             const diaTurnoKey = `${ev.data}_${ev.turno}`;
             if (!diaTurnoEscaladoMap.has(diaTurnoKey)) diaTurnoEscaladoMap.set(diaTurnoKey, new Set());
             diaTurnoEscaladoMap.get(diaTurnoKey)!.add(obId);
+
+            if (equilibrarPorTipoEventoAnual) {
+              const tipoKey = `${obId}_${(ev.descricao || '').trim().toLowerCase()}`;
+              historicoTipoEventoAnoMap.set(tipoKey, (historicoTipoEventoAnoMap.get(tipoKey) || 0) + 1);
+            }
           }
         });
     }
@@ -244,20 +261,35 @@ export class AutoEscalaService {
             [candidatos[i], candidatos[j]] = [candidatos[j], candidatos[i]];
           }
 
-          // Ordenar por menor número de escalas acumuladas (fairness) e preservação de especialistas
+          // Ordenar candidatos
           candidatos.sort((a, b) => {
-            const countA = escalaCountMap.get(Number(a.id_obreiro)) || 0;
-            const countB = escalaCountMap.get(Number(b.id_obreiro)) || 0;
+            const obIdA = Number(a.id_obreiro);
+            const obIdB = Number(b.id_obreiro);
+
+            // 1. Critério Primário: Menor número de escalas acumuladas no mês atual (fairness)
+            const countA = escalaCountMap.get(obIdA) || 0;
+            const countB = escalaCountMap.get(obIdB) || 0;
             if (countA !== countB) return countA - countB;
 
-            // Se a vaga for geral (não precisa de diácono nem púlpito), economizar os especialistas para vagas restritas
+            // 2. Critério de Desempate (apenas quando houver a mesma quantidade de escalas no mês):
+            // Priorizar quem menos atuou neste tipo específico de culto no ano atual
+            if (equilibrarPorTipoEventoAnual) {
+              const tipoEventoKey = (evento.descricao || '').trim().toLowerCase();
+              const countTipoA = historicoTipoEventoAnoMap.get(`${obIdA}_${tipoEventoKey}`) || 0;
+              const countTipoB = historicoTipoEventoAnoMap.get(`${obIdB}_${tipoEventoKey}`) || 0;
+              if (countTipoA !== countTipoB) {
+                return countTipoA - countTipoB;
+              }
+            }
+
+            // 3. Critério: Se a vaga for geral (não precisa de diácono nem púlpito), economizar os especialistas para vagas restritas
             if (!vaga.precisaDiacono && !vaga.precisaPulpito) {
               const specializedA = (a.diacono ? 1 : 0) + (a.pulpito ? 1 : 0);
               const specializedB = (b.diacono ? 1 : 0) + (b.pulpito ? 1 : 0);
               if (specializedA !== specializedB) return specializedA - specializedB;
             }
 
-            // Desempate: mantém a ordem aleatória do embaralhamento prévio
+            // 4. Desempate: mantém a ordem aleatória do embaralhamento prévio
             return 0;
           });
 
@@ -270,6 +302,12 @@ export class AutoEscalaService {
           if (!datasEscaladasMap.has(obId)) datasEscaladasMap.set(obId, new Set());
           datasEscaladasMap.get(obId)!.add(evento.data);
           escalaCountMap.set(obId, (escalaCountMap.get(obId) || 0) + 1);
+
+          // Incrementar contador dinâmico do tipo de evento no ano
+          if (equilibrarPorTipoEventoAnual) {
+            const tipoEventoKey = `${obId}_${(evento.descricao || '').trim().toLowerCase()}`;
+            historicoTipoEventoAnoMap.set(tipoEventoKey, (historicoTipoEventoAnoMap.get(tipoEventoKey) || 0) + 1);
+          }
 
           totalVagasPreenchidas++;
           eventSchedule.escalados.push({

@@ -21,29 +21,31 @@
       </p>
     </div>
 
-    @if (result && result.dtos.length > 0) {
-      <button 
-        (click)="salvarEscalaNoBanco()"
-        [disabled]="isSaving"
-        class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold shadow-lg shadow-emerald-600/25 transition-all transform active:scale-95 disabled:opacity-50">
-        @if (isSaving) {
-          <span class="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></span>
-          <span>Gravando no Banco...</span>
-        } @else {
-          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-          </svg>
-          <span>Salvar e Publicar Escala ({{ result.dtos.length }})</span>
-        }
-      </button>
+    @if (result(); as res) {
+      @if (res.dtos.length > 0) {
+        <button 
+          (click)="salvarEscalaNoBanco()"
+          [disabled]="isSaving"
+          class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold shadow-lg shadow-emerald-600/25 transition-all transform active:scale-95 disabled:opacity-50">
+          @if (isSaving) {
+            <span class="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></span>
+            <span>Gravando no Banco...</span>
+          } @else {
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            <span>Salvar e Publicar Escala ({{ res.dtos.length }})</span>
+          }
+        </button>
+      }
     }
   </div>
 
   <!-- Settings & Month Selector Panel -->
   <div class="glass-panel rounded-2xl p-5 border border-slate-800/80 space-y-4">
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+    <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-stretch">
       <!-- Mês Selector -->
-      <div>
+      <div class="md:col-span-4 flex flex-col justify-end">
         <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
           Mês de Referência *
         </label>
@@ -59,7 +61,7 @@
       </div>
 
       <!-- Option: Replace Existing -->
-      <div class="flex items-center gap-3 bg-slate-900/60 p-3 rounded-xl border border-slate-800">
+      <div class="md:col-span-4 flex items-center gap-3 bg-slate-900/60 p-3 rounded-xl border border-slate-800">
         <input 
           type="checkbox" 
           id="replaceCheck"
@@ -72,20 +74,34 @@
         </label>
       </div>
 
-      <!-- Trigger Action Button -->
-      <div>
-        <button 
-          (click)="executarGeracaoAutomatica()"
-          [disabled]="selectedMesId() === 0 || isGenerating"
-          class="w-full py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold shadow-lg shadow-indigo-600/30 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
-          @if (isGenerating) {
-            <span class="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></span>
-            <span>Processando Regras...</span>
-          } @else {
-            <span>⚡ Gerar Escala Automática</span>
-          }
-        </button>
+      <!-- Option: Equilibrar por Tipo de Culto no Ano -->
+      <div class="md:col-span-4 flex items-center gap-3 bg-slate-900/60 p-3 rounded-xl border border-slate-800">
+        <input 
+          type="checkbox" 
+          id="equilibrarAnoCheck"
+          [(ngModel)]="equilibrarPorTipoEventoAnual"
+          class="w-4 h-4 rounded border-slate-700 text-indigo-600 focus:ring-indigo-500 bg-slate-900"
+        />
+        <label for="equilibrarAnoCheck" class="text-xs text-slate-300 cursor-pointer select-none">
+          <strong class="block text-white">Equilibrar tipo de culto no ano</strong>
+          Desempate para quem menos atuou neste tipo no ano
+        </label>
       </div>
+    </div>
+
+    <!-- Trigger Action Button -->
+    <div class="pt-1">
+      <button 
+        (click)="executarGeracaoAutomatica()"
+        [disabled]="selectedMesId() === 0 || isGenerating"
+        class="w-full py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold shadow-lg shadow-indigo-600/30 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+        @if (isGenerating) {
+          <span class="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></span>
+          <span>Processando Regras e Histórico Anual...</span>
+        } @else {
+          <span>⚡ Gerar Escala Automática</span>
+        }
+      </button>
     </div>
 
     <!-- Pre-generation Diagnostics Pills -->
@@ -133,10 +149,10 @@
   </div>
 
   <!-- RESULTS & METRICS DASHBOARD -->
-  @if (result) {
+  @if (result(); as res) {
     <div class="space-y-6">
       <!-- Alerts List if any -->
-      @if (result.avisos.length > 0) {
+      @if (res.avisos.length > 0) {
         <div class="glass-panel rounded-2xl p-4 border border-amber-500/30 bg-amber-500/5 space-y-2">
           <h4 class="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-2">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -145,7 +161,7 @@
             <span>Avisos e Diagnóstico de Alocação</span>
           </h4>
           <ul class="space-y-1 text-xs text-amber-300/90 list-disc pl-5">
-            @for (aviso of result.avisos; track $index) {
+            @for (aviso of res.avisos; track $index) {
               <li>{{ aviso }}</li>
             }
           </ul>
@@ -153,7 +169,7 @@
       }
 
       <!-- EMPTY STATE IF NO EVENTS IN MONTH -->
-      @if (result.eventSchedules.length === 0) {
+      @if (res.eventSchedules.length === 0) {
         <div class="glass-panel rounded-3xl p-10 text-center border border-slate-800/80 max-w-lg mx-auto space-y-4">
           <div class="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 mx-auto flex items-center justify-center">
             <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -180,19 +196,19 @@
             <div class="flex items-center justify-between">
               <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Vagas Preenchidas</span>
               <span 
-                [class]="result.taxaPreenchimento === 100 ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' : 'text-amber-400 bg-amber-500/10 border-amber-500/30'"
+                [class]="res.taxaPreenchimento === 100 ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' : 'text-amber-400 bg-amber-500/10 border-amber-500/30'"
                 class="text-xs font-bold px-2 py-0.5 rounded-full border">
-                {{ result.taxaPreenchimento }}%
+                {{ res.taxaPreenchimento }}%
               </span>
             </div>
             <div class="text-2xl font-black text-white">
-              {{ result.totalVagasPreenchidas }} <span class="text-sm font-medium text-slate-400">de {{ result.totalVagasNecessarias }} vagas</span>
+              {{ res.totalVagasPreenchidas }} <span class="text-sm font-medium text-slate-400">de {{ res.totalVagasNecessarias }} vagas</span>
             </div>
             <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
               <div 
-                [class]="result.taxaPreenchimento === 100 ? 'bg-emerald-500' : 'bg-amber-500'" 
+                [class]="res.taxaPreenchimento === 100 ? 'bg-emerald-500' : 'bg-amber-500'" 
                 class="h-full rounded-full transition-all duration-700" 
-                [style.width.%]="result.taxaPreenchimento">
+                [style.width.%]="res.taxaPreenchimento">
               </div>
             </div>
           </div>
@@ -211,11 +227,11 @@
           <!-- Alertas e Avisos -->
           <div class="glass-panel rounded-2xl p-4 border border-slate-800/80 space-y-1">
             <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Diagnóstico de Restrições</span>
-            <div class="text-2xl font-black" [class]="result.avisos.length === 0 ? 'text-emerald-400' : 'text-amber-400'">
-              {{ result.avisos.length === 0 ? 'Perfeito' : result.avisos.length + ' alerta(s)' }}
+            <div class="text-2xl font-black" [class]="res.avisos.length === 0 ? 'text-emerald-400' : 'text-amber-400'">
+              {{ res.avisos.length === 0 ? 'Perfeito' : res.avisos.length + ' alerta(s)' }}
             </div>
             <p class="text-xs text-slate-400">
-              {{ result.avisos.length === 0 ? '100% das regras e vagas foram satisfeitas' : 'Alguns cultos precisaram de atenção' }}
+              {{ res.avisos.length === 0 ? '100% das regras e vagas foram satisfeitas' : 'Alguns cultos precisaram de atenção' }}
             </p>
           </div>
         </div>
@@ -228,7 +244,7 @@
           </h3>
 
           <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5">
-            @for (stat of result.obreiroStats; track $index) {
+            @for (stat of res.obreiroStats; track $index) {
               <div class="bg-slate-900/70 border border-slate-800 rounded-xl p-2.5 flex items-center justify-between gap-2">
                 <div class="min-w-0">
                   <span class="text-xs font-bold text-slate-200 truncate block">{{ stat.obreiro.nome }}</span>
@@ -254,12 +270,12 @@
           <h3 class="text-base font-bold text-white flex items-center gap-2">
             <span>Cultos e Equipes Geradas</span>
             <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">
-              {{ result.eventSchedules.length }} eventos
+              {{ res.eventSchedules.length }} eventos
             </span>
           </h3>
 
           <div class="space-y-3">
-            @for (item of result.eventSchedules; track $index) {
+            @for (item of res.eventSchedules; track $index) {
               <div class="glass-panel rounded-2xl p-4 border border-slate-800/80 space-y-3">
                 <!-- Event Header -->
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-2.5">

@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
@@ -8,8 +8,10 @@ import { EventoService } from '../../core/services/evento.service';
 import { ObreiroService } from '../../core/services/obreiro.service';
 import { MesService } from '../../core/services/mes.service';
 import { BloqueioService } from '../../core/services/bloqueio.service';
+import { RelatorioService } from '../../core/services/relatorio.service';
 import { ToastService } from '../../core/services/toast.service';
 import { formatMesReferencia, findCurrentMes } from '../../core/models/mes.model';
+import { DistribuicaoObreiroEvento } from '../../core/models/relatorios.model';
 import { TURNO_LABELS, TURNO_COLORS } from '../../core/models/turno.enum';
 
 @Component({
@@ -25,17 +27,20 @@ export class EscalaGeradorComponent implements OnInit {
   obreiroService = inject(ObreiroService);
   mesService = inject(MesService);
   bloqueioService = inject(BloqueioService);
+  relatorioService = inject(RelatorioService);
   toast = inject(ToastService);
   router = inject(Router);
+  cdr = inject(ChangeDetectorRef);
 
   formatMesReferencia = formatMesReferencia;
 
   selectedMesId = signal<number>(0);
   replaceExisting = true;
+  equilibrarPorTipoEventoAnual = false;
   isGenerating = false;
   isSaving = false;
 
-  result: AutoEscalaResult | null = null;
+  result = signal<AutoEscalaResult | null>(null);
 
   ngOnInit() {
     this.carregarDados();
@@ -56,11 +61,13 @@ export class EscalaGeradorComponent implements OnInit {
         this.selectedMesId.set(cur.id_mes);
       }
     }
+    this.cdr.detectChanges();
   }
 
   onMesChange(mesId: number) {
     this.selectedMesId.set(Number(mesId));
-    this.result = null;
+    this.result.set(null);
+    this.cdr.detectChanges();
   }
 
   getEventosCountDoMes(): number {
@@ -97,72 +104,93 @@ export class EscalaGeradorComponent implements OnInit {
   }
 
   getMediaEscalas(): string {
-    if (!this.result || !this.result.obreiroStats || this.result.obreiroStats.length === 0) return '0';
-    const total = this.result.obreiroStats.reduce((acc, s) => acc + s.totalEscalas, 0);
-    return (total / this.result.obreiroStats.length).toFixed(1);
+    const res = this.result();
+    if (!res || !res.obreiroStats || res.obreiroStats.length === 0) return '0';
+    const total = res.obreiroStats.reduce((acc, s) => acc + s.totalEscalas, 0);
+    return (total / res.obreiroStats.length).toFixed(1);
   }
 
   getMinEscalas(): number {
-    if (!this.result || !this.result.obreiroStats || this.result.obreiroStats.length === 0) return 0;
-    return Math.min(...this.result.obreiroStats.map(s => s.totalEscalas));
+    const res = this.result();
+    if (!res || !res.obreiroStats || res.obreiroStats.length === 0) return 0;
+    return Math.min(...res.obreiroStats.map(s => s.totalEscalas));
   }
 
   getMaxEscalas(): number {
-    if (!this.result || !this.result.obreiroStats || this.result.obreiroStats.length === 0) return 0;
-    return Math.max(...this.result.obreiroStats.map(s => s.totalEscalas));
+    const res = this.result();
+    if (!res || !res.obreiroStats || res.obreiroStats.length === 0) return 0;
+    return Math.max(...res.obreiroStats.map(s => s.totalEscalas));
   }
 
-  executarGeracaoAutomatica() {
+  async executarGeracaoAutomatica() {
     const mesId = Number(this.selectedMesId());
     if (!mesId) {
       this.toast.warning('Selecione um mês', 'Por favor, selecione um mês de referência para gerar a escala.');
       return;
     }
 
+    this.isGenerating = true;
+    this.cdr.detectChanges();
+
     try {
-      this.result = this.autoEscalaService.generateMonthlySchedule(
+      let distribuicaoAnual: DistribuicaoObreiroEvento[] = [];
+      if (this.equilibrarPorTipoEventoAnual) {
+        const mes = this.mesService.meses().find(m => m.id_mes === mesId);
+        const ano = mes?.ano_referencia || new Date().getFullYear();
+        distribuicaoAnual = await this.relatorioService.fetchDistribuicaoEventos(ano);
+      }
+
+      const generated = this.autoEscalaService.generateMonthlySchedule(
         mesId,
         this.eventoService.eventos(),
         this.obreiroService.obreiros(),
         this.bloqueioService.bloqueios(),
         this.escalaService.escalas(),
-        this.replaceExisting
+        this.replaceExisting,
+        this.equilibrarPorTipoEventoAnual,
+        distribuicaoAnual
       );
 
-      if (this.result.totalVagasNecessarias === 0) {
+      this.result.set(generated);
+
+      if (generated.totalVagasNecessarias === 0) {
         this.toast.warning('Sem cultos', 'Nenhum culto cadastrado para este mês. Use "Gerar Cultos do Mês" para criá-los.');
-      } else if (this.result.totalVagasPreenchidas === this.result.totalVagasNecessarias) {
-        this.toast.success('Escala calculada!', `100% das vagas (${this.result.totalVagasPreenchidas}) foram preenchidas com sucesso.`);
+      } else if (generated.totalVagasPreenchidas === generated.totalVagasNecessarias) {
+        this.toast.success('Escala calculada!', `100% das vagas (${generated.totalVagasPreenchidas}) foram preenchidas com sucesso.`);
       } else {
-        this.toast.warning('Escala com vagas abertas', `${this.result.totalVagasPreenchidas} de ${this.result.totalVagasNecessarias} vagas foram preenchidas.`);
+        this.toast.warning('Escala com vagas abertas', `${generated.totalVagasPreenchidas} de ${generated.totalVagasNecessarias} vagas foram preenchidas.`);
       }
     } catch (err: any) {
       console.error('Erro na execução da geração automática:', err);
       this.toast.error('Erro ao processar regras', err.message || 'Ocorreu um erro inesperado.');
     } finally {
       this.isGenerating = false;
+      this.cdr.detectChanges();
     }
   }
 
   async salvarEscalaNoBanco() {
-    if (!this.result || this.result.dtos.length === 0) return;
+    const res = this.result();
+    if (!res || res.dtos.length === 0) return;
     this.isSaving = true;
+    this.cdr.detectChanges();
 
     try {
       const success = await this.escalaService.saveGeneratedSchedule(
-        this.result.id_mes,
-        this.result.dtos,
+        res.id_mes,
+        res.dtos,
         this.replaceExisting
       );
 
       if (success) {
-        this.router.navigate(['/escalas'], { queryParams: { mes: this.result.id_mes } });
+        this.router.navigate(['/escalas'], { queryParams: { mes: res.id_mes } });
       }
     } catch (err: any) {
       console.error('Erro ao salvar escala no banco:', err);
       this.toast.error('Erro ao salvar', err.message);
     } finally {
       this.isSaving = false;
+      this.cdr.detectChanges();
     }
   }
 }
