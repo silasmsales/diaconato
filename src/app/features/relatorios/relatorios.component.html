@@ -44,7 +44,18 @@
       <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
       </svg>
-      <span>3. Distribuição Anual</span>
+      <span>3. Distribuição por Culto</span>
+    </button>
+
+    <button 
+      (click)="setTab('postos')"
+      [class]="activeTab() === 'postos' ? 'bg-indigo-600 text-white font-bold shadow-lg shadow-indigo-600/30' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'"
+      class="px-4 py-2 rounded-xl text-xs font-semibold transition-all whitespace-nowrap flex items-center gap-2">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+      </svg>
+      <span>4. Escalas por Posto</span>
     </button>
 
     <button 
@@ -54,7 +65,7 @@
       <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
       </svg>
-      <span>4. Resumo Mensal</span>
+      <span>5. Resumo Mensal</span>
     </button>
 
     <button 
@@ -64,7 +75,7 @@
       <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
       </svg>
-      <span>5. Auditoria de Conflitos</span>
+      <span>6. Auditoria de Conflitos</span>
     </button>
   </div>
 
@@ -552,7 +563,441 @@
     </div>
   }
 
-  <!-- TAB 4: RESUMO EXECUTIVO MENSAL -->
+  <!-- TAB 4: ESCALAS POR POSTO / LOCAL -->
+  @if (!relatorioService.loading() && activeTab() === 'postos') {
+    <div class="space-y-6">
+      <!-- Filter Bar -->
+      <div class="glass-panel rounded-2xl p-4 border border-slate-800/80 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
+        <!-- Period & Area Filters -->
+        <div class="flex items-center gap-3 flex-wrap">
+          <!-- Modo Toggle (Anual vs Mensal vs Geral) -->
+          <div class="flex items-center p-1 bg-slate-900 rounded-xl border border-slate-800">
+            <button 
+              (click)="setPostosPeriodoModo('anual')"
+              [class]="postosPeriodoModo() === 'anual' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-400 hover:text-slate-200'"
+              class="px-3 py-1.5 rounded-lg text-xs transition-all">
+              Ano
+            </button>
+            <button 
+              (click)="setPostosPeriodoModo('mensal')"
+              [class]="postosPeriodoModo() === 'mensal' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-400 hover:text-slate-200'"
+              class="px-3 py-1.5 rounded-lg text-xs transition-all">
+              Mês
+            </button>
+            <button 
+              (click)="setPostosPeriodoModo('geral')"
+              [class]="postosPeriodoModo() === 'geral' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-400 hover:text-slate-200'"
+              class="px-3 py-1.5 rounded-lg text-xs transition-all">
+              Acumulado
+            </button>
+          </div>
+
+          <!-- Ano Selector (quando Anual) -->
+          @if (postosPeriodoModo() === 'anual') {
+            <div class="flex items-center gap-1.5">
+              <label class="text-xs font-bold text-slate-400 uppercase">Ano:</label>
+              <select 
+                [ngModel]="selectedAno()"
+                (ngModelChange)="onAnoChange(+$event)"
+                class="px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-xl text-xs font-semibold text-slate-100 focus:outline-none focus:border-indigo-500">
+                @for (ano of anosDisponiveis(); track ano) {
+                  <option [value]="ano">{{ ano }}</option>
+                }
+              </select>
+            </div>
+          }
+
+          <!-- Mês Selector (quando Mensal) -->
+          @if (postosPeriodoModo() === 'mensal') {
+            <div class="flex items-center gap-1.5">
+              <label class="text-xs font-bold text-slate-400 uppercase">Mês:</label>
+              <select 
+                [ngModel]="selectedMesId()"
+                (ngModelChange)="onMesChange(+$event)"
+                class="px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-xl text-xs font-semibold text-slate-100 focus:outline-none focus:border-indigo-500">
+                @for (m of mesService.meses(); track m.id_mes) {
+                  <option [value]="m.id_mes">{{ formatMesReferencia(m) }}</option>
+                }
+              </select>
+            </div>
+          }
+
+          <!-- Área / Setor Selector -->
+          <div class="flex items-center gap-1.5">
+            <label class="text-xs font-bold text-slate-400 uppercase">Área:</label>
+            <select 
+              [ngModel]="selectedAreaFilter()"
+              (ngModelChange)="selectedAreaFilter.set(+$event); selectedLocalFilter.set(0)"
+              class="px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-xl text-xs font-semibold text-slate-100 focus:outline-none focus:border-indigo-500">
+              <option [value]="0">Todas as Áreas</option>
+              @for (area of areasDisponiveis(); track area.id) {
+                <option [value]="area.id">{{ area.icone || '📍' }} {{ area.nome }}</option>
+              }
+            </select>
+          </div>
+
+          <!-- Posto Selector -->
+          <div class="flex items-center gap-1.5">
+            <label class="text-xs font-bold text-slate-400 uppercase">Posto:</label>
+            <select 
+              [ngModel]="selectedLocalFilter()"
+              (ngModelChange)="selectedLocalFilter.set(+$event)"
+              class="px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-xl text-xs font-semibold text-slate-100 focus:outline-none focus:border-indigo-500">
+              <option [value]="0">Todos os Postos</option>
+              @for (loc of locaisDisponiveis(); track loc.id) {
+                <option [value]="loc.id">{{ loc.nome }}</option>
+              }
+            </select>
+          </div>
+
+          <!-- Checkbox: Apenas com Posto Definido -->
+          <label class="flex items-center gap-2 cursor-pointer select-none bg-slate-900/90 px-3 py-1.5 rounded-xl border border-slate-800 text-xs text-slate-300 hover:text-white">
+            <input 
+              type="checkbox"
+              [ngModel]="apenasComPostoDefinido()"
+              (ngModelChange)="apenasComPostoDefinido.set($event)"
+              class="w-3.5 h-3.5 rounded border-slate-700 text-indigo-600 focus:ring-indigo-500 bg-slate-950"
+            />
+            <span>Apenas com Posto Definido</span>
+          </label>
+        </div>
+
+        <!-- Search & View Mode Switcher -->
+        <div class="flex items-center gap-3">
+          <div class="relative w-full sm:w-60">
+            <input 
+              type="text"
+              [ngModel]="searchQuery()"
+              (ngModelChange)="searchQuery.set($event)"
+              placeholder="Buscar obreiro ou posto..."
+              class="w-full pl-9 pr-4 py-1.5 bg-slate-900/90 border border-slate-700/70 rounded-xl text-slate-100 placeholder-slate-500 text-xs focus:outline-none focus:border-indigo-500"
+            />
+            <svg class="w-4 h-4 text-slate-500 absolute left-3 top-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+
+          <!-- View Mode Toggle -->
+          <div class="flex items-center p-1 bg-slate-900 rounded-xl border border-slate-800 shrink-0">
+            <button 
+              (click)="setPostosViewMode('obreiros')"
+              [class]="postosViewMode() === 'obreiros' ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-600/30' : 'text-slate-400 hover:text-slate-200'"
+              class="px-3 py-1.5 rounded-lg text-xs transition-all flex items-center gap-1.5"
+              title="Agrupar por Obreiro">
+              <span>👥</span>
+              <span class="hidden sm:inline">Por Obreiro</span>
+            </button>
+            <button 
+              (click)="setPostosViewMode('locais')"
+              [class]="postosViewMode() === 'locais' ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-600/30' : 'text-slate-400 hover:text-slate-200'"
+              class="px-3 py-1.5 rounded-lg text-xs transition-all flex items-center gap-1.5"
+              title="Agrupar por Posto">
+              <span>📍</span>
+              <span class="hidden sm:inline">Por Posto</span>
+            </button>
+            <button 
+              (click)="setPostosViewMode('tabela')"
+              [class]="postosViewMode() === 'tabela' ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-600/30' : 'text-slate-400 hover:text-slate-200'"
+              class="px-3 py-1.5 rounded-lg text-xs transition-all flex items-center gap-1.5"
+              title="Tabela Completa">
+              <span>📊</span>
+              <span class="hidden sm:inline">Tabela</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- KPI Summary Cards -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <!-- Total Escalas em Postos -->
+        <div class="glass-panel rounded-2xl p-4 border border-slate-800/80 space-y-1">
+          <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Total de Escalas</span>
+          <div class="text-2xl font-black text-indigo-400 font-mono">
+            {{ kpiPostos().totalEscalas }}
+          </div>
+          <span class="text-[10px] text-slate-500 block">Alocações no período</span>
+        </div>
+
+        <!-- Postos Distintos Atendidos -->
+        <div class="glass-panel rounded-2xl p-4 border border-slate-800/80 space-y-1">
+          <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Postos Atendidos</span>
+          <div class="text-2xl font-black text-purple-400 font-mono">
+            {{ kpiPostos().postosDistintos }}
+          </div>
+          <span class="text-[10px] text-slate-500 block">Locais de serviço</span>
+        </div>
+
+        <!-- Obreiros Escalados -->
+        <div class="glass-panel rounded-2xl p-4 border border-slate-800/80 space-y-1">
+          <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Obreiros em Posto</span>
+          <div class="text-2xl font-black text-emerald-400 font-mono">
+            {{ kpiPostos().obreirosDistintos }}
+          </div>
+          <span class="text-[10px] text-slate-500 block">Membros participantes</span>
+        </div>
+
+        <!-- Posto Mais Ativo -->
+        <div class="glass-panel rounded-2xl p-4 border border-slate-800/80 space-y-1">
+          <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Posto Mais Escalado</span>
+          <div class="text-sm font-bold text-white truncate" [title]="kpiPostos().topPostoNome">
+            {{ kpiPostos().topPostoNome }}
+          </div>
+          <span class="text-[10px] text-amber-400 font-semibold block">
+            {{ kpiPostos().topPostoTotal }} escalas realizadas
+          </span>
+        </div>
+      </div>
+
+      <!-- VIEW MODE 1: AGRUPADO POR OBREIRO -->
+      @if (postosViewMode() === 'obreiros') {
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          @for (ob of obreirosPostosGrouped(); track ob.id_obreiro) {
+            <div class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3 flex flex-col justify-between hover:border-slate-700 transition-all">
+              <!-- Header do Obreiro -->
+              <div class="flex items-center justify-between gap-3 border-b border-slate-800/80 pb-3">
+                <div class="min-w-0">
+                  <div class="flex items-center gap-2">
+                    <h3 class="text-sm font-bold text-white truncate" [title]="ob.nome_obreiro">
+                      {{ ob.nome_obreiro }}
+                    </h3>
+                  </div>
+                  <div class="flex items-center gap-1.5 mt-0.5">
+                    @if (ob.is_diacono) {
+                      <span class="text-[9px] px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-semibold">Diácono</span>
+                    }
+                    @if (ob.is_pulpito) {
+                      <span class="text-[9px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30 font-semibold">Púlpito</span>
+                    }
+                    @if (!ob.is_diacono && !ob.is_pulpito) {
+                      <span class="text-[9px] text-slate-400">Obreiro</span>
+                    }
+                  </div>
+                </div>
+
+                <div class="text-right shrink-0">
+                  <span class="text-xs font-mono font-black text-indigo-400 bg-indigo-500/10 border border-indigo-500/30 px-2.5 py-1 rounded-xl block">
+                    {{ ob.total_geral }} {{ ob.total_geral === 1 ? 'escala' : 'escalas' }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- Lista de Postos do Obreiro com Barras Proporcionais -->
+              <div class="space-y-2 flex-1">
+                <div class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                  Postos onde serviu ({{ ob.postos.length }}):
+                </div>
+
+                <div class="space-y-2">
+                  @for (p of ob.postos; track p.id_local) {
+                    <div 
+                      [class]="p.id_local === 0 ? 'bg-amber-500/5 border-amber-500/20' : 'bg-slate-900/80 border-slate-800/90'"
+                      class="rounded-xl p-2.5 border space-y-1.5">
+                      <div class="flex items-center justify-between text-xs">
+                        <span class="text-slate-200 font-semibold truncate flex items-center gap-1.5">
+                          @if (p.id_local === 0) {
+                            <span class="text-amber-400">⚠️</span>
+                            <span class="text-amber-300 font-bold">Sem posto designado</span>
+                          } @else {
+                            <span>{{ p.icone_area || '📍' }}</span>
+                            <span>{{ p.nome_local }}</span>
+                          }
+                        </span>
+                        <div class="flex items-center gap-2 shrink-0">
+                          <span 
+                            [class]="p.id_local === 0 ? 'text-amber-400' : 'text-indigo-300'"
+                            class="font-mono font-bold">{{ p.total }}x</span>
+                          <span class="text-[10px] text-slate-500 font-mono">
+                            ({{ ((p.total / ob.total_geral) * 100).toFixed(0) }}%)
+                          </span>
+                        </div>
+                      </div>
+
+                      <!-- Progress bar do posto em relação ao total do obreiro -->
+                      <div class="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                        <div 
+                          [class]="p.id_local === 0 ? 'bg-amber-500/70' : 'bg-indigo-500'"
+                          class="h-full rounded-full transition-all" 
+                          [style.width.%]="(p.total / ob.total_geral) * 100">
+                        </div>
+                      </div>
+
+                      <!-- Metadata adicional (Presença / Faltas) -->
+                      <div class="flex items-center justify-between text-[10px] text-slate-400 pt-0.5">
+                        <span class="text-slate-500">{{ p.id_local === 0 ? 'Escalado (Local não definido no culto)' : p.nome_area }}</span>
+                        <div class="flex items-center gap-2 font-mono">
+                          @if (p.presencas > 0) {
+                            <span class="text-emerald-400">✓ {{ p.presencas }}</span>
+                          }
+                          @if (p.faltas > 0) {
+                            <span class="text-rose-400">✗ {{ p.faltas }}</span>
+                          }
+                          @if (p.data_ultima) {
+                            <span class="text-slate-500">Última: {{ p.data_ultima | date:'dd/MM/yyyy' }}</span>
+                          }
+                        </div>
+                      </div>
+                    </div>
+                  }
+                </div>
+              </div>
+            </div>
+          } @empty {
+            <div class="col-span-full glass-panel rounded-2xl p-12 text-center border border-slate-800 text-slate-500 italic">
+              Nenhuma escala em postos encontrada com os filtros selecionados.
+            </div>
+          }
+        </div>
+      }
+
+      <!-- VIEW MODE 2: AGRUPADO POR POSTO / LOCAL -->
+      @if (postosViewMode() === 'locais') {
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          @for (loc of locaisObreirosGrouped(); track loc.id_local) {
+            <div 
+              [class]="loc.id_local === 0 ? 'border-amber-500/30 bg-amber-500/5' : 'border-slate-800'"
+              class="glass-card rounded-2xl p-4 border space-y-3 flex flex-col justify-between hover:border-slate-700 transition-all">
+              <!-- Header do Posto -->
+              <div class="flex items-center justify-between gap-3 border-b border-slate-800/80 pb-3">
+                <div class="min-w-0">
+                  <div class="flex items-center gap-2">
+                    @if (loc.id_local === 0) {
+                      <span class="text-base">⚠️</span>
+                      <h3 class="text-sm font-bold text-amber-300 truncate" title="Sem posto designado">
+                        Sem posto designado
+                      </h3>
+                    } @else {
+                      <span class="text-base">{{ loc.icone_area || '📍' }}</span>
+                      <h3 class="text-sm font-bold text-white truncate" [title]="loc.nome_local">
+                        {{ loc.nome_local }}
+                      </h3>
+                    }
+                  </div>
+                  <span class="text-[10px] text-slate-400 block mt-0.5">
+                    {{ loc.id_local === 0 ? 'Escalados aguardando posto no dia' : loc.nome_area }}
+                  </span>
+                </div>
+
+                <div class="text-right shrink-0">
+                  <span 
+                    [class]="loc.id_local === 0 ? 'text-amber-400 bg-amber-500/10 border-amber-500/30' : 'text-purple-400 bg-purple-500/10 border-purple-500/30'"
+                    class="text-xs font-mono font-black border px-2.5 py-1 rounded-xl block">
+                    {{ loc.total_geral }} {{ loc.total_geral === 1 ? 'escala' : 'escalas' }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- Lista de Obreiros que Serviram no Posto -->
+              <div class="space-y-2 flex-1">
+                <div class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                  Obreiros que atuaram ({{ loc.obreiros.length }}):
+                </div>
+
+                <div class="space-y-1.5 max-h-60 overflow-y-auto no-scrollbar pr-1">
+                  @for (ob of loc.obreiros; track ob.id_obreiro) {
+                    <div class="bg-slate-900/80 rounded-xl p-2 border border-slate-800/90 flex items-center justify-between gap-2 text-xs">
+                      <div class="min-w-0">
+                        <span class="text-slate-200 font-semibold truncate block">{{ ob.nome_obreiro }}</span>
+                        <div class="flex items-center gap-1 text-[9px] text-slate-400">
+                          @if (ob.is_diacono) {
+                            <span class="text-indigo-400 font-bold">• Diácono</span>
+                          }
+                          @if (ob.is_pulpito) {
+                            <span class="text-purple-400 font-bold">• Púlpito</span>
+                          }
+                          @if (ob.data_ultima) {
+                            <span class="text-slate-500">Última: {{ ob.data_ultima | date:'dd/MM/yyyy' }}</span>
+                          }
+                        </div>
+                      </div>
+
+                      <div class="text-right shrink-0">
+                        <span class="font-mono font-extrabold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-lg border border-indigo-500/20 text-xs">
+                          {{ ob.total }}x
+                        </span>
+                      </div>
+                    </div>
+                  }
+                </div>
+              </div>
+            </div>
+          } @empty {
+            <div class="col-span-full glass-panel rounded-2xl p-12 text-center border border-slate-800 text-slate-500 italic">
+              Nenhum posto com escalas encontrado com os filtros selecionados.
+            </div>
+          }
+        </div>
+      }
+
+      <!-- VIEW MODE 3: TABELA DETALHADA -->
+      @if (postosViewMode() === 'tabela') {
+        <div class="glass-panel rounded-2xl border border-slate-800/80 overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-300">
+              <thead class="bg-slate-900/90 border-b border-slate-800 uppercase tracking-wider text-[10px] font-bold text-slate-400">
+                <tr>
+                  <th class="py-3 px-4">#</th>
+                  <th class="py-3 px-4">Obreiro</th>
+                  <th class="py-3 px-4">Área / Setor</th>
+                  <th class="py-3 px-4">Posto / Local</th>
+                  <th class="py-3 px-4 text-center">Total Escalas</th>
+                  <th class="py-3 px-4 text-center">Presenças</th>
+                  <th class="py-3 px-4 text-center">Faltas</th>
+                  <th class="py-3 px-4">Última Atuação</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800/60">
+                @for (item of filteredEscalasPorPosto(); track $index) {
+                  <tr class="hover:bg-slate-800/30 transition-colors">
+                    <td class="py-3 px-4 font-mono text-slate-500">{{ $index + 1 }}</td>
+                    <td class="py-3 px-4 font-bold text-white">
+                      <div class="flex items-center gap-2">
+                        <span>{{ item.nome_obreiro }}</span>
+                        @if (item.is_diacono) {
+                          <span class="text-[9px] px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-semibold">Diácono</span>
+                        }
+                        @if (item.is_pulpito) {
+                          <span class="text-[9px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30 font-semibold">Púlpito</span>
+                        }
+                      </div>
+                    </td>
+                    <td class="py-3 px-4">
+                      <span class="flex items-center gap-1.5 text-slate-300">
+                        <span>{{ item.icone_area || '📍' }}</span>
+                        <span>{{ item.nome_area }}</span>
+                      </span>
+                    </td>
+                    <td class="py-3 px-4 font-semibold text-slate-200">
+                      {{ item.nome_local }}
+                    </td>
+                    <td class="py-3 px-4 text-center font-mono font-black text-indigo-400">
+                      {{ item.total_escalas_posto }}
+                    </td>
+                    <td class="py-3 px-4 text-center font-mono text-emerald-400 font-bold">
+                      {{ item.total_presencas || 0 }}
+                    </td>
+                    <td class="py-3 px-4 text-center font-mono text-rose-400 font-bold">
+                      {{ item.total_faltas || 0 }}
+                    </td>
+                    <td class="py-3 px-4 font-mono text-slate-400">
+                      {{ item.data_ultima_escala ? (item.data_ultima_escala | date:'dd/MM/yyyy') : '-' }}
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="8" class="py-8 text-center text-slate-500 italic">
+                      Nenhum registro encontrado para os filtros selecionados.
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- TAB 5: RESUMO EXECUTIVO MENSAL -->
   @if (!relatorioService.loading() && activeTab() === 'resumo') {
     <div class="space-y-4">
       <div class="glass-panel rounded-2xl border border-slate-800/80 overflow-hidden">

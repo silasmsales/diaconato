@@ -122,3 +122,25 @@ export interface ConflitoBloqueio {
   turno_bloqueio: number;
   motivo_bloqueio?: string;
 }
+
+export interface EscalaObreiroPosto {
+  ano_referencia?: number;
+  id_mes?: number;
+  mes_referencia?: number;
+  id_obreiro: number;
+  nome_obreiro: string;
+  apelido_obreiro?: string;
+  is_diacono: boolean;
+  is_pulpito: boolean;
+  id_local: number;
+  nome_local: string;
+  id_area: number;
+  nome_area: string;
+  icone_area?: string;
+  total_escalas_posto: number;
+  total_presencas?: number;
+  total_faltas?: number;
+  total_pendentes?: number;
+  data_ultima_escala?: string;
+}
+

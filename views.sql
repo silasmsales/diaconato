@@ -414,3 +414,53 @@ GROUP BY
     o.diacono, 
     o.pulpito
 ORDER BY m.ano_referencia DESC, total_escalas_ano DESC, o.nome ASC;
+
+
+-- 12. ESCALAS DE OBREIROS POR POSTO / LOCAL DE ATUAÇÃO
+-- ------------------------------------------------------------------------------
+CREATE OR REPLACE VIEW public.vw_escalas_obreiros_por_posto AS
+SELECT 
+    m.ano_referencia,
+    m.id_mes,
+    m.mes_referencia,
+    o.id_obreiro,
+    o.nome AS nome_obreiro,
+    o.apelido AS apelido_obreiro,
+    o.diacono AS is_diacono,
+    o.pulpito AS is_pulpito,
+    COALESCE(l.id_local, 0) AS id_local,
+    COALESCE(l.nome, 'Sem Posto Definido') AS nome_local,
+    COALESCE(a.id_area, 0) AS id_area,
+    COALESCE(a.nome, 'Geral') AS nome_area,
+    COALESCE(a.icone, '📍') AS icone_area,
+    COUNT(e.id_escala) AS total_escalas_posto,
+    COUNT(CASE WHEN e.checkin IS TRUE THEN 1 END) AS total_presencas,
+    COUNT(CASE WHEN e.checkin IS FALSE THEN 1 END) AS total_faltas,
+    COUNT(CASE WHEN e.checkin IS NULL THEN 1 END) AS total_pendentes,
+    MAX(ev.data) AS data_ultima_escala
+FROM public.escala e
+INNER JOIN public.mes m ON e.id_mes = m.id_mes
+INNER JOIN public.obreiros o ON e.id_obreiro = o.id_obreiro
+LEFT JOIN public.eventos ev ON e.id_evento = ev.id_evento
+LEFT JOIN public.locais l ON e.id_local = l.id_local
+LEFT JOIN public.areas a ON l.id_area = a.id_area
+WHERE o.ativo IS TRUE
+GROUP BY 
+    m.ano_referencia,
+    m.id_mes,
+    m.mes_referencia,
+    o.id_obreiro,
+    o.nome,
+    o.apelido,
+    o.diacono,
+    o.pulpito,
+    COALESCE(l.id_local, 0),
+    COALESCE(l.nome, 'Sem Posto Definido'),
+    COALESCE(a.id_area, 0),
+    COALESCE(a.nome, 'Geral'),
+    COALESCE(a.icone, '📍')
+ORDER BY 
+    m.ano_referencia DESC,
+    nome_obreiro ASC,
+    total_escalas_posto DESC;
+
