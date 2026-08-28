@@ -7,6 +7,7 @@ import { AreaService } from '../../core/services/area.service';
 import { LocalService } from '../../core/services/local.service';
 import { ObreiroService } from '../../core/services/obreiro.service';
 import { AuthService } from '../../core/services/auth.service';
+import { ToastService } from '../../core/services/toast.service';
 import { 
   TRAJE_OPCOES, 
   CORES_TERNO, 
@@ -50,6 +51,7 @@ export class EventoDetalhesComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private cdr = inject(ChangeDetectorRef);
+  private toast = inject(ToastService);
   public operacaoService = inject(EventoOperacaoService);
   public areaService = inject(AreaService);
   public localService = inject(LocalService);
@@ -57,6 +59,7 @@ export class EventoDetalhesComponent implements OnInit {
   public authService = inject(AuthService);
 
   idEvento = signal<number>(0);
+  isShareModalOpen = signal<boolean>(false);
 
   // Constantes de Traje
   trajeOpcoes = TRAJE_OPCOES;
@@ -77,6 +80,19 @@ export class EventoDetalhesComponent implements OnInit {
       }
     } catch (_) {}
     return dataStr;
+  }
+
+  formatHoraAmPm(timeStr?: string): string {
+    if (!timeStr) return '';
+    const parts = timeStr.trim().split(':');
+    if (parts.length < 2) return timeStr;
+    let hours = parseInt(parts[0], 10);
+    const minutes = parts[1].padStart(2, '0');
+    if (isNaN(hours)) return timeStr;
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    if (hours === 0) hours = 12;
+    return `${hours}:${minutes}${ampm}`;
   }
 
   // Formulário de Traje & Liderança em Signal Reativo
@@ -429,6 +445,142 @@ export class EventoDetalhesComponent implements OnInit {
   getObreiroNome(idObreiro: number): string {
     const ob = this.obreiroService.obreiros().find(o => o.id_obreiro === idObreiro);
     return ob ? ob.nome : `Obreiro #${idObreiro}`;
+  }
+
+  // --- Compartilhamento WhatsApp ---
+  openShareModal() {
+    this.isShareModalOpen.set(true);
+  }
+
+  closeShareModal() {
+    this.isShareModalOpen.set(false);
+  }
+
+  gerarTextoWhatsApp(): string {
+    const ev = this.operacaoService.evento();
+    if (!ev) return '';
+
+    const lines: string[] = [];
+
+    // Header
+    lines.push(`📋 *DIACONATO - INFORMAÇÕES DO CULTO*`);
+    lines.push(`━━━━━━━━━━━━━━━━━━━━━`);
+    lines.push(`🏛️ *Culto:* ${ev.descricao || 'Culto / Evento'}`);
+    if (ev.data) {
+      lines.push(`📅 *Data:* ${this.formatDataEvento(ev.data)}`);
+    }
+    const turnoLabel = ev.turno === 1 ? '☀️ Manhã' : ev.turno === 2 ? '🌤️ Tarde' : '🌙 Noite';
+    lines.push(`⏰ *Turno:* ${turnoLabel}`);
+    lines.push('');
+
+    // Liderança Responsável
+    const lideresIds = this.trajeConfig().lideres_responsaveis_ids || [];
+    const lideres = this.diaconosLideres().filter(l => typeof l.id_obreiro === 'number' && lideresIds.includes(l.id_obreiro));
+    lines.push(`⭐ *Liderança Responsável:*`);
+    if (lideres.length > 0) {
+      lideres.forEach(l => lines.push(`  • ${l.nome}`));
+    } else {
+      lines.push(`  • Não definidos`);
+    }
+    lines.push('');
+
+    // Traje Oficial
+    lines.push(`👔 *Traje Oficial:*`);
+    const cfg = this.trajeConfig();
+    lines.push(`  • *Uniforme:* ${cfg.traje_tipo}`);
+    if (cfg.traje_tipo === 'Terno') {
+      lines.push(`  • *Terno:* ${cfg.terno_cor_obrigatoria ? cfg.terno_cor : 'Cor Livre'}`);
+      lines.push(`  • *Gravata:* ${cfg.gravata_cor_obrigatoria ? cfg.gravata_cor : 'Cor Livre'}`);
+      lines.push(`  • *Camisa:* ${cfg.camisa_cor_obrigatoria ? cfg.camisa_cor : 'Cor Livre'}`);
+    }
+    lines.push(`  • *Crachá:* ${cfg.cracha_obrigatorio ? 'Obrigatório' : 'Dispensado'}`);
+    lines.push('');
+
+    // Horários & Escala de Postos por Horário/Turno
+    lines.push(`📍 *ESCALA DE POSTOS POR HORÁRIO:*`);
+    lines.push(`━━━━━━━━━━━━━━━━━━━━━`);
+
+    const turnos = this.turnosDisponiveis();
+    const allEscalas = this.operacaoService.escalas();
+    const allAreas = this.areaService.areas();
+    const horarios = this.operacaoService.areaHorarios();
+
+    for (const t of turnos) {
+      const escalasDoTurno = allEscalas.filter(e => !!e.id_local && Number(e.horario_turno ?? 1) === t.id);
+      
+      lines.push(`\n🕒 *${t.label.toUpperCase()}* (${escalasDoTurno.length} alocados)`);
+
+      if (escalasDoTurno.length === 0) {
+        lines.push(`  _Nenhum obreiro alocado neste horário._`);
+        continue;
+      }
+
+      // Listar por Área / Setor
+      for (const area of allAreas) {
+        const escArea = escalasDoTurno.filter(e => Number(e.locais?.id_area) === area.id_area);
+        if (escArea.length > 0) {
+          const hArea = horarios.find((h: EventoAreaHorario) => h.id_area === area.id_area && h.horario_turno === t.id);
+          const horaTxt = hArea ? ` (${this.formatHoraAmPm(hArea.hora_inicio)} às ${this.formatHoraAmPm(hArea.hora_fim)})` : '';
+          lines.push(`\n*${area.icone || '📍'} ${area.nome.toUpperCase()}*${horaTxt}:`);
+
+          // Agrupar por Posto/Local
+          const postosMap = new Map<string, string[]>();
+          for (const esc of escArea) {
+            const postoNome = esc.locais?.nome || 'Posto Geral';
+            const obNome = esc.obreiros?.nome || this.getObreiroNome(esc.id_obreiro);
+            const list = postosMap.get(postoNome) || [];
+            list.push(obNome);
+            postosMap.set(postoNome, list);
+          }
+
+          for (const [posto, obreiros] of postosMap.entries()) {
+            lines.push(`  ▫️ ${posto}: ${obreiros.join(', ')}`);
+          }
+        }
+      }
+    }
+
+    // Obreiros Sem Posto (se houver)
+    const semPosto = this.obreirosSemPosto();
+    if (semPosto.length > 0) {
+      lines.push(`\n⏳ *Obreiros sem posto definido (${semPosto.length}):*`);
+      const nomes = semPosto.map(e => e.obreiros?.nome || this.getObreiroNome(e.id_obreiro));
+      lines.push(`  • ${nomes.join(', ')}`);
+    }
+
+    lines.push(`\n👥 *Total Geral Escalados:* ${this.totalEscalados()} obreiro(s)`);
+    lines.push(`━━━━━━━━━━━━━━━━━━━━━`);
+    lines.push(`Que Deus abençoe!🙏`);
+
+    return lines.join('\n');
+  }
+
+  async copiarTextoWhatsApp() {
+    const texto = this.gerarTextoWhatsApp();
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(texto);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = texto;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
+      this.toast.success('Copiado!', 'Mensagem copiada para a área de transferência.');
+    } catch (err) {
+      this.toast.error('Erro ao copiar', 'Não foi possível copiar automaticamente.');
+    }
+  }
+
+  compartilharDiretoWhatsApp() {
+    const texto = this.gerarTextoWhatsApp();
+    const encoded = encodeURIComponent(texto);
+    const url = `https://api.whatsapp.com/send?text=${encoded}`;
+    window.open(url, '_blank');
   }
 
   voltar() {
