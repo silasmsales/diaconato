@@ -225,11 +225,28 @@ export class EscalasListComponent implements OnInit {
     this.expandedObreiros.set(new Set());
   }
 
+  async onMesChange(mesId: number) {
+    const id = Number(mesId);
+    this.selectedMesId.set(id);
+    if (id > 0) {
+      await this.escalaService.fetchByMes(id);
+    } else {
+      await this.escalaService.fetchAll();
+    }
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+    if (!isMobile) {
+      this.expandAllEventos();
+    }
+    this.scrollToCurrentOrNextEvento();
+  }
+
   async ngOnInit() {
+    let initialMesId = 0;
     this.route.queryParams.subscribe(params => {
       if (params['mes']) {
         const id = Number(params['mes']);
         if (!isNaN(id)) {
+          initialMesId = id;
           this.selectedMesId.set(id);
         }
       }
@@ -239,8 +256,7 @@ export class EscalasListComponent implements OnInit {
       this.mesService.fetchAll(),
       this.eventoService.fetchAll(),
       this.obreiroService.fetchAll(),
-      this.bloqueioService.fetchAll(),
-      this.escalaService.fetchAll()
+      this.bloqueioService.fetchAll()
     ]);
 
     if (this.selectedMesId() === 0) {
@@ -248,6 +264,13 @@ export class EscalasListComponent implements OnInit {
       if (cur && cur.id_mes) {
         this.selectedMesId.set(cur.id_mes);
       }
+    }
+
+    const mesIdToLoad = this.selectedMesId();
+    if (mesIdToLoad > 0) {
+      await this.escalaService.fetchByMes(mesIdToLoad);
+    } else {
+      await this.escalaService.fetchAll();
     }
 
     // No desktop (>= 768px), inicia expandido; no mobile (< 768px), inicia colapsado por padrão
@@ -294,15 +317,6 @@ export class EscalasListComponent implements OnInit {
         }
       }, 150);
     }
-  }
-
-  onMesChange(mesId: number) {
-    this.selectedMesId.set(mesId);
-    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-    if (!isMobile) {
-      this.expandAllEventos();
-    }
-    this.scrollToCurrentOrNextEvento();
   }
 
   getEscaladosByEvent(idEvento: number): Escala[] {

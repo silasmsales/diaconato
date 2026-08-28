@@ -16,19 +16,38 @@ export class EventoService {
   async fetchAll(): Promise<Evento[]> {
     this.loading.set(true);
     try {
-      const { data, error } = await this.supabase
-        .from('eventos')
-        .select(`
-          *,
-          mes (*)
-        `)
-        .order('data', { ascending: true })
-        .order('turno', { ascending: true });
+      const allData: Evento[] = [];
+      let from = 0;
+      const pageSize = 1000;
+      let hasMore = true;
 
-      if (error) throw error;
-      const list = (data as Evento[]) || [];
-      this.eventos.set(list);
-      return list;
+      while (hasMore) {
+        const { data, error } = await this.supabase
+          .from('eventos')
+          .select(`
+            *,
+            mes (*)
+          `)
+          .order('data', { ascending: true })
+          .order('turno', { ascending: true })
+          .range(from, from + pageSize - 1);
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          allData.push(...(data as Evento[]));
+          if (data.length < pageSize) {
+            hasMore = false;
+          } else {
+            from += pageSize;
+          }
+        } else {
+          hasMore = false;
+        }
+      }
+
+      this.eventos.set(allData);
+      return allData;
     } catch (err: any) {
       console.error('Erro ao buscar eventos:', err);
       this.toast.error('Erro ao carregar eventos', err.message);

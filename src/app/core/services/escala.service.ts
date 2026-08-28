@@ -13,7 +13,16 @@ export class EscalaService {
   escalas = signal<Escala[]>([]);
   loading = signal<boolean>(false);
 
-  async fetchByMes(idMes: number): Promise<Escala[]> {
+  // Cache em memória indexado por id_mes para carregamento instantâneo
+  private mesCache = new Map<number, Escala[]>();
+
+  async fetchByMes(idMes: number, forceRefresh: boolean = false): Promise<Escala[]> {
+    if (!forceRefresh && this.mesCache.has(idMes)) {
+      const cached = this.mesCache.get(idMes)!;
+      this.escalas.set(cached);
+      return cached;
+    }
+
     this.loading.set(true);
     try {
       const { data, error } = await this.supabase
@@ -25,14 +34,16 @@ export class EscalaService {
           mes (*)
         `)
         .eq('id_mes', idMes)
-        .order('id_escala', { ascending: true });
+        .order('id_escala', { ascending: true })
+        .limit(2000);
 
       if (error) throw error;
       const list = (data as Escala[]) || [];
+      this.mesCache.set(idMes, list);
       this.escalas.set(list);
       return list;
     } catch (err: any) {
-      console.error('Erro ao buscar escala:', err);
+      console.error('Erro ao buscar escala do mês:', err);
       this.toast.error('Erro ao carregar escala', err.message);
       return [];
     } finally {
@@ -43,22 +54,53 @@ export class EscalaService {
   async fetchAll(): Promise<Escala[]> {
     this.loading.set(true);
     try {
-      const { data, error } = await this.supabase
-        .from('escala')
-        .select(`
-          *,
-          eventos (*),
-          obreiros (*),
-          mes (*)
-        `)
-        .order('id_escala', { ascending: false });
+      const allData: Escala[] = [];
+      let from = 0;
+      const pageSize = 1000;
+      let hasMore = true;
 
-      if (error) throw error;
-      const list = (data as Escala[]) || [];
-      this.escalas.set(list);
-      return list;
+      while (hasMore) {
+        const { data, error } = await this.supabase
+          .from('escala')
+          .select(`
+            *,
+            eventos (*),
+            obreiros (*),
+            mes (*)
+          `)
+          .order('id_escala', { ascending: true })
+          .range(from, from + pageSize - 1);
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          allData.push(...(data as Escala[]));
+          if (data.length < pageSize) {
+            hasMore = false;
+          } else {
+            from += pageSize;
+          }
+        } else {
+          hasMore = false;
+        }
+      }
+
+      // Atualizar cache de cada mês carregado
+      const groupedByMes = new Map<number, Escala[]>();
+      for (const item of allData) {
+        if (item.id_mes) {
+          if (!groupedByMes.has(item.id_mes)) groupedByMes.set(item.id_mes, []);
+          groupedByMes.get(item.id_mes)!.push(item);
+        }
+      }
+      for (const [mId, list] of groupedByMes.entries()) {
+        this.mesCache.set(mId, list);
+      }
+
+      this.escalas.set(allData);
+      return allData;
     } catch (err: any) {
-      console.error('Erro ao buscar escalas:', err);
+      console.error('Erro ao buscar todas as escalas:', err);
       this.toast.error('Erro ao carregar escalas', err.message);
       return [];
     } finally {
@@ -89,6 +131,9 @@ export class EscalaService {
       }
       const created = data as Escala;
       this.escalas.update(list => [...list, created]);
+      if (created.id_mes && this.mesCache.has(created.id_mes)) {
+        this.mesCache.set(created.id_mes, [...this.mesCache.get(created.id_mes)!, created]);
+      }
       this.toast.success('Obreiro escalado!', 'Inclusão na escala realizada com sucesso.');
       return created;
     } catch (err: any) {
@@ -117,6 +162,12 @@ export class EscalaService {
       if (error) throw error;
       const updated = data as Escala;
       this.escalas.update(list => list.map(item => item.id_escala === idEscala ? updated : item));
+      if (updated.id_mes && this.mesCache.has(updated.id_mes)) {
+        this.mesCache.set(
+          updated.id_mes,
+          this.mesCache.get(updated.id_mes)!.map(item => item.id_escala === idEscala ? updated : item)
+        );
+      }
       
       const statusText = checkin === true ? 'Presente ✅' : (checkin === false ? 'Ausente ❌' : 'Pendente ⏳');
       this.toast.success('Check-in atualizado', `Status alterado para: ${statusText}`);
@@ -156,6 +207,12 @@ export class EscalaService {
 
       const updated = data as Escala;
       this.escalas.update(list => list.map(item => item.id_escala === idEscala ? updated : item));
+      if (updated.id_mes && this.mesCache.has(updated.id_mes)) {
+        this.mesCache.set(
+          updated.id_mes,
+          this.mesCache.get(updated.id_mes)!.map(item => item.id_escala === idEscala ? updated : item)
+        );
+      }
       this.toast.success('Substituição realizada!', `Obreiro substituído com sucesso por ${updated.obreiros?.nome}.`);
       return updated;
     } catch (err: any) {
@@ -167,7 +224,6 @@ export class EscalaService {
     }
   }
 
-  
   async saveGeneratedSchedule(idMes: number, dtos: CreateEscalaDto[], replaceExisting: boolean = true): Promise<boolean> {
     this.loading.set(true);
     try {
@@ -195,8 +251,8 @@ export class EscalaService {
         if (insError) throw insError;
       }
 
-      // Atualizar lista local
-      await this.fetchByMes(idMes);
+      // Atualizar cache do mês gerado com os dados frescos
+      await this.fetchByMes(idMes, true);
       this.toast.success('Escala Mensal Gerada!', `${dtos.length} escalas foram gravadas com sucesso.`);
       return true;
     } catch (err: any) {
@@ -218,6 +274,7 @@ export class EscalaService {
 
       if (error) throw error;
       this.escalas.update(list => list.filter(item => item.id_escala !== idEscala));
+      this.mesCache.clear();
       this.toast.success('Escala atualizada', 'Obreiro desescalado com sucesso.');
       return true;
     } catch (err: any) {

@@ -16,18 +16,37 @@ export class BloqueioService {
   async fetchAll(): Promise<Bloqueio[]> {
     this.loading.set(true);
     try {
-      const { data, error } = await this.supabase
-        .from('bloqueios')
-        .select(`
-          *,
-          obreiros (*)
-        `)
-        .order('data', { ascending: true });
+      const allData: Bloqueio[] = [];
+      let from = 0;
+      const pageSize = 1000;
+      let hasMore = true;
 
-      if (error) throw error;
-      const list = (data as Bloqueio[]) || [];
-      this.bloqueios.set(list);
-      return list;
+      while (hasMore) {
+        const { data, error } = await this.supabase
+          .from('bloqueios')
+          .select(`
+            *,
+            obreiros (*)
+          `)
+          .order('data', { ascending: true })
+          .range(from, from + pageSize - 1);
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          allData.push(...(data as Bloqueio[]));
+          if (data.length < pageSize) {
+            hasMore = false;
+          } else {
+            from += pageSize;
+          }
+        } else {
+          hasMore = false;
+        }
+      }
+
+      this.bloqueios.set(allData);
+      return allData;
     } catch (err: any) {
       console.error('Erro ao buscar bloqueios:', err);
       this.toast.error('Erro ao carregar bloqueios', err.message);
