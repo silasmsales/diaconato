@@ -13,8 +13,22 @@ import { BloqueioModalComponent, BloqueioBatchPayload } from './bloqueio-modal.c
 import { ConfirmModalComponent } from '../../shared/components/confirm-modal.component';
 
 export interface ObreiroBloqueioGroup {
-  obreiro: Obreiro | { id_obreiro: number; nome: string; apelido?: string; diacono?: boolean };
+  obreiro: Obreiro | { id_obreiro: number; nome: string; apelido?: string; diacono?: boolean; lider?: boolean; pulpito?: boolean };
   bloqueios: Bloqueio[];
+}
+
+export interface DiaBloqueioGroup {
+  data: string; // 'YYYY-MM-DD'
+  dateObj: Date;
+  dataFormatada: string;
+  diaSemana: string;
+  bloqueios: Bloqueio[];
+  turnosCount: {
+    manha: number;
+    tarde: number;
+    noite: number;
+    integral: number;
+  };
 }
 
 @Component({
@@ -31,7 +45,7 @@ export class BloqueiosListComponent implements OnInit {
 
   formatMesReferencia = formatMesReferencia;
   Number = Number;
-  viewMode: 'obreiros' | 'individual' = 'obreiros';
+  viewMode: 'obreiros' | 'dias' = 'obreiros';
 
   bloqueios = this.bloqueioService.bloqueios;
   searchQuery = signal<string>('');
@@ -43,7 +57,9 @@ export class BloqueiosListComponent implements OnInit {
   isConfirmOpen = false;
   selectedBloqueio: Bloqueio | null = null;
   selectedGroupToDelete: ObreiroBloqueioGroup | null = null;
+  selectedDiaToDelete: DiaBloqueioGroup | null = null;
   defaultObreiroId: number | null = null;
+  defaultDate: string | null = null;
 
   filteredBloqueios = computed(() => {
     let list = this.bloqueios();
@@ -72,7 +88,39 @@ export class BloqueiosListComponent implements OnInit {
     return list;
   });
 
-  groupedByObreiro = computed(() => {
+  // Estado de Colapso dos Obreiros
+  expandedObreiros = signal<Set<number>>(new Set<number>());
+
+  isObreiroExpanded(idObreiro?: number): boolean {
+    if (!idObreiro) return false;
+    return this.expandedObreiros().has(idObreiro);
+  }
+
+  toggleObreiroExpand(idObreiro?: number) {
+    if (!idObreiro) return;
+    this.expandedObreiros.update(prev => {
+      const next = new Set(prev);
+      if (next.has(idObreiro)) {
+        next.delete(idObreiro);
+      } else {
+        next.add(idObreiro);
+      }
+      return next;
+    });
+  }
+
+  expandAllObreiros() {
+    const allIds = this.groupedByObreiro()
+      .map(g => g.obreiro.id_obreiro)
+      .filter((id): id is number => typeof id === 'number');
+    this.expandedObreiros.set(new Set(allIds));
+  }
+
+  collapseAllObreiros() {
+    this.expandedObreiros.set(new Set());
+  }
+
+  groupedByObreiro = computed<ObreiroBloqueioGroup[]>(() => {
     const list = this.filteredBloqueios();
     const map = new Map<number, ObreiroBloqueioGroup>();
 
@@ -91,9 +139,90 @@ export class BloqueiosListComponent implements OnInit {
       map.get(obId)!.bloqueios.push(b);
     }
 
+    // Deduplicar e ordenar cronologicamente
+    for (const group of map.values()) {
+      const seen = new Set<string>();
+      const distinct: Bloqueio[] = [];
+      for (const b of group.bloqueios) {
+        const k = `${b.data}_${b.turno}`;
+        if (!seen.has(k)) {
+          seen.add(k);
+          distinct.push(b);
+        }
+      }
+      group.bloqueios = distinct.sort((a, b) => (a.data || '').localeCompare(b.data || ''));
+    }
+
     return Array.from(map.values()).sort((a, b) => 
       (a.obreiro.nome || '').localeCompare(b.obreiro.nome || '')
     );
+  });
+
+  groupedByDia = computed<DiaBloqueioGroup[]>(() => {
+    const list = this.filteredBloqueios();
+    const map = new Map<string, Bloqueio[]>();
+
+    for (const b of list) {
+      if (!b.data) continue;
+      if (!map.has(b.data)) {
+        map.set(b.data, []);
+      }
+      map.get(b.data)!.push(b);
+    }
+
+    const sortedDates = Array.from(map.keys()).sort((a, b) => a.localeCompare(b));
+
+    const diasSemana = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
+
+    return sortedDates.map(dateStr => {
+      const bList = map.get(dateStr)!;
+      // Deduplicar obreiros com mesmo turno no mesmo dia
+      const seen = new Set<string>();
+      const distinctList: Bloqueio[] = [];
+      for (const b of bList) {
+        const k = `${b.id_obreiro}_${b.turno}`;
+        if (!seen.has(k)) {
+          seen.add(k);
+          distinctList.push(b);
+        }
+      }
+      distinctList.sort((a, b) => (a.obreiros?.nome || '').localeCompare(b.obreiros?.nome || ''));
+
+      const [y, m, d] = dateStr.split('-').map(Number);
+      const dateObj = new Date(y, m - 1, d);
+      const diaSemana = diasSemana[dateObj.getDay()];
+
+      return {
+        data: dateStr,
+        dateObj,
+        dataFormatada: `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}/${y}`,
+        diaSemana,
+        bloqueios: distinctList,
+        turnosCount: {
+          manha: distinctList.filter(b => b.turno === TurnoEnum.MANHA).length,
+          tarde: distinctList.filter(b => b.turno === TurnoEnum.TARDE).length,
+          noite: distinctList.filter(b => b.turno === TurnoEnum.NOITE).length,
+          integral: distinctList.filter(b => b.turno === TurnoEnum.INTEGRAL || b.turno === 0).length,
+        }
+      };
+    });
+  });
+
+  // Métricas
+  totalBloqueios = computed(() => this.filteredBloqueios().length);
+  totalObreirosBloqueados = computed(() => this.groupedByObreiro().length);
+  totalDiasComBloqueio = computed(() => this.groupedByDia().length);
+
+  diaMaisCritico = computed(() => {
+    const dias = this.groupedByDia();
+    if (dias.length === 0) return null;
+    let max = dias[0];
+    for (const d of dias) {
+      if (d.bloqueios.length > max.bloqueios.length) {
+        max = d;
+      }
+    }
+    return max;
   });
 
   async ngOnInit() {
@@ -127,17 +256,21 @@ export class BloqueiosListComponent implements OnInit {
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   }
 
-  openCreateModal(preselectedObreiroId?: number) {
+  openCreateModal(preselectedObreiroId?: number, preselectedDate?: string) {
     this.selectedBloqueio = null;
     this.selectedGroupToDelete = null;
+    this.selectedDiaToDelete = null;
     this.defaultObreiroId = preselectedObreiroId || null;
+    this.defaultDate = preselectedDate || null;
     this.isModalOpen = true;
   }
 
   openEditModal(item: Bloqueio) {
     this.selectedBloqueio = item;
     this.selectedGroupToDelete = null;
+    this.selectedDiaToDelete = null;
     this.defaultObreiroId = null;
+    this.defaultDate = null;
     this.isModalOpen = true;
   }
 
@@ -145,18 +278,29 @@ export class BloqueiosListComponent implements OnInit {
     this.isModalOpen = false;
     this.selectedBloqueio = null;
     this.selectedGroupToDelete = null;
+    this.selectedDiaToDelete = null;
     this.defaultObreiroId = null;
+    this.defaultDate = null;
   }
 
   openDeleteConfirm(item: Bloqueio) {
     this.selectedBloqueio = item;
     this.selectedGroupToDelete = null;
+    this.selectedDiaToDelete = null;
     this.isConfirmOpen = true;
   }
 
   openDeleteGroupConfirm(group: ObreiroBloqueioGroup) {
     this.selectedBloqueio = null;
     this.selectedGroupToDelete = group;
+    this.selectedDiaToDelete = null;
+    this.isConfirmOpen = true;
+  }
+
+  openDeleteDiaConfirm(dia: DiaBloqueioGroup) {
+    this.selectedBloqueio = null;
+    this.selectedGroupToDelete = null;
+    this.selectedDiaToDelete = dia;
     this.isConfirmOpen = true;
   }
 
@@ -164,13 +308,20 @@ export class BloqueiosListComponent implements OnInit {
     if (this.selectedGroupToDelete) {
       return `Excluir Bloqueios de ${this.selectedGroupToDelete.obreiro.nome}`;
     }
+    if (this.selectedDiaToDelete) {
+      return `Excluir Bloqueios de ${this.selectedDiaToDelete.dataFormatada}`;
+    }
     return 'Excluir Bloqueio';
   }
 
   getDeleteConfirmMessage(): string {
     if (this.selectedGroupToDelete) {
       const count = this.selectedGroupToDelete.bloqueios.length;
-      return `Tem certeza que deseja remover todos os ${count} bloqueio(s) listados de ${this.selectedGroupToDelete.obreiro.nome} de acordo com os filtros atuais?`;
+      return `Tem certeza que deseja remover todos os ${count} bloqueio(s) de ${this.selectedGroupToDelete.obreiro.nome} no período atual?`;
+    }
+    if (this.selectedDiaToDelete) {
+      const count = this.selectedDiaToDelete.bloqueios.length;
+      return `Tem certeza que deseja remover todos os ${count} bloqueio(s) do dia ${this.selectedDiaToDelete.dataFormatada} (${this.selectedDiaToDelete.diaSemana})?`;
     }
     return 'Tem certeza que deseja remover este bloqueio? O obreiro voltará a figurar como disponível nesta data.';
   }
@@ -179,6 +330,7 @@ export class BloqueiosListComponent implements OnInit {
     this.isConfirmOpen = false;
     this.selectedBloqueio = null;
     this.selectedGroupToDelete = null;
+    this.selectedDiaToDelete = null;
   }
 
   async handleSave(payload: BloqueioBatchPayload) {
@@ -213,6 +365,12 @@ export class BloqueiosListComponent implements OnInit {
   async handleDelete() {
     if (this.selectedGroupToDelete) {
       const ids = this.selectedGroupToDelete.bloqueios
+        .map(b => b.id_bloqueio)
+        .filter(id => typeof id === 'number') as number[];
+      const success = await this.bloqueioService.deleteBatch(ids);
+      if (success) this.closeConfirm();
+    } else if (this.selectedDiaToDelete) {
+      const ids = this.selectedDiaToDelete.bloqueios
         .map(b => b.id_bloqueio)
         .filter(id => typeof id === 'number') as number[];
       const success = await this.bloqueioService.deleteBatch(ids);

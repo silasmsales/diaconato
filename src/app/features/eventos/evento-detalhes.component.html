@@ -185,7 +185,7 @@
         
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <!-- Cor do Terno -->
-          <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800 space-y-1.5">
+          <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800 space-y-2">
             <div class="flex items-center justify-between">
               <span class="text-xs font-semibold text-slate-200">Terno</span>
               <label class="relative inline-flex items-center cursor-pointer">
@@ -199,22 +199,21 @@
               </label>
             </div>
             @if (trajeConfig().terno_cor_obrigatoria) {
-              <select 
+              <button 
+                type="button"
                 [disabled]="!authService.canManageOperacao()"
-                [ngModel]="trajeConfig().terno_cor" 
-                (ngModelChange)="updateTrajeField('terno_cor', $event)" 
-                class="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white disabled:opacity-60">
-                @for (cor of coresTerno; track cor) {
-                  <option [value]="cor">{{ cor }}</option>
-                }
-              </select>
+                (click)="openColorPicker('terno_cor')"
+                class="w-full px-2.5 py-1.5 bg-slate-950 hover:bg-slate-800/80 border border-slate-700 hover:border-indigo-500/50 rounded-lg text-xs text-white font-bold transition-all flex items-center justify-between gap-1 text-left active:scale-95 disabled:opacity-60">
+                <span class="truncate">{{ trajeConfig().terno_cor || 'Selecionar Cor' }}</span>
+                <span class="text-[10px] text-indigo-400">✎</span>
+              </button>
             } @else {
-              <div class="text-[10px] text-slate-500 italic">Cor Livre</div>
+              <div class="text-[10px] text-slate-500 italic py-1">Cor Livre</div>
             }
           </div>
 
           <!-- Cor da Gravata -->
-          <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800 space-y-1.5">
+          <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800 space-y-2">
             <div class="flex items-center justify-between">
               <span class="text-xs font-semibold text-slate-200">Gravata</span>
               <label class="relative inline-flex items-center cursor-pointer">
@@ -228,22 +227,21 @@
               </label>
             </div>
             @if (trajeConfig().gravata_cor_obrigatoria) {
-              <select 
+              <button 
+                type="button"
                 [disabled]="!authService.canManageOperacao()"
-                [ngModel]="trajeConfig().gravata_cor" 
-                (ngModelChange)="updateTrajeField('gravata_cor', $event)" 
-                class="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white disabled:opacity-60">
-                @for (cor of coresGravata; track cor) {
-                  <option [value]="cor">{{ cor }}</option>
-                }
-              </select>
+                (click)="openColorPicker('gravata_cor')"
+                class="w-full px-2.5 py-1.5 bg-slate-950 hover:bg-slate-800/80 border border-slate-700 hover:border-indigo-500/50 rounded-lg text-xs text-white font-bold transition-all flex items-center justify-between gap-1 text-left active:scale-95 disabled:opacity-60">
+                <span class="truncate">{{ trajeConfig().gravata_cor || 'Selecionar Cor' }}</span>
+                <span class="text-[10px] text-indigo-400">✎</span>
+              </button>
             } @else {
-              <div class="text-[10px] text-slate-500 italic">Cor Livre</div>
+              <div class="text-[10px] text-slate-500 italic py-1">Cor Livre</div>
             }
           </div>
 
           <!-- Cor da Camisa -->
-          <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800 space-y-1.5">
+          <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800 space-y-2">
             <div class="flex items-center justify-between">
               <span class="text-xs font-semibold text-slate-200">Camisa</span>
               <label class="relative inline-flex items-center cursor-pointer">
@@ -257,17 +255,16 @@
               </label>
             </div>
             @if (trajeConfig().camisa_cor_obrigatoria) {
-              <select 
+              <button 
+                type="button"
                 [disabled]="!authService.canManageOperacao()"
-                [ngModel]="trajeConfig().camisa_cor" 
-                (ngModelChange)="updateTrajeField('camisa_cor', $event)" 
-                class="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white disabled:opacity-60">
-                @for (cor of coresCamisa; track cor) {
-                  <option [value]="cor">{{ cor }}</option>
-                }
-              </select>
+                (click)="openColorPicker('camisa_cor')"
+                class="w-full px-2.5 py-1.5 bg-slate-950 hover:bg-slate-800/80 border border-slate-700 hover:border-indigo-500/50 rounded-lg text-xs text-white font-bold transition-all flex items-center justify-between gap-1 text-left active:scale-95 disabled:opacity-60">
+                <span class="truncate">{{ trajeConfig().camisa_cor || 'Selecionar Cor' }}</span>
+                <span class="text-[10px] text-indigo-400">✎</span>
+              </button>
             } @else {
-              <div class="text-[10px] text-slate-500 italic">Cor Livre</div>
+              <div class="text-[10px] text-slate-500 italic py-1">Cor Livre</div>
             }
           </div>
         </div>
@@ -494,36 +491,18 @@
                 </span>
               </div>
 
-              <!-- Selection Row (Responsive: Stack on mobile, side-by-side on sm+) -->
-              <div class="space-y-1.5 pt-1.5 border-t border-slate-800/80">
-                <div class="grid grid-cols-1 sm:grid-cols-[110px_1fr] gap-1.5">
-                  <select 
-                    [disabled]="!authService.canManageOperacao()"
-                    [ngModel]="escala.horario_turno || 1" 
-                    (change)="onTurnoChanged(escala, $event)"
-                    class="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-indigo-500 disabled:opacity-60">
-                    @for (t of turnosDisponiveis(); track t.id) {
-                      <option [value]="t.id">{{ t.label }}</option>
-                    }
-                  </select>
-
-                  <select 
-                    [disabled]="!authService.canManageOperacao()"
-                    [ngModel]="escala.id_local || ''" 
-                    (change)="onLocalChanged(escala, $event)"
-                    class="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-indigo-500 disabled:opacity-60">
-                    <option value="">-- Escolher Posto --</option>
-                    @for (area of areaService.areas(); track area.id_area) {
-                      <optgroup [label]="(area.icone || '📍') + ' ' + area.nome">
-                        @for (local of getLocaisPorArea(area.id_area); track local.id_local) {
-                          <option [value]="local.id_local">
-                            {{ local.nome }}
-                          </option>
-                        }
-                      </optgroup>
-                    }
-                  </select>
-                </div>
+              <!-- Action: Escolher Posto (Abre o seletor modal seguro) -->
+              <div class="pt-2 border-t border-slate-800/80">
+                <button 
+                  type="button" 
+                  [disabled]="!authService.canManageOperacao()"
+                  (click)="openPostoPicker(escala)"
+                  class="w-full py-2 px-3 bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/30 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed group">
+                  <svg class="w-3.5 h-3.5 text-indigo-400 group-hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                  </svg>
+                  <span>Designar Posto & Horário</span>
+                </button>
               </div>
             </div>
           }
@@ -617,62 +596,29 @@
                           </span>
                         </div>
 
-                        <!-- Posto & Horário Controls (Responsive) -->
-                        <div class="space-y-2 pt-1.5 border-t border-slate-800/80">
-                          <div class="grid grid-cols-1 sm:grid-cols-[110px_1fr] gap-1.5">
-                            <!-- Turno select -->
-                            <select 
-                              [disabled]="!authService.canManageOperacao()"
-                              [ngModel]="escala.horario_turno || 1" 
-                              (change)="onTurnoChanged(escala, $event)"
-                              class="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-indigo-500 disabled:opacity-60">
-                              @for (t of turnosDisponiveis(); track t.id) {
-                                <option [value]="t.id">{{ t.label }}</option>
-                              }
-                            </select>
+                        <!-- Posto Info & Actions -->
+                        <div class="pt-2 border-t border-slate-800/80 flex items-center justify-between gap-2">
+                          <button 
+                            type="button" 
+                            [disabled]="!authService.canManageOperacao()"
+                            (click)="openPostoPicker(escala)"
+                            class="flex-1 min-w-0 flex items-center gap-1.5 text-xs text-indigo-200 font-bold bg-indigo-950/60 hover:bg-indigo-900/80 px-2.5 py-1.5 rounded-lg border border-indigo-500/30 transition-all text-left group active:scale-95 disabled:opacity-60">
+                            <span class="shrink-0">{{ escala.locais?.areas?.icone || '📍' }}</span>
+                            <span class="truncate">{{ escala.locais?.nome }}</span>
+                            <span class="text-[10px] text-indigo-400 opacity-60 group-hover:opacity-100 ml-auto shrink-0">✎</span>
+                          </button>
 
-                            <!-- Posto select -->
-                            <select 
-                              [disabled]="!authService.canManageOperacao()"
-                              [ngModel]="escala.id_local || ''" 
-                              (change)="onLocalChanged(escala, $event)"
-                              class="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-indigo-500 disabled:opacity-60">
-                              <option value="">-- Posto --</option>
-                              @for (area of areaService.areas(); track area.id_area) {
-                                <optgroup [label]="(area.icone || '📍') + ' ' + area.nome">
-                                  @for (local of getLocaisPorArea(area.id_area); track local.id_local) {
-                                    <option [value]="local.id_local">
-                                      {{ local.nome }}
-                                    </option>
-                                  }
-                                </optgroup>
-                              }
-                            </select>
-                          </div>
-
-                          <!-- Assigned Local Feedback & Clear Action Row -->
-                          <div class="flex items-center justify-between gap-2 pt-1">
-                            @if (escala.locais) {
-                              <div class="flex-1 min-w-0 flex items-center gap-1.5 text-[11px] text-indigo-300 font-semibold bg-indigo-950/40 px-2.5 py-1.5 rounded-lg border border-indigo-500/20">
-                                <span class="shrink-0">{{ escala.locais.areas?.icone || '📍' }}</span>
-                                <span class="truncate">{{ escala.locais.nome }} <span class="text-slate-400 font-normal">({{ escala.locais.areas?.nome }})</span></span>
-                              </div>
-                            } @else {
-                              <div class="flex-1"></div>
-                            }
-
-                            @if (authService.canManageOperacao()) {
-                              <button 
-                                (click)="desvincularPosto(escala)"
-                                class="h-[30px] px-2.5 text-xs font-semibold text-rose-300 hover:text-white bg-rose-500/10 hover:bg-rose-600 border border-rose-500/30 rounded-lg transition-all flex items-center justify-center gap-1 shrink-0 active:scale-95"
-                                title="Remover este posto e retornar obreiro para pendentes">
-                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                                <span>Remover</span>
-                              </button>
-                            }
-                          </div>
+                          @if (authService.canManageOperacao()) {
+                            <button 
+                              (click)="desvincularPosto(escala)"
+                              class="h-[32px] px-2.5 text-xs font-semibold text-rose-300 hover:text-white bg-rose-500/10 hover:bg-rose-600 border border-rose-500/30 rounded-lg transition-all flex items-center justify-center gap-1 shrink-0 active:scale-95"
+                              title="Remover este posto e retornar obreiro para pendentes">
+                              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                              <span>Remover</span>
+                            </button>
+                          }
                         </div>
                       </div>
                     }
@@ -685,4 +631,166 @@
       }
     </div>
   </section>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL SEGURO: DESIGNAR POSTO PARA O OBREIRO -->
+  <!-- ========================================================================= -->
+  @if (selectedEscalaForPicker()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">
+      <div class="bg-slate-900 border border-slate-700/80 rounded-2xl max-w-lg w-full p-4 sm:p-5 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+        <!-- Modal Header -->
+        <div class="flex items-start justify-between border-b border-slate-800 pb-3 gap-2">
+          <div>
+            <span class="text-[10px] uppercase font-bold tracking-wider text-indigo-400 block">Designar Posto</span>
+            <h3 class="text-base sm:text-lg font-bold text-white flex items-center gap-1.5 flex-wrap">
+              <span>{{ selectedEscalaForPicker()?.obreiros?.nome }}</span>
+              @if (selectedEscalaForPicker()?.obreiros?.pulpito) {
+                <span class="text-[9px] px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-300 border border-purple-500/40 font-bold">🎙️ Púlpito</span>
+              }
+              @if (selectedEscalaForPicker()?.obreiros?.diacono) {
+                <span class="text-[9px] px-1.5 py-0.2 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-semibold">Diácono</span>
+              }
+            </h3>
+          </div>
+          <button 
+            type="button" 
+            (click)="closePostoPicker()"
+            class="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- 1. Seleção de Turno / Horário -->
+        <div class="space-y-1.5">
+          <label class="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+            1. Horário de Atuação:
+          </label>
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            @for (t of turnosDisponiveis(); track t.id) {
+              <button 
+                type="button"
+                (click)="setPickerTurno(t.id)"
+                [class]="selectedTurnoForPicker() === t.id ? 'bg-indigo-600 text-white font-bold border-indigo-500 shadow-md ring-1 ring-indigo-400' : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-slate-200'"
+                class="py-2 px-3 rounded-xl text-xs border transition-all text-center">
+                {{ t.label }}
+              </button>
+            }
+          </div>
+        </div>
+
+        <!-- 2. Seleção de Posto por Setor -->
+        <div class="space-y-3 pt-1">
+          <label class="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+            2. Toque no Posto para Confirmar:
+          </label>
+
+          @for (area of areaService.areas(); track area.id_area) {
+            <div class="bg-slate-950/70 border border-slate-800 rounded-xl p-3 space-y-2">
+              <div class="flex items-center gap-1.5 text-xs font-bold text-slate-300">
+                <span>{{ area.icone || '📍' }}</span>
+                <span>{{ area.nome }}</span>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                @for (local of getLocaisPorArea(area.id_area); track local.id_local) {
+                  <button 
+                    type="button"
+                    (click)="selectPosto(local)"
+                    [class]="selectedEscalaForPicker()?.id_local === local.id_local && selectedEscalaForPicker()?.horario_turno === selectedTurnoForPicker() ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/60 font-bold ring-1 ring-emerald-500/40' : 'bg-slate-900/90 text-slate-300 border-slate-800 hover:border-indigo-500/50 hover:bg-slate-800 hover:text-white'"
+                    class="px-3 py-2.5 rounded-lg text-xs border text-left flex items-center justify-between gap-1 transition-all active:scale-95 group">
+                    <span class="truncate">{{ local.nome }}</span>
+                    @if (selectedEscalaForPicker()?.id_local === local.id_local && selectedEscalaForPicker()?.horario_turno === selectedTurnoForPicker()) {
+                      <span class="text-xs font-bold text-emerald-400">✓ Atual</span>
+                    }
+                  </button>
+                }
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="flex items-center justify-between pt-3 border-t border-slate-800 gap-2">
+          @if (selectedEscalaForPicker()?.id_local) {
+            <button 
+              type="button"
+              (click)="removerPostoModal()"
+              class="px-3 py-2 text-xs font-semibold text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all flex items-center gap-1.5">
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              <span>Remover Posto</span>
+            </button>
+          } @else {
+            <div></div>
+          }
+
+          <button 
+            type="button"
+            (click)="closePostoPicker()"
+            class="px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-xl transition-all">
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ========================================================================= -->
+  <!-- MODAL SEGURO: SELETOR DE COR DO TERNO / GRAVATA / CAMISA -->
+  <!-- ========================================================================= -->
+  @if (activeColorPickerField()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">
+      <div class="bg-slate-900 border border-slate-700/80 rounded-2xl max-w-md w-full p-4 sm:p-5 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+        <!-- Modal Header -->
+        <div class="flex items-start justify-between border-b border-slate-800 pb-3 gap-2">
+          <div>
+            <span class="text-[10px] uppercase font-bold tracking-wider text-indigo-400 block">Especificação de Traje</span>
+            <h3 class="text-base sm:text-lg font-bold text-white">{{ getColorPickerTitle() }}</h3>
+          </div>
+          <button 
+            type="button" 
+            (click)="closeColorPicker()"
+            class="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Opções de Cores em Grade de Botões -->
+        <div class="space-y-1.5">
+          <label class="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+            Selecione uma cor para confirmar:
+          </label>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+            @for (cor of getColorPickerOptions(); track cor) {
+              <button 
+                type="button"
+                (click)="selectColorOption(cor)"
+                [class]="getColorPickerCurrentValue() === cor ? 'bg-indigo-600/30 text-indigo-200 border-indigo-500 font-bold ring-1 ring-indigo-400 shadow-md' : 'bg-slate-950 text-slate-300 border-slate-800 hover:border-indigo-500/50 hover:bg-slate-800 hover:text-white'"
+                class="px-3.5 py-2.5 rounded-xl text-xs border text-left flex items-center justify-between gap-2 transition-all active:scale-95 group">
+                <span class="truncate">{{ cor }}</span>
+                @if (getColorPickerCurrentValue() === cor) {
+                  <span class="text-xs font-bold text-indigo-400">✓ Atual</span>
+                }
+              </button>
+            }
+          </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="flex items-center justify-end pt-3 border-t border-slate-800">
+          <button 
+            type="button"
+            (click)="closeColorPicker()"
+            class="px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-xl transition-all">
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+  }
 </div>

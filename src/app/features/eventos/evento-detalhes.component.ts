@@ -270,6 +270,50 @@ export class EventoDetalhesComponent implements OnInit {
     this.cdr.markForCheck();
   }
 
+  // --- Modal Seletor de Cores de Terno / Gravata / Camisa ---
+  activeColorPickerField = signal<'terno_cor' | 'gravata_cor' | 'camisa_cor' | null>(null);
+
+  openColorPicker(field: 'terno_cor' | 'gravata_cor' | 'camisa_cor') {
+    if (!this.authService.canManageOperacao()) return;
+    this.activeColorPickerField.set(field);
+  }
+
+  closeColorPicker() {
+    this.activeColorPickerField.set(null);
+  }
+
+  getColorPickerTitle(): string {
+    const field = this.activeColorPickerField();
+    if (field === 'terno_cor') return 'Cor Obrigatória do Terno';
+    if (field === 'gravata_cor') return 'Cor Obrigatória da Gravata';
+    if (field === 'camisa_cor') return 'Cor Obrigatória da Camisa';
+    return 'Escolher Cor';
+  }
+
+  getColorPickerOptions(): string[] {
+    const field = this.activeColorPickerField();
+    if (field === 'terno_cor') return this.coresTerno;
+    if (field === 'gravata_cor') return this.coresGravata;
+    if (field === 'camisa_cor') return this.coresCamisa;
+    return [];
+  }
+
+  getColorPickerCurrentValue(): string {
+    const field = this.activeColorPickerField();
+    if (!field) return '';
+    return (this.trajeConfig()[field] as string) || '';
+  }
+
+  async selectColorOption(color: string) {
+    const field = this.activeColorPickerField();
+    if (field) {
+      this.trajeConfig.update(prev => ({ ...prev, [field]: color }));
+      await this.salvarTrajeELideres();
+      this.closeColorPicker();
+      this.cdr.markForCheck();
+    }
+  }
+
   // --- Ações de Horários por Área ---
   async adicionarHorarioArea() {
     if (!this.novoHorario.id_area || !this.novoHorario.hora_inicio || !this.novoHorario.hora_fim) return;
@@ -284,21 +328,39 @@ export class EventoDetalhesComponent implements OnInit {
     }
   }
 
-  // --- Ações de Designação de Posto ---
-  async onLocalChanged(escala: Escala, event: any) {
-    const idLocal = event.target.value ? Number(event.target.value) : null;
-    const turno = escala.horario_turno || 1;
-    if (escala.id_escala) {
-      await this.operacaoService.designarPosto(escala.id_escala, idLocal, turno);
+  // --- Seletor Modal / Bottom Sheet de Designação de Posto ---
+  selectedEscalaForPicker = signal<Escala | null>(null);
+  selectedTurnoForPicker = signal<number>(1);
+
+  openPostoPicker(escala: Escala) {
+    if (!this.authService.canManageOperacao()) return;
+    this.selectedEscalaForPicker.set(escala);
+    this.selectedTurnoForPicker.set(escala.horario_turno || 1);
+  }
+
+  closePostoPicker() {
+    this.selectedEscalaForPicker.set(null);
+  }
+
+  setPickerTurno(turnoId: number) {
+    this.selectedTurnoForPicker.set(turnoId);
+  }
+
+  async selectPosto(local: Local) {
+    const escala = this.selectedEscalaForPicker();
+    const turno = this.selectedTurnoForPicker();
+    if (escala?.id_escala && local?.id_local && turno) {
+      await this.operacaoService.designarPosto(escala.id_escala, local.id_local, turno);
+      this.closePostoPicker();
       this.cdr.markForCheck();
     }
   }
 
-  async onTurnoChanged(escala: Escala, event: any) {
-    const turno = Number(event.target.value);
-    const idLocal = escala.id_local || null;
-    if (escala.id_escala) {
-      await this.operacaoService.designarPosto(escala.id_escala, idLocal, turno);
+  async removerPostoModal() {
+    const escala = this.selectedEscalaForPicker();
+    if (escala?.id_escala) {
+      await this.operacaoService.desvincularPosto(escala.id_escala);
+      this.closePostoPicker();
       this.cdr.markForCheck();
     }
   }

@@ -27,6 +27,7 @@ export class BloqueioModalComponent implements OnInit {
   @Input() isOpen = false;
   @Input() bloqueio: Bloqueio | null = null;
   @Input() defaultObreiroId: number | null = null;
+  @Input() defaultDate: string | null = null;
   @Input() obreiros: Obreiro[] = [];
   @Input() loading = false;
   @Output() save = new EventEmitter<BloqueioBatchPayload>();
@@ -116,11 +117,13 @@ export class BloqueioModalComponent implements OnInit {
     const matchingMes = this.mesesList.find(m => m.key === defaultMesKeyNextMonth);
     const initialMesRef = matchingMes ? matchingMes.key : (this.mesesList[0]?.key || defaultMesKeyNextMonth);
 
+    const initialDate = this.bloqueio?.data || this.defaultDate || defaultDateNextMonth;
+
     this.form = this.fb.group({
       id_obreiro: [this.bloqueio?.id_obreiro || this.defaultObreiroId || null, [Validators.required]],
-      data: [this.bloqueio?.data || defaultDateNextMonth, [Validators.required]],
-      data_inicio: [defaultDateNextMonth, [Validators.required]],
-      data_fim: [defaultDateNextMonth, [Validators.required]],
+      data: [initialDate, [Validators.required]],
+      data_inicio: [initialDate, [Validators.required]],
+      data_fim: [initialDate, [Validators.required]],
       mes_ref: [initialMesRef],
       paridade: ['pares'],
       dia_semana: [1], // Domingo

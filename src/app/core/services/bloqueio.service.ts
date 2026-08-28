@@ -39,11 +39,27 @@ export class BloqueioService {
 
   async createBatch(dtos: CreateBloqueioDto[]): Promise<Bloqueio[] | null> {
     if (dtos.length === 0) return [];
+    
+    // Deduplicate within the payload and against existing records in memory
+    const existingKeys = new Set(this.bloqueios().map(b => `${b.id_obreiro}_${b.data}_${b.turno}`));
+    const seen = new Set<string>();
+    const dtosToInsert = dtos.filter(d => {
+      const k = `${d.id_obreiro}_${d.data}_${d.turno}`;
+      if (seen.has(k) || existingKeys.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+
+    if (dtosToInsert.length === 0) {
+      this.toast.info('Bloqueio já existente', 'O(s) bloqueio(s) selecionado(s) já estavam cadastrados.');
+      return [];
+    }
+
     this.loading.set(true);
     try {
       const { data, error } = await this.supabase
         .from('bloqueios')
-        .insert(dtos)
+        .insert(dtosToInsert)
         .select(`
           *,
           obreiros (*)
