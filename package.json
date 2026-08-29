@@ -5,6 +5,8 @@
     "ng": "ng",
     "start": "ng serve --host 0.0.0.0",
     "build": "ng build",
+    "build:gh-pages": "ng build --base-href /diaconato/ && node -e \"require('fs').copyFileSync('dist/diaconato-web/browser/index.html', 'dist/diaconato-web/browser/404.html')\"",
+    "deploy": "npm run build:gh-pages && gh-pages -d dist/diaconato-web/browser",
     "watch": "ng build --watch --configuration development",
     "test": "ng test"
   },
@@ -28,6 +30,7 @@
     "@angular/build": "^22.1.5",
     "@angular/cli": "^22.1.5",
     "@angular/compiler-cli": "^22.1.0",
+    "gh-pages": "^6.3.0",
     "jsdom": "^28.0.0",
     "prettier": "^3.8.1",
     "typescript": "~6.0.2",

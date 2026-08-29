@@ -39,6 +39,13 @@ testem.log
 /typings
 __screenshots__/
 
+# Database seeds / Sensitive data
+populate.sql
+*.env
+*.env.local
+*.backup.sql
+
 # System files
 .DS_Store
 Thumbs.db
+
