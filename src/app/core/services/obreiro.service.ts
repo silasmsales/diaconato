@@ -1,4 +1,4 @@
-﻿import { Injectable, inject, signal } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
 import { SupabaseService } from './supabase.service';
 import { Obreiro, CreateObreiroDto, UpdateObreiroDto } from '../models/obreiro.model';
 import { ToastService } from './toast.service';
@@ -16,15 +16,34 @@ export class ObreiroService {
   async fetchAll(): Promise<Obreiro[]> {
     this.loading.set(true);
     try {
-      const { data, error } = await this.supabase
-        .from('obreiros')
-        .select('*')
-        .order('nome', { ascending: true });
+      const allData: Obreiro[] = [];
+      let from = 0;
+      const pageSize = 1000;
+      let hasMore = true;
 
-      if (error) throw error;
-      const list = (data as Obreiro[]) || [];
-      this.obreiros.set(list);
-      return list;
+      while (hasMore) {
+        const { data, error } = await this.supabase
+          .from('obreiros')
+          .select('*')
+          .order('nome', { ascending: true })
+          .range(from, from + pageSize - 1);
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          allData.push(...(data as Obreiro[]));
+          if (data.length < pageSize) {
+            hasMore = false;
+          } else {
+            from += pageSize;
+          }
+        } else {
+          hasMore = false;
+        }
+      }
+
+      this.obreiros.set(allData);
+      return allData;
     } catch (err: any) {
       console.error('Erro ao buscar obreiros:', err);
       this.toast.error('Erro ao carregar obreiros', err.message || 'Verifique a conexão');

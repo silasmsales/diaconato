@@ -31,14 +31,27 @@ export class RelatorioService {
   conflitosBloqueio = signal<ConflitoBloqueio[]>([]);
   escalasPorPosto = signal<EscalaObreiroPosto[]>([]);
 
+  private async fetchAllPaginated<T>(buildQuery: (from: number, to: number) => any): Promise<T[]> {
+    let allData: T[] = [];
+    let from = 0;
+    const pageSize = 1000;
+    while (true) {
+      const { data, error } = await buildQuery(from, from + pageSize - 1);
+      if (error) throw error;
+      if (!data || data.length === 0) break;
+      allData = allData.concat(data as T[]);
+      if (data.length < pageSize) break;
+      from += pageSize;
+    }
+    return allData;
+  }
+
   async fetchAssiduidadeGeral(): Promise<AssiduidadeObreiro[]> {
     this.loading.set(true);
     try {
-      const { data, error } = await this.supabase
-        .from('vw_assiduidade_obreiros')
-        .select('*');
-      if (error) throw error;
-      const list = (data as AssiduidadeObreiro[]) || [];
+      const list = await this.fetchAllPaginated<AssiduidadeObreiro>((from, to) =>
+        this.supabase.from('vw_assiduidade_obreiros').select('*').range(from, to)
+      );
       this.assiduidadeGeral.set(list);
       return list;
     } catch (err: any) {
@@ -53,13 +66,11 @@ export class RelatorioService {
   async fetchAssiduidadeMensal(idMes?: number): Promise<AssiduidadeObreiroMensal[]> {
     this.loading.set(true);
     try {
-      let query = this.supabase.from('vw_assiduidade_obreiros_mensal').select('*');
-      if (idMes) {
-        query = query.eq('id_mes', idMes);
-      }
-      const { data, error } = await query;
-      if (error) throw error;
-      const list = (data as AssiduidadeObreiroMensal[]) || [];
+      const list = await this.fetchAllPaginated<AssiduidadeObreiroMensal>((from, to) => {
+        let q = this.supabase.from('vw_assiduidade_obreiros_mensal').select('*');
+        if (idMes) q = q.eq('id_mes', idMes);
+        return q.range(from, to);
+      });
       this.assiduidadeMensal.set(list);
       return list;
     } catch (err: any) {
@@ -74,13 +85,11 @@ export class RelatorioService {
   async fetchAssiduidadeAnual(ano?: number): Promise<AssiduidadeObreiroAnual[]> {
     this.loading.set(true);
     try {
-      let query = this.supabase.from('vw_assiduidade_obreiros_anual').select('*');
-      if (ano) {
-        query = query.eq('ano_referencia', ano);
-      }
-      const { data, error } = await query;
-      if (error) throw error;
-      const list = (data as AssiduidadeObreiroAnual[]) || [];
+      const list = await this.fetchAllPaginated<AssiduidadeObreiroAnual>((from, to) => {
+        let q = this.supabase.from('vw_assiduidade_obreiros_anual').select('*');
+        if (ano) q = q.eq('ano_referencia', ano);
+        return q.range(from, to);
+      });
       this.assiduidadeAnual.set(list);
       return list;
     } catch (err: any) {
@@ -95,13 +104,11 @@ export class RelatorioService {
   async fetchCoberturaEventos(idMes?: number): Promise<CoberturaEvento[]> {
     this.loading.set(true);
     try {
-      let query = this.supabase.from('vw_cobertura_eventos').select('*');
-      if (idMes) {
-        query = query.eq('id_mes', idMes);
-      }
-      const { data, error } = await query;
-      if (error) throw error;
-      const list = (data as CoberturaEvento[]) || [];
+      const list = await this.fetchAllPaginated<CoberturaEvento>((from, to) => {
+        let q = this.supabase.from('vw_cobertura_eventos').select('*');
+        if (idMes) q = q.eq('id_mes', idMes);
+        return q.range(from, to);
+      });
       this.coberturaEventos.set(list);
       return list;
     } catch (err: any) {
@@ -116,11 +123,9 @@ export class RelatorioService {
   async fetchResumoMensal(): Promise<ResumoMensalDiaconato[]> {
     this.loading.set(true);
     try {
-      const { data, error } = await this.supabase
-        .from('vw_resumo_mensal_diaconato')
-        .select('*');
-      if (error) throw error;
-      const list = (data as ResumoMensalDiaconato[]) || [];
+      const list = await this.fetchAllPaginated<ResumoMensalDiaconato>((from, to) =>
+        this.supabase.from('vw_resumo_mensal_diaconato').select('*').range(from, to)
+      );
       this.resumoMensal.set(list);
       return list;
     } catch (err: any) {
@@ -135,13 +140,11 @@ export class RelatorioService {
   async fetchDistribuicaoEventos(ano?: number): Promise<DistribuicaoObreiroEvento[]> {
     this.loading.set(true);
     try {
-      let query = this.supabase.from('vw_distribuicao_obreiros_por_descricao_evento').select('*');
-      if (ano) {
-        query = query.eq('ano_referencia', ano);
-      }
-      const { data, error } = await query;
-      if (error) throw error;
-      const list = (data as DistribuicaoObreiroEvento[]) || [];
+      const list = await this.fetchAllPaginated<DistribuicaoObreiroEvento>((from, to) => {
+        let q = this.supabase.from('vw_distribuicao_obreiros_por_descricao_evento').select('*');
+        if (ano) q = q.eq('ano_referencia', ano);
+        return q.range(from, to);
+      });
       this.distribuicaoEventos.set(list);
       return list;
     } catch (err: any) {
@@ -156,13 +159,11 @@ export class RelatorioService {
   async fetchResumoPorDescricao(ano?: number): Promise<ResumoPorDescricaoEvento[]> {
     this.loading.set(true);
     try {
-      let query = this.supabase.from('vw_resumo_por_descricao_evento').select('*');
-      if (ano) {
-        query = query.eq('ano_referencia', ano);
-      }
-      const { data, error } = await query;
-      if (error) throw error;
-      const list = (data as ResumoPorDescricaoEvento[]) || [];
+      const list = await this.fetchAllPaginated<ResumoPorDescricaoEvento>((from, to) => {
+        let q = this.supabase.from('vw_resumo_por_descricao_evento').select('*');
+        if (ano) q = q.eq('ano_referencia', ano);
+        return q.range(from, to);
+      });
       this.resumoPorDescricao.set(list);
       return list;
     } catch (err: any) {
@@ -177,11 +178,9 @@ export class RelatorioService {
   async fetchConflitosBloqueio(): Promise<ConflitoBloqueio[]> {
     this.loading.set(true);
     try {
-      const { data, error } = await this.supabase
-        .from('vw_auditoria_conflitos_bloqueio')
-        .select('*');
-      if (error) throw error;
-      const list = (data as ConflitoBloqueio[]) || [];
+      const list = await this.fetchAllPaginated<ConflitoBloqueio>((from, to) =>
+        this.supabase.from('vw_auditoria_conflitos_bloqueio').select('*').range(from, to)
+      );
       this.conflitosBloqueio.set(list);
       return list;
     } catch (err: any) {
@@ -196,42 +195,43 @@ export class RelatorioService {
   async fetchEscalasPorPosto(ano?: number, idMes?: number): Promise<EscalaObreiroPosto[]> {
     this.loading.set(true);
     try {
-      // 1. Tentar buscar diretamente da view SQL vw_escalas_obreiros_por_posto
-      let query = this.supabase.from('vw_escalas_obreiros_por_posto').select('*');
-      if (idMes) {
-        query = query.eq('id_mes', idMes);
-      } else if (ano) {
-        query = query.eq('ano_referencia', ano);
-      }
+      // 1. Buscar com paginação completa da view SQL vw_escalas_obreiros_por_posto
+      const list = await this.fetchAllPaginated<EscalaObreiroPosto>((from, to) => {
+        let q = this.supabase.from('vw_escalas_obreiros_por_posto').select('*');
+        if (idMes) {
+          q = q.eq('id_mes', idMes);
+        } else if (ano) {
+          q = q.eq('ano_referencia', ano);
+        }
+        return q.range(from, to);
+      });
 
-      const { data, error } = await query;
-      if (!error && data && data.length > 0) {
-        const list = (data as EscalaObreiroPosto[]) || [];
+      if (list.length > 0) {
         this.escalasPorPosto.set(list);
         return list;
       }
 
-      // 2. Fallback resiliente: agrega diretamente da tabela escala com relacionamentos
-      let escQuery = this.supabase
-        .from('escala')
-        .select(`
-          id_escala,
-          id_mes,
-          checkin,
-          mes:mes!inner(id_mes, mes_referencia, ano_referencia),
-          obreiros:obreiros!inner(id_obreiro, nome, apelido, diacono, pulpito, ativo),
-          locais:locais(id_local, nome, id_area, areas:areas(id_area, nome, icone)),
-          eventos:eventos(data)
-        `);
+      // 2. Fallback resiliente com paginação caso a view ainda não esteja criada
+      const rawEscalas = await this.fetchAllPaginated<any>((from, to) => {
+        let escQuery = this.supabase
+          .from('escala')
+          .select(`
+            id_escala,
+            id_mes,
+            checkin,
+            mes:mes!inner(id_mes, mes_referencia, ano_referencia),
+            obreiros:obreiros!inner(id_obreiro, nome, apelido, diacono, pulpito, ativo),
+            locais:locais(id_local, nome, id_area, areas:areas(id_area, nome, icone)),
+            eventos:eventos(data)
+          `);
 
-      if (idMes) {
-        escQuery = escQuery.eq('id_mes', idMes);
-      } else if (ano) {
-        escQuery = escQuery.eq('mes.ano_referencia', ano);
-      }
-
-      const { data: rawEscalas, error: escErr } = await escQuery;
-      if (escErr) throw escErr;
+        if (idMes) {
+          escQuery = escQuery.eq('id_mes', idMes);
+        } else if (ano) {
+          escQuery = escQuery.eq('mes.ano_referencia', ano);
+        }
+        return escQuery.range(from, to);
+      });
 
       const groupMap = new Map<string, EscalaObreiroPosto>();
 
@@ -285,14 +285,14 @@ export class RelatorioService {
         }
       }
 
-      const list = Array.from(groupMap.values()).sort((a, b) => {
+      const fallbackList = Array.from(groupMap.values()).sort((a, b) => {
         const cmp = a.nome_obreiro.localeCompare(b.nome_obreiro);
         if (cmp !== 0) return cmp;
         return b.total_escalas_posto - a.total_escalas_posto;
       });
 
-      this.escalasPorPosto.set(list);
-      return list;
+      this.escalasPorPosto.set(fallbackList);
+      return fallbackList;
     } catch (err: any) {
       console.error('Erro ao buscar escalas por posto:', err);
       this.toast.error('Erro ao carregar relatório de postos', err.message);

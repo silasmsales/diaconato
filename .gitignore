@@ -40,7 +40,12 @@ testem.log
 __screenshots__/
 
 # Database seeds / Sensitive data
-populate.sql
+generate_mass_data.js
+/dados/*
+!/dados/scheme.sql
+!/dados/views.sql
+!/dados/triggers.sql
+!/dados/supabase_rls_setup.sql
 *.env
 *.env.local
 *.backup.sql
