@@ -80,7 +80,7 @@ export class EscalaPdfService {
       return;
     }
 
-    const logoUrl = `${window.location.origin}/logo_adtag.jpg`;
+    const logoUrl = `${document.baseURI}logo_adtag.jpg`;
 
     const fullDoc = `
       <!DOCTYPE html>
@@ -345,7 +345,7 @@ export class EscalaPdfService {
 
   gerarPdfPorEventos(mes: Mes, eventos: Evento[], escalas: Escala[]) {
     const mesLabel = formatMesReferencia(mes);
-    const logoUrl = `${window.location.origin}/logo_adtag.jpg`;
+    const logoUrl = `${document.baseURI}logo_adtag.jpg`;
 
     const eventosDoMes = (eventos || [])
       .filter(e => Number(e.id_mes) === Number(mes.id_mes))
@@ -434,7 +434,7 @@ export class EscalaPdfService {
   gerarPdfPorObreiros(mes: Mes, eventos: Evento[], escalas: Escala[], obreiros: Obreiro[]) {
     const mesLabel = formatMesReferencia(mes);
     const idMes = Number(mes.id_mes);
-    const logoUrl = `${window.location.origin}/logo_adtag.jpg`;
+    const logoUrl = `${document.baseURI}logo_adtag.jpg`;
 
     // Obreiros ativos ou que estejam escalados
     const escalasDoMes = (escalas || []).filter(esc => Number(esc.id_mes) === idMes);
