@@ -59,13 +59,23 @@
     </button>
 
     <button 
+      (click)="setTab('turnos')"
+      [class]="activeTab() === 'turnos' ? 'bg-indigo-600 text-white font-bold shadow-lg shadow-indigo-600/30' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'"
+      class="px-4 py-2 rounded-xl text-xs font-semibold transition-all whitespace-nowrap flex items-center gap-2">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <span>5. Rodízio de Horários (1º / 2º / 3º)</span>
+    </button>
+
+    <button 
       (click)="setTab('resumo')"
       [class]="activeTab() === 'resumo' ? 'bg-indigo-600 text-white font-bold shadow-lg shadow-indigo-600/30' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'"
       class="px-4 py-2 rounded-xl text-xs font-semibold transition-all whitespace-nowrap flex items-center gap-2">
       <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
       </svg>
-      <span>5. Resumo Mensal</span>
+      <span>6. Resumo Mensal</span>
     </button>
 
     <button 
@@ -75,7 +85,7 @@
       <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
       </svg>
-      <span>6. Auditoria de Conflitos</span>
+      <span>7. Auditoria de Conflitos</span>
     </button>
   </div>
 
@@ -997,7 +1007,342 @@
     </div>
   }
 
-  <!-- TAB 5: RESUMO EXECUTIVO MENSAL -->
+  <!-- TAB 5: DISTRIBUIÇÃO POR HORÁRIO / TURNO DE SERVIÇO -->
+  @if (!relatorioService.loading() && activeTab() === 'turnos') {
+    <div class="space-y-4">
+      <!-- Filter Bar -->
+      <div class="glass-panel rounded-2xl p-4 border border-slate-800/80 flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-4">
+        <div class="flex items-center gap-2 flex-wrap">
+          <!-- Modo de Período (Mensal vs Anual vs Geral) -->
+          <div class="flex items-center p-1 bg-slate-900 border border-slate-800 rounded-xl">
+            <button 
+              (click)="setTurnosPeriodoModo('mensal')"
+              [class]="turnosPeriodoModo() === 'mensal' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-400 hover:text-slate-200'"
+              class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all">
+              Mensal
+            </button>
+            <button 
+              (click)="setTurnosPeriodoModo('anual')"
+              [class]="turnosPeriodoModo() === 'anual' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-400 hover:text-slate-200'"
+              class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all">
+              Anual
+            </button>
+            <button 
+              (click)="setTurnosPeriodoModo('geral')"
+              [class]="turnosPeriodoModo() === 'geral' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-400 hover:text-slate-200'"
+              class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all">
+              Geral
+            </button>
+          </div>
+
+          <!-- Seletor de Mês (se Mensal) -->
+          @if (turnosPeriodoModo() === 'mensal') {
+            <select 
+              [ngModel]="selectedMesId()" 
+              (ngModelChange)="onMesChange($event)"
+              class="bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500">
+              @for (m of mesService.meses(); track m.id_mes) {
+                <option [value]="m.id_mes">{{ formatMesReferencia(m) }}</option>
+              }
+            </select>
+          }
+
+          <!-- Seletor de Ano (se Anual ou Mensal) -->
+          @if (turnosPeriodoModo() !== 'geral') {
+            <select 
+              [ngModel]="selectedAno()" 
+              (ngModelChange)="onAnoChange($event)"
+              class="bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500">
+              @for (ano of anosDisponiveis(); track ano) {
+                <option [value]="ano">{{ ano }}</option>
+              }
+            </select>
+          }
+
+          <!-- Filtro Apenas Diáconos -->
+          <label class="flex items-center gap-2 px-3 py-1.5 bg-slate-900/80 border border-slate-800 rounded-xl cursor-pointer hover:border-slate-700 transition-colors">
+            <input 
+              type="checkbox" 
+              [ngModel]="apenasDiaconosTurnos()" 
+              (ngModelChange)="apenasDiaconosTurnos.set($event)"
+              class="w-3.5 h-3.5 rounded border-slate-700 text-indigo-600 focus:ring-indigo-500 bg-slate-950" />
+            <span class="text-xs font-medium text-slate-300">👔 Apenas Diáconos</span>
+          </label>
+
+          <!-- Filtro Apenas Púlpito -->
+          <label class="flex items-center gap-2 px-3 py-1.5 bg-slate-900/80 border border-slate-800 rounded-xl cursor-pointer hover:border-slate-700 transition-colors">
+            <input 
+              type="checkbox" 
+              [ngModel]="apenasPulpitoTurnos()" 
+              (ngModelChange)="apenasPulpitoTurnos.set($event)"
+              class="w-3.5 h-3.5 rounded border-slate-700 text-indigo-600 focus:ring-indigo-500 bg-slate-950" />
+            <span class="text-xs font-medium text-slate-300">🏛️ Apenas Púlpito</span>
+          </label>
+        </div>
+
+        <!-- Right Side: Busca e Alternância de Visualização -->
+        <div class="flex items-center gap-2.5">
+          <div class="relative min-w-[200px] sm:min-w-[240px] flex-1">
+            <input 
+              type="text" 
+              placeholder="Buscar obreiro..." 
+              [ngModel]="searchQuery()"
+              (ngModelChange)="searchQuery.set($event)"
+              class="w-full bg-slate-900 border border-slate-800 rounded-xl pl-8 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500" />
+            <svg class="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+
+          <!-- View Mode Toggle (Cards vs Tabela) -->
+          <div class="flex items-center p-1 bg-slate-900 border border-slate-800 rounded-xl shrink-0">
+            <button 
+              (click)="setTurnosViewMode('cards')"
+              [class]="turnosViewMode() === 'cards' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'"
+              title="Visualização em Cards"
+              class="p-1.5 rounded-lg text-xs transition-all">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+              </svg>
+            </button>
+            <button 
+              (click)="setTurnosViewMode('tabela')"
+              [class]="turnosViewMode() === 'tabela' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'"
+              title="Visualização em Tabela"
+              class="p-1.5 rounded-lg text-xs transition-all">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- KPIs da Distribuição por Horário -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- 1º Horário -->
+        <div class="glass-card rounded-2xl p-4 border border-slate-800 space-y-1">
+          <div class="flex items-center justify-between text-xs font-bold text-slate-400">
+            <span>1️⃣ 1º Horário do Culto</span>
+            <span class="text-amber-400 font-mono">{{ kpiTurnos().pctH1 }}%</span>
+          </div>
+          <div class="text-2xl font-black text-amber-400">{{ kpiTurnos().totalH1 }}</div>
+          <p class="text-[11px] text-slate-400">Escalas no 1º horário de serviço</p>
+        </div>
+
+        <!-- 2º Horário -->
+        <div class="glass-card rounded-2xl p-4 border border-slate-800 space-y-1">
+          <div class="flex items-center justify-between text-xs font-bold text-slate-400">
+            <span>2️⃣ 2º Horário do Culto</span>
+            <span class="text-indigo-400 font-mono">{{ kpiTurnos().pctH2 }}%</span>
+          </div>
+          <div class="text-2xl font-black text-indigo-400">{{ kpiTurnos().totalH2 }}</div>
+          <p class="text-[11px] text-slate-400">Escalas no 2º horário de serviço</p>
+        </div>
+
+        <!-- 3º Horário -->
+        <div class="glass-card rounded-2xl p-4 border border-slate-800 space-y-1">
+          <div class="flex items-center justify-between text-xs font-bold text-slate-400">
+            <span>3️⃣ 3º Horário do Culto</span>
+            <span class="text-purple-400 font-mono">{{ kpiTurnos().pctH3 }}%</span>
+          </div>
+          <div class="text-2xl font-black text-purple-400">{{ kpiTurnos().totalH3 }}</div>
+          <p class="text-[11px] text-slate-400">Escalas no 3º horário de serviço</p>
+        </div>
+
+        <!-- Obreiro mais Equilibrado -->
+        <div class="glass-card rounded-2xl p-4 border border-slate-800 space-y-1">
+          <div class="flex items-center justify-between text-xs font-bold text-slate-400">
+            <span>⚖️ Rodízio Mais Equilibrado</span>
+            <span class="text-emerald-400 text-[10px]">Min. 4 escalas</span>
+          </div>
+          <div class="text-lg font-black text-emerald-400 truncate" [title]="kpiTurnos().topEquilibradoNome">
+            {{ kpiTurnos().topEquilibradoNome }}
+          </div>
+          <p class="text-[11px] text-slate-400 font-mono">
+            {{ kpiTurnos().topEquilibradoPctH1 }}% (1º Horário) • {{ kpiTurnos().topEquilibradoPctH2 }}% (2º Horário)
+          </p>
+        </div>
+      </div>
+
+      <!-- VISUALIZAÇÃO: CARDS COM BARRA PROPORCIONAL -->
+      @if (turnosViewMode() === 'cards') {
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          @for (item of filteredTurnos(); track item.id_obreiro) {
+            <div class="glass-panel rounded-2xl p-4 border border-slate-800/90 space-y-3 hover:border-slate-700 transition-all">
+              <!-- Top: Obreiro + Badges -->
+              <div class="flex items-start justify-between gap-2">
+                <div>
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <h3 class="text-sm font-bold text-white">{{ item.nome_obreiro }}</h3>
+                    @if (item.is_diacono) {
+                      <span class="text-[9px] px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-semibold">Diácono</span>
+                    }
+                    @if (item.is_pulpito) {
+                      <span class="text-[9px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30 font-semibold">Púlpito</span>
+                    }
+                  </div>
+                  <p class="text-[11px] text-slate-400 mt-0.5">
+                    Total de <span class="font-bold text-slate-200">{{ item.total_escalas }}</span> escala(s) no período
+                  </p>
+                </div>
+
+                <!-- Predominância Badge -->
+                <span 
+                  [class]="getPredominanciaTurno(item.qtd_primeiro_horario, item.qtd_segundo_horario, item.qtd_terceiro_horario).bg + ' ' + getPredominanciaTurno(item.qtd_primeiro_horario, item.qtd_segundo_horario, item.qtd_terceiro_horario).text + ' ' + getPredominanciaTurno(item.qtd_primeiro_horario, item.qtd_segundo_horario, item.qtd_terceiro_horario).border"
+                  class="text-[10px] font-bold px-2 py-0.5 rounded-lg border flex items-center gap-1 shrink-0">
+                  <span>{{ getPredominanciaTurno(item.qtd_primeiro_horario, item.qtd_segundo_horario, item.qtd_terceiro_horario).icon }}</span>
+                  <span>{{ getPredominanciaTurno(item.qtd_primeiro_horario, item.qtd_segundo_horario, item.qtd_terceiro_horario).label }}</span>
+                </span>
+              </div>
+
+              <!-- Barra Segmentada de Proporção Visual -->
+              <div class="space-y-1.5">
+                <div class="w-full h-4 bg-slate-950 rounded-full overflow-hidden flex border border-slate-800">
+                  @if (item.pct_primeiro_horario > 0) {
+                    <div 
+                      [style.width.%]="item.pct_primeiro_horario"
+                      [title]="'1º Horário: ' + item.pct_primeiro_horario + '% (' + item.qtd_primeiro_horario + ' escalas)'"
+                      class="h-full bg-gradient-to-r from-amber-600 to-amber-500 flex items-center justify-center text-[9px] font-black text-slate-950 transition-all">
+                      @if (item.pct_primeiro_horario >= 18) {
+                        <span>{{ item.pct_primeiro_horario }}%</span>
+                      }
+                    </div>
+                  }
+                  @if (item.pct_segundo_horario > 0) {
+                    <div 
+                      [style.width.%]="item.pct_segundo_horario"
+                      [title]="'2º Horário: ' + item.pct_segundo_horario + '% (' + item.qtd_segundo_horario + ' escalas)'"
+                      class="h-full bg-gradient-to-r from-indigo-600 to-indigo-500 flex items-center justify-center text-[9px] font-black text-white transition-all">
+                      @if (item.pct_segundo_horario >= 18) {
+                        <span>{{ item.pct_segundo_horario }}%</span>
+                      }
+                    </div>
+                  }
+                  @if (item.pct_terceiro_horario > 0) {
+                    <div 
+                      [style.width.%]="item.pct_terceiro_horario"
+                      [title]="'3º Horário: ' + item.pct_terceiro_horario + '% (' + item.qtd_terceiro_horario + ' escalas)'"
+                      class="h-full bg-gradient-to-r from-purple-600 to-purple-500 flex items-center justify-center text-[9px] font-black text-white transition-all">
+                      @if (item.pct_terceiro_horario >= 18) {
+                        <span>{{ item.pct_terceiro_horario }}%</span>
+                      }
+                    </div>
+                  }
+                </div>
+
+                <!-- Detalhamento Numérico -->
+                <div class="grid grid-cols-3 gap-2 pt-1">
+                  <div class="bg-slate-950/80 p-2 rounded-xl border border-slate-800/80 text-center">
+                    <span class="text-[10px] text-amber-300 font-bold block">1️⃣ 1º Horário</span>
+                    <span class="text-xs font-black text-white font-mono">{{ item.qtd_primeiro_horario }}</span>
+                    <span class="text-[10px] text-slate-400 font-mono ml-1">({{ item.pct_primeiro_horario || 0 }}%)</span>
+                  </div>
+
+                  <div class="bg-slate-950/80 p-2 rounded-xl border border-slate-800/80 text-center">
+                    <span class="text-[10px] text-indigo-300 font-bold block">2️⃣ 2º Horário</span>
+                    <span class="text-xs font-black text-white font-mono">{{ item.qtd_segundo_horario }}</span>
+                    <span class="text-[10px] text-slate-400 font-mono ml-1">({{ item.pct_segundo_horario || 0 }}%)</span>
+                  </div>
+
+                  <div class="bg-slate-950/80 p-2 rounded-xl border border-slate-800/80 text-center">
+                    <span class="text-[10px] text-purple-300 font-bold block">3️⃣ 3º Horário</span>
+                    <span class="text-xs font-black text-white font-mono">{{ item.qtd_terceiro_horario }}</span>
+                    <span class="text-[10px] text-slate-400 font-mono ml-1">({{ item.pct_terceiro_horario || 0 }}%)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          } @empty {
+            <div class="col-span-full glass-panel rounded-2xl p-12 text-center border border-slate-800 text-slate-500 italic">
+              Nenhum obreiro encontrado para os filtros selecionados.
+            </div>
+          }
+        </div>
+      }
+
+      <!-- VISUALIZAÇÃO: TABELA ANALÍTICA -->
+      @if (turnosViewMode() === 'tabela') {
+        <div class="glass-panel rounded-2xl border border-slate-800/80 overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-300">
+              <thead class="bg-slate-900/90 border-b border-slate-800 uppercase tracking-wider text-[10px] font-bold text-slate-400">
+                <tr>
+                  <th class="py-3 px-4 w-12">#</th>
+                  <th class="py-3 px-4">Obreiro</th>
+                  <th class="py-3 px-4 text-center">Total Escalas</th>
+                  <th class="py-3 px-4 text-center text-amber-400">1️⃣ 1º Horário</th>
+                  <th class="py-3 px-4 text-center text-indigo-400">2️⃣ 2º Horário</th>
+                  <th class="py-3 px-4 text-center text-purple-400">3️⃣ 3º Horário</th>
+                  <th class="py-3 px-4 min-w-[160px]">Distribuição Visual</th>
+                  <th class="py-3 px-4">Predominância</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800/60">
+                @for (item of filteredTurnos(); track item.id_obreiro) {
+                  <tr class="hover:bg-slate-800/30 transition-colors">
+                    <td class="py-3 px-4 font-mono text-slate-500">{{ $index + 1 }}</td>
+                    <td class="py-3 px-4 font-bold text-white">
+                      <div class="flex items-center gap-2">
+                        <span>{{ item.nome_obreiro }}</span>
+                        @if (item.is_diacono) {
+                          <span class="text-[9px] px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-semibold">Diácono</span>
+                        }
+                        @if (item.is_pulpito) {
+                          <span class="text-[9px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30 font-semibold">Púlpito</span>
+                        }
+                      </div>
+                    </td>
+                    <td class="py-3 px-4 text-center font-mono font-black text-white">
+                      {{ item.total_escalas }}
+                    </td>
+                    <td class="py-3 px-4 text-center font-mono text-amber-300 font-semibold">
+                      {{ item.qtd_primeiro_horario }} <span class="text-[10px] text-slate-500">({{ item.pct_primeiro_horario || 0 }}%)</span>
+                    </td>
+                    <td class="py-3 px-4 text-center font-mono text-indigo-300 font-semibold">
+                      {{ item.qtd_segundo_horario }} <span class="text-[10px] text-slate-500">({{ item.pct_segundo_horario || 0 }}%)</span>
+                    </td>
+                    <td class="py-3 px-4 text-center font-mono text-purple-300 font-semibold">
+                      {{ item.qtd_terceiro_horario }} <span class="text-[10px] text-slate-500">({{ item.pct_terceiro_horario || 0 }}%)</span>
+                    </td>
+                    <td class="py-3 px-4">
+                      <div class="w-full h-3 bg-slate-950 rounded-full overflow-hidden flex border border-slate-800">
+                        @if (item.pct_primeiro_horario > 0) {
+                          <div [style.width.%]="item.pct_primeiro_horario" class="h-full bg-amber-500"></div>
+                        }
+                        @if (item.pct_segundo_horario > 0) {
+                          <div [style.width.%]="item.pct_segundo_horario" class="h-full bg-indigo-500"></div>
+                        }
+                        @if (item.pct_terceiro_horario > 0) {
+                          <div [style.width.%]="item.pct_terceiro_horario" class="h-full bg-purple-500"></div>
+                        }
+                      </div>
+                    </td>
+                    <td class="py-3 px-4">
+                      <span 
+                        [class]="getPredominanciaTurno(item.qtd_primeiro_horario, item.qtd_segundo_horario, item.qtd_terceiro_horario).bg + ' ' + getPredominanciaTurno(item.qtd_primeiro_horario, item.qtd_segundo_horario, item.qtd_terceiro_horario).text + ' ' + getPredominanciaTurno(item.qtd_primeiro_horario, item.qtd_segundo_horario, item.qtd_terceiro_horario).border"
+                        class="text-[10px] font-bold px-2 py-0.5 rounded-lg border inline-flex items-center gap-1">
+                        <span>{{ getPredominanciaTurno(item.qtd_primeiro_horario, item.qtd_segundo_horario, item.qtd_terceiro_horario).icon }}</span>
+                        <span>{{ getPredominanciaTurno(item.qtd_primeiro_horario, item.qtd_segundo_horario, item.qtd_terceiro_horario).label }}</span>
+                      </span>
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="8" class="py-8 text-center text-slate-500 italic">
+                      Nenhum registro encontrado para os filtros selecionados.
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- TAB 6: RESUMO EXECUTIVO MENSAL -->
   @if (!relatorioService.loading() && activeTab() === 'resumo') {
     <div class="space-y-4">
       <div class="glass-panel rounded-2xl border border-slate-800/80 overflow-hidden">

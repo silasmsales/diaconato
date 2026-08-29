@@ -113,4 +113,8 @@ ALTER VIEW public.vw_distribuicao_obreiros_por_descricao_evento SET (security_in
 ALTER VIEW public.vw_resumo_por_descricao_evento SET (security_invoker = true);
 ALTER VIEW public.vw_assiduidade_obreiros_anual SET (security_invoker = true);
 ALTER VIEW public.vw_escalas_obreiros_por_posto SET (security_invoker = true);
+ALTER VIEW public.vw_distribuicao_obreiros_por_horario_mensal SET (security_invoker = true);
+ALTER VIEW public.vw_distribuicao_obreiros_por_horario_anual SET (security_invoker = true);
+ALTER VIEW public.vw_distribuicao_obreiros_por_horario_geral SET (security_invoker = true);
+
 

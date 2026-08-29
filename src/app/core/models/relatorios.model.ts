@@ -144,3 +144,29 @@ export interface EscalaObreiroPosto {
   data_ultima_escala?: string;
 }
 
+export interface DistribuicaoObreiroHorario {
+  id_obreiro: number;
+  nome_obreiro: string;
+  apelido_obreiro?: string;
+  is_diacono: boolean;
+  is_pulpito: boolean;
+  total_escalas: number;
+  qtd_primeiro_horario: number;
+  qtd_segundo_horario: number;
+  qtd_terceiro_horario: number;
+  pct_primeiro_horario: number | null;
+  pct_segundo_horario: number | null;
+  pct_terceiro_horario: number | null;
+}
+
+export interface DistribuicaoObreiroHorarioMensal extends DistribuicaoObreiroHorario {
+  id_mes: number;
+  ano_referencia: number;
+  mes_referencia: number;
+}
+
+export interface DistribuicaoObreiroHorarioAnual extends DistribuicaoObreiroHorario {
+  ano_referencia: number;
+}
+
+

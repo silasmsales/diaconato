@@ -10,7 +10,10 @@ import {
   DistribuicaoObreiroEvento,
   ResumoPorDescricaoEvento,
   ConflitoBloqueio,
-  EscalaObreiroPosto
+  EscalaObreiroPosto,
+  DistribuicaoObreiroHorario,
+  DistribuicaoObreiroHorarioMensal,
+  DistribuicaoObreiroHorarioAnual
 } from '../models/relatorios.model';
 
 @Injectable({
@@ -30,6 +33,9 @@ export class RelatorioService {
   resumoPorDescricao = signal<ResumoPorDescricaoEvento[]>([]);
   conflitosBloqueio = signal<ConflitoBloqueio[]>([]);
   escalasPorPosto = signal<EscalaObreiroPosto[]>([]);
+  distribuicaoHorariosMensal = signal<DistribuicaoObreiroHorarioMensal[]>([]);
+  distribuicaoHorariosAnual = signal<DistribuicaoObreiroHorarioAnual[]>([]);
+  distribuicaoHorariosGeral = signal<DistribuicaoObreiroHorario[]>([]);
 
   private async fetchAllPaginated<T>(buildQuery: (from: number, to: number) => any): Promise<T[]> {
     let allData: T[] = [];
@@ -301,4 +307,246 @@ export class RelatorioService {
       this.loading.set(false);
     }
   }
+
+  // 13. Distribuição de Obreiros por Horário / Turno (Mensal)
+  async fetchDistribuicaoHorariosMensal(idMes?: number): Promise<DistribuicaoObreiroHorarioMensal[]> {
+    this.loading.set(true);
+    try {
+      try {
+        const list = await this.fetchAllPaginated<DistribuicaoObreiroHorarioMensal>((from, to) => {
+          let query = this.supabase
+            .from('vw_distribuicao_obreiros_por_horario_mensal')
+            .select('*')
+            .range(from, to);
+          if (idMes) {
+            query = query.eq('id_mes', idMes);
+          }
+          return query;
+        });
+        if (list && list.length > 0) {
+          this.distribuicaoHorariosMensal.set(list);
+          return list;
+        }
+      } catch (e) {
+        console.warn('View vw_distribuicao_obreiros_por_horario_mensal não encontrada, calculando via fallback:', e);
+      }
+
+      // Fallback via tabela escala + obreiros + mes
+      const rawEscalas = await this.fetchAllPaginated<any>((from, to) => {
+        let q = this.supabase
+          .from('escala')
+          .select('id_escala, id_obreiro, id_mes, horario_turno, obreiros(id_obreiro, nome, apelido, diacono, pulpito, ativo), mes(id_mes, ano_referencia, mes_referencia)')
+          .range(from, to);
+        if (idMes) {
+          q = q.eq('id_mes', idMes);
+        }
+        return q;
+      });
+
+      const map = new Map<string, DistribuicaoObreiroHorarioMensal>();
+      for (const row of rawEscalas) {
+        const ob = row.obreiros;
+        const mes = row.mes;
+        if (!ob || ob.ativo === false || !mes) continue;
+        const key = `${mes.id_mes}_${ob.id_obreiro}`;
+        if (!map.has(key)) {
+          map.set(key, {
+            id_mes: mes.id_mes,
+            ano_referencia: mes.ano_referencia,
+            mes_referencia: mes.mes_referencia,
+            id_obreiro: ob.id_obreiro,
+            nome_obreiro: ob.nome,
+            apelido_obreiro: ob.apelido,
+            is_diacono: !!ob.diacono,
+            is_pulpito: !!ob.pulpito,
+            total_escalas: 0,
+            qtd_primeiro_horario: 0,
+            qtd_segundo_horario: 0,
+            qtd_terceiro_horario: 0,
+            pct_primeiro_horario: 0,
+            pct_segundo_horario: 0,
+            pct_terceiro_horario: 0
+          });
+        }
+        const item = map.get(key)!;
+        item.total_escalas++;
+        const turno = Number(row.horario_turno ?? 1);
+        if (turno === 1) item.qtd_primeiro_horario++;
+        else if (turno === 2) item.qtd_segundo_horario++;
+        else if (turno === 3) item.qtd_terceiro_horario++;
+      }
+
+      const list = Array.from(map.values()).map(item => ({
+        ...item,
+        pct_primeiro_horario: item.total_escalas > 0 ? Math.round((item.qtd_primeiro_horario / item.total_escalas) * 1000) / 10 : 0,
+        pct_segundo_horario: item.total_escalas > 0 ? Math.round((item.qtd_segundo_horario / item.total_escalas) * 1000) / 10 : 0,
+        pct_terceiro_horario: item.total_escalas > 0 ? Math.round((item.qtd_terceiro_horario / item.total_escalas) * 1000) / 10 : 0
+      })).sort((a, b) => b.total_escalas - a.total_escalas || a.nome_obreiro.localeCompare(b.nome_obreiro));
+
+      this.distribuicaoHorariosMensal.set(list);
+      return list;
+    } catch (err: any) {
+      console.error('Erro ao buscar distribuição de horários mensal:', err);
+      this.toast.error('Erro ao carregar distribuição de horários', err.message);
+      return [];
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  // 14. Distribuição de Obreiros por Horário / Turno (Anual)
+  async fetchDistribuicaoHorariosAnual(ano?: number): Promise<DistribuicaoObreiroHorarioAnual[]> {
+    this.loading.set(true);
+    try {
+      try {
+        const list = await this.fetchAllPaginated<DistribuicaoObreiroHorarioAnual>((from, to) => {
+          let query = this.supabase
+            .from('vw_distribuicao_obreiros_por_horario_anual')
+            .select('*')
+            .range(from, to);
+          if (ano) {
+            query = query.eq('ano_referencia', ano);
+          }
+          return query;
+        });
+        if (list && list.length > 0) {
+          this.distribuicaoHorariosAnual.set(list);
+          return list;
+        }
+      } catch (e) {
+        console.warn('View vw_distribuicao_obreiros_por_horario_anual não encontrada, calculando via fallback:', e);
+      }
+
+      // Fallback via tabela escala + obreiros + mes
+      const rawEscalas = await this.fetchAllPaginated<any>((from, to) => {
+        return this.supabase
+          .from('escala')
+          .select('id_escala, id_obreiro, horario_turno, obreiros(id_obreiro, nome, apelido, diacono, pulpito, ativo), mes(ano_referencia)')
+          .range(from, to);
+      });
+
+      const map = new Map<string, DistribuicaoObreiroHorarioAnual>();
+      for (const row of rawEscalas) {
+        const ob = row.obreiros;
+        const mes = row.mes;
+        if (!ob || ob.ativo === false || !mes) continue;
+        if (ano && Number(mes.ano_referencia) !== Number(ano)) continue;
+        const anoRef = Number(mes.ano_referencia);
+        const key = `${anoRef}_${ob.id_obreiro}`;
+        if (!map.has(key)) {
+          map.set(key, {
+            ano_referencia: anoRef,
+            id_obreiro: ob.id_obreiro,
+            nome_obreiro: ob.nome,
+            apelido_obreiro: ob.apelido,
+            is_diacono: !!ob.diacono,
+            is_pulpito: !!ob.pulpito,
+            total_escalas: 0,
+            qtd_primeiro_horario: 0,
+            qtd_segundo_horario: 0,
+            qtd_terceiro_horario: 0,
+            pct_primeiro_horario: 0,
+            pct_segundo_horario: 0,
+            pct_terceiro_horario: 0
+          });
+        }
+        const item = map.get(key)!;
+        item.total_escalas++;
+        const turno = Number(row.horario_turno ?? 1);
+        if (turno === 1) item.qtd_primeiro_horario++;
+        else if (turno === 2) item.qtd_segundo_horario++;
+        else if (turno === 3) item.qtd_terceiro_horario++;
+      }
+
+      const list = Array.from(map.values()).map(item => ({
+        ...item,
+        pct_primeiro_horario: item.total_escalas > 0 ? Math.round((item.qtd_primeiro_horario / item.total_escalas) * 1000) / 10 : 0,
+        pct_segundo_horario: item.total_escalas > 0 ? Math.round((item.qtd_segundo_horario / item.total_escalas) * 1000) / 10 : 0,
+        pct_terceiro_horario: item.total_escalas > 0 ? Math.round((item.qtd_terceiro_horario / item.total_escalas) * 1000) / 10 : 0
+      })).sort((a, b) => b.total_escalas - a.total_escalas || a.nome_obreiro.localeCompare(b.nome_obreiro));
+
+      this.distribuicaoHorariosAnual.set(list);
+      return list;
+    } catch (err: any) {
+      console.error('Erro ao buscar distribuição de horários anual:', err);
+      this.toast.error('Erro ao carregar distribuição de horários anual', err.message);
+      return [];
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  // 15. Distribuição de Obreiros por Horário / Turno (Geral / Histórico Completo)
+  async fetchDistribuicaoHorariosGeral(): Promise<DistribuicaoObreiroHorario[]> {
+    this.loading.set(true);
+    try {
+      try {
+        const list = await this.fetchAllPaginated<DistribuicaoObreiroHorario>((from, to) =>
+          this.supabase
+            .from('vw_distribuicao_obreiros_por_horario_geral')
+            .select('*')
+            .range(from, to)
+        );
+        if (list && list.length > 0) {
+          this.distribuicaoHorariosGeral.set(list);
+          return list;
+        }
+      } catch (e) {
+        console.warn('View vw_distribuicao_obreiros_por_horario_geral não encontrada, calculando via fallback:', e);
+      }
+
+      // Fallback via tabela escala + obreiros
+      const rawEscalas = await this.fetchAllPaginated<any>((from, to) =>
+        this.supabase
+          .from('escala')
+          .select('id_escala, id_obreiro, horario_turno, obreiros(id_obreiro, nome, apelido, diacono, pulpito, ativo)')
+          .range(from, to)
+      );
+
+      const map = new Map<number, DistribuicaoObreiroHorario>();
+      for (const row of rawEscalas) {
+        const ob = row.obreiros;
+        if (!ob || ob.ativo === false) continue;
+        if (!map.has(ob.id_obreiro)) {
+          map.set(ob.id_obreiro, {
+            id_obreiro: ob.id_obreiro,
+            nome_obreiro: ob.nome,
+            apelido_obreiro: ob.apelido,
+            is_diacono: !!ob.diacono,
+            is_pulpito: !!ob.pulpito,
+            total_escalas: 0,
+            qtd_primeiro_horario: 0,
+            qtd_segundo_horario: 0,
+            qtd_terceiro_horario: 0,
+            pct_primeiro_horario: 0,
+            pct_segundo_horario: 0,
+            pct_terceiro_horario: 0
+          });
+        }
+        const item = map.get(ob.id_obreiro)!;
+        item.total_escalas++;
+        const turno = Number(row.horario_turno ?? 1);
+        if (turno === 1) item.qtd_primeiro_horario++;
+        else if (turno === 2) item.qtd_segundo_horario++;
+        else if (turno === 3) item.qtd_terceiro_horario++;
+      }
+
+      const list = Array.from(map.values()).map(item => ({
+        ...item,
+        pct_primeiro_horario: item.total_escalas > 0 ? Math.round((item.qtd_primeiro_horario / item.total_escalas) * 1000) / 10 : 0,
+        pct_segundo_horario: item.total_escalas > 0 ? Math.round((item.qtd_segundo_horario / item.total_escalas) * 1000) / 10 : 0,
+        pct_terceiro_horario: item.total_escalas > 0 ? Math.round((item.qtd_terceiro_horario / item.total_escalas) * 1000) / 10 : 0
+      })).sort((a, b) => b.total_escalas - a.total_escalas || a.nome_obreiro.localeCompare(b.nome_obreiro));
+
+      this.distribuicaoHorariosGeral.set(list);
+      return list;
+    } catch (err: any) {
+      console.error('Erro ao buscar distribuição de horários geral:', err);
+      this.toast.error('Erro ao carregar distribuição de horários geral', err.message);
+      return [];
+    } finally {
+      this.loading.set(false);
+    }
+  }
 }
+

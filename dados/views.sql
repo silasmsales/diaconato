@@ -464,3 +464,107 @@ ORDER BY
     nome_obreiro ASC,
     total_escalas_posto DESC;
 
+
+-- 13. DISTRIBUIÇÃO DE OBREIROS POR HORÁRIO / TURNO (MENSAL)
+-- ------------------------------------------------------------------------------
+CREATE OR REPLACE VIEW public.vw_distribuicao_obreiros_por_horario_mensal AS
+SELECT 
+    m.id_mes,
+    m.ano_referencia,
+    m.mes_referencia,
+    o.id_obreiro,
+    o.nome AS nome_obreiro,
+    o.apelido AS apelido_obreiro,
+    o.diacono AS is_diacono,
+    o.pulpito AS is_pulpito,
+    COUNT(e.id_escala) AS total_escalas,
+    COUNT(CASE WHEN e.horario_turno = 1 THEN 1 END) AS qtd_primeiro_horario,
+    COUNT(CASE WHEN e.horario_turno = 2 THEN 1 END) AS qtd_segundo_horario,
+    COUNT(CASE WHEN e.horario_turno = 3 THEN 1 END) AS qtd_terceiro_horario,
+    ROUND((COUNT(CASE WHEN e.horario_turno = 1 THEN 1 END)::NUMERIC * 100.0) / NULLIF(COUNT(e.id_escala), 0), 1) AS pct_primeiro_horario,
+    ROUND((COUNT(CASE WHEN e.horario_turno = 2 THEN 1 END)::NUMERIC * 100.0) / NULLIF(COUNT(e.id_escala), 0), 1) AS pct_segundo_horario,
+    ROUND((COUNT(CASE WHEN e.horario_turno = 3 THEN 1 END)::NUMERIC * 100.0) / NULLIF(COUNT(e.id_escala), 0), 1) AS pct_terceiro_horario
+FROM public.escala e
+INNER JOIN public.mes m ON e.id_mes = m.id_mes
+INNER JOIN public.obreiros o ON e.id_obreiro = o.id_obreiro
+WHERE o.ativo IS TRUE
+GROUP BY 
+    m.id_mes,
+    m.ano_referencia,
+    m.mes_referencia,
+    o.id_obreiro,
+    o.nome,
+    o.apelido,
+    o.diacono,
+    o.pulpito
+ORDER BY 
+    m.ano_referencia DESC,
+    m.mes_referencia DESC,
+    total_escalas DESC,
+    o.nome ASC;
+
+
+-- 14. DISTRIBUIÇÃO DE OBREIROS POR HORÁRIO / TURNO (ANUAL)
+-- ------------------------------------------------------------------------------
+CREATE OR REPLACE VIEW public.vw_distribuicao_obreiros_por_horario_anual AS
+SELECT 
+    m.ano_referencia,
+    o.id_obreiro,
+    o.nome AS nome_obreiro,
+    o.apelido AS apelido_obreiro,
+    o.diacono AS is_diacono,
+    o.pulpito AS is_pulpito,
+    COUNT(e.id_escala) AS total_escalas,
+    COUNT(CASE WHEN e.horario_turno = 1 THEN 1 END) AS qtd_primeiro_horario,
+    COUNT(CASE WHEN e.horario_turno = 2 THEN 1 END) AS qtd_segundo_horario,
+    COUNT(CASE WHEN e.horario_turno = 3 THEN 1 END) AS qtd_terceiro_horario,
+    ROUND((COUNT(CASE WHEN e.horario_turno = 1 THEN 1 END)::NUMERIC * 100.0) / NULLIF(COUNT(e.id_escala), 0), 1) AS pct_primeiro_horario,
+    ROUND((COUNT(CASE WHEN e.horario_turno = 2 THEN 1 END)::NUMERIC * 100.0) / NULLIF(COUNT(e.id_escala), 0), 1) AS pct_segundo_horario,
+    ROUND((COUNT(CASE WHEN e.horario_turno = 3 THEN 1 END)::NUMERIC * 100.0) / NULLIF(COUNT(e.id_escala), 0), 1) AS pct_terceiro_horario
+FROM public.escala e
+INNER JOIN public.mes m ON e.id_mes = m.id_mes
+INNER JOIN public.obreiros o ON e.id_obreiro = o.id_obreiro
+WHERE o.ativo IS TRUE
+GROUP BY 
+    m.ano_referencia,
+    o.id_obreiro,
+    o.nome,
+    o.apelido,
+    o.diacono,
+    o.pulpito
+ORDER BY 
+    m.ano_referencia DESC,
+    total_escalas DESC,
+    o.nome ASC;
+
+
+-- 15. DISTRIBUIÇÃO DE OBREIROS POR HORÁRIO / TURNO (GERAL / HISTÓRICO COMPLETO)
+-- ------------------------------------------------------------------------------
+CREATE OR REPLACE VIEW public.vw_distribuicao_obreiros_por_horario_geral AS
+SELECT 
+    o.id_obreiro,
+    o.nome AS nome_obreiro,
+    o.apelido AS apelido_obreiro,
+    o.diacono AS is_diacono,
+    o.pulpito AS is_pulpito,
+    COUNT(e.id_escala) AS total_escalas,
+    COUNT(CASE WHEN e.horario_turno = 1 THEN 1 END) AS qtd_primeiro_horario,
+    COUNT(CASE WHEN e.horario_turno = 2 THEN 1 END) AS qtd_segundo_horario,
+    COUNT(CASE WHEN e.horario_turno = 3 THEN 1 END) AS qtd_terceiro_horario,
+    ROUND((COUNT(CASE WHEN e.horario_turno = 1 THEN 1 END)::NUMERIC * 100.0) / NULLIF(COUNT(e.id_escala), 0), 1) AS pct_primeiro_horario,
+    ROUND((COUNT(CASE WHEN e.horario_turno = 2 THEN 1 END)::NUMERIC * 100.0) / NULLIF(COUNT(e.id_escala), 0), 1) AS pct_segundo_horario,
+    ROUND((COUNT(CASE WHEN e.horario_turno = 3 THEN 1 END)::NUMERIC * 100.0) / NULLIF(COUNT(e.id_escala), 0), 1) AS pct_terceiro_horario
+FROM public.escala e
+INNER JOIN public.obreiros o ON e.id_obreiro = o.id_obreiro
+WHERE o.ativo IS TRUE
+GROUP BY 
+    o.id_obreiro,
+    o.nome,
+    o.apelido,
+    o.diacono,
+    o.pulpito
+ORDER BY 
+    total_escalas DESC,
+    o.nome ASC;
+
+

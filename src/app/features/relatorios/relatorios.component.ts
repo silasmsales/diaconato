@@ -7,7 +7,7 @@ import { MesService } from '../../core/services/mes.service';
 import { formatMesReferencia, findCurrentMes } from '../../core/models/mes.model';
 import { TURNO_LABELS, TURNO_COLORS } from '../../core/models/turno.enum';
 
-export type RelatorioTab = 'assiduidade' | 'cobertura' | 'distribuicao' | 'postos' | 'resumo' | 'conflitos';
+export type RelatorioTab = 'assiduidade' | 'cobertura' | 'distribuicao' | 'postos' | 'turnos' | 'resumo' | 'conflitos';
 
 @Component({
   selector: 'app-relatorios',
@@ -33,6 +33,12 @@ export class RelatoriosComponent implements OnInit {
   postosViewMode = signal<'obreiros' | 'locais' | 'tabela'>('obreiros');
   postosPeriodoModo = signal<'mensal' | 'anual' | 'geral'>('anual');
   apenasComPostoDefinido = signal<boolean>(false);
+
+  // Filtros da aba Distribuição por Turno / Horário
+  turnosPeriodoModo = signal<'mensal' | 'anual' | 'geral'>('anual');
+  turnosViewMode = signal<'cards' | 'tabela'>('cards');
+  apenasDiaconosTurnos = signal<boolean>(false);
+  apenasPulpitoTurnos = signal<boolean>(false);
 
   anosDisponiveis = computed(() => {
     const currentYear = new Date().getFullYear();
@@ -335,6 +341,79 @@ export class RelatoriosComponent implements OnInit {
     };
   });
 
+  // 5. Distribuição por Horário / Turno Filtrada
+  filteredTurnos = computed(() => {
+    const modo = this.turnosPeriodoModo();
+    const query = this.searchQuery().toLowerCase().trim();
+    const apenasDiaconos = this.apenasDiaconosTurnos();
+    const apenasPulpito = this.apenasPulpitoTurnos();
+
+    let list: any[] = [];
+    if (modo === 'mensal') {
+      list = this.relatorioService.distribuicaoHorariosMensal();
+    } else if (modo === 'anual') {
+      list = this.relatorioService.distribuicaoHorariosAnual();
+    } else {
+      list = this.relatorioService.distribuicaoHorariosGeral();
+    }
+
+    if (apenasDiaconos) {
+      list = list.filter(item => item.is_diacono);
+    }
+    if (apenasPulpito) {
+      list = list.filter(item => item.is_pulpito);
+    }
+    if (query) {
+      list = list.filter(item =>
+        (item.nome_obreiro && item.nome_obreiro.toLowerCase().includes(query)) ||
+        (item.apelido_obreiro && item.apelido_obreiro.toLowerCase().includes(query))
+      );
+    }
+
+    return list;
+  });
+
+  // KPIs de Turno
+  kpiTurnos = computed(() => {
+    const list = this.filteredTurnos();
+    const totalEscalas = list.reduce((acc, item) => acc + (item.total_escalas || 0), 0);
+    const totalH1 = list.reduce((acc, item) => acc + (item.qtd_primeiro_horario || 0), 0);
+    const totalH2 = list.reduce((acc, item) => acc + (item.qtd_segundo_horario || 0), 0);
+    const totalH3 = list.reduce((acc, item) => acc + (item.qtd_terceiro_horario || 0), 0);
+    const obreirosCount = list.length;
+
+    const pctH1 = totalEscalas > 0 ? Math.round((totalH1 / totalEscalas) * 100) : 0;
+    const pctH2 = totalEscalas > 0 ? Math.round((totalH2 / totalEscalas) * 100) : 0;
+    const pctH3 = totalEscalas > 0 ? Math.round((totalH3 / totalEscalas) * 100) : 0;
+
+    // Encontrar obreiro mais equilibrado (mínimo de 3 escalas e menor diferença entre H1 e H2)
+    const elegiveis = list.filter(i => i.total_escalas >= 4);
+    let topEquilibrado = null;
+    let menorDiff = 100;
+    for (const item of elegiveis) {
+      const diff = Math.abs((item.pct_primeiro_horario || 0) - (item.pct_segundo_horario || 0));
+      if (diff < menorDiff) {
+        menorDiff = diff;
+        topEquilibrado = item;
+      }
+    }
+
+    return {
+      totalEscalas,
+      totalH1,
+      totalH2,
+      totalH3,
+      pctH1,
+      pctH2,
+      pctH3,
+      obreirosCount,
+      topEquilibradoNome: topEquilibrado ? topEquilibrado.nome_obreiro : 'N/A',
+      topEquilibradoTotal: topEquilibrado ? topEquilibrado.total_escalas : 0,
+      topEquilibradoPctH1: topEquilibrado ? topEquilibrado.pct_primeiro_horario : 0,
+      topEquilibradoPctH2: topEquilibrado ? topEquilibrado.pct_segundo_horario : 0
+    };
+  });
+
   async ngOnInit() {
     const meses = await this.mesService.fetchAll();
     const cur = findCurrentMes(meses);
@@ -365,6 +444,33 @@ export class RelatoriosComponent implements OnInit {
     this.postosViewMode.set(mode);
   }
 
+  setTurnosPeriodoModo(modo: 'mensal' | 'anual' | 'geral') {
+    this.turnosPeriodoModo.set(modo);
+    this.carregarDadosTab('turnos');
+  }
+
+  setTurnosViewMode(mode: 'cards' | 'tabela') {
+    this.turnosViewMode.set(mode);
+  }
+
+  getPredominanciaTurno(h1: number, h2: number, h3: number): { label: string; bg: string; text: string; border: string; icon: string } {
+    const total = h1 + h2 + h3;
+    if (total === 0) {
+      return { label: 'Sem escalas', bg: 'bg-slate-800', text: 'text-slate-400', border: 'border-slate-700', icon: '⚪' };
+    }
+    const diff = Math.abs(h1 - h2);
+    if (diff <= 1 || (h1 > 0 && h2 > 0 && Math.abs((h1 / total) - (h2 / total)) <= 0.15)) {
+      return { label: 'Rodízio Equilibrado', bg: 'bg-emerald-500/10', text: 'text-emerald-300', border: 'border-emerald-500/30', icon: '⚖️' };
+    }
+    if (h1 > h2 && h1 >= h3) {
+      return { label: 'Mais no 1º Horário', bg: 'bg-amber-500/10', text: 'text-amber-300', border: 'border-amber-500/30', icon: '1️⃣' };
+    }
+    if (h2 > h1 && h2 >= h3) {
+      return { label: 'Mais no 2º Horário', bg: 'bg-indigo-500/10', text: 'text-indigo-300', border: 'border-indigo-500/30', icon: '2️⃣' };
+    }
+    return { label: 'Mais no 3º Horário', bg: 'bg-purple-500/10', text: 'text-purple-300', border: 'border-purple-500/30', icon: '3️⃣' };
+  }
+
   async carregarDadosTab(tab: RelatorioTab) {
     const mesId = this.selectedMesId() > 0 ? this.selectedMesId() : undefined;
     const ano = this.selectedAno();
@@ -390,6 +496,15 @@ export class RelatoriosComponent implements OnInit {
         await this.relatorioService.fetchEscalasPorPosto(ano, undefined);
       } else {
         await this.relatorioService.fetchEscalasPorPosto(undefined, undefined);
+      }
+    } else if (tab === 'turnos') {
+      const modo = this.turnosPeriodoModo();
+      if (modo === 'mensal') {
+        await this.relatorioService.fetchDistribuicaoHorariosMensal(mesId);
+      } else if (modo === 'anual') {
+        await this.relatorioService.fetchDistribuicaoHorariosAnual(ano);
+      } else {
+        await this.relatorioService.fetchDistribuicaoHorariosGeral();
       }
     } else if (tab === 'resumo') {
       await this.relatorioService.fetchResumoMensal();
@@ -430,3 +545,4 @@ export class RelatoriosComponent implements OnInit {
     return 'bg-rose-500/10 text-rose-400 border-rose-500/30';
   }
 }
+
