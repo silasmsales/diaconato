@@ -98,3 +98,19 @@ CREATE POLICY "Permitir atualizacao do proprio perfil"
 ON public.usuarios FOR UPDATE 
 TO authenticated 
 USING (auth.uid() = user_id);
+
+-- 4. Habilitar Security Invoker em todas as Views
+-- (Faz com que as views respeitem o RLS das tabelas base e remove a label "Unrestricted" no Supabase)
+ALTER VIEW public.vw_escala_detalhada SET (security_invoker = true);
+ALTER VIEW public.vw_assiduidade_obreiros SET (security_invoker = true);
+ALTER VIEW public.vw_assiduidade_obreiros_mensal SET (security_invoker = true);
+ALTER VIEW public.vw_cobertura_eventos SET (security_invoker = true);
+ALTER VIEW public.vw_resumo_mensal_diaconato SET (security_invoker = true);
+ALTER VIEW public.vw_relatorio_bloqueios SET (security_invoker = true);
+ALTER VIEW public.vw_distribuicao_turnos_obreiros SET (security_invoker = true);
+ALTER VIEW public.vw_auditoria_conflitos_bloqueio SET (security_invoker = true);
+ALTER VIEW public.vw_distribuicao_obreiros_por_descricao_evento SET (security_invoker = true);
+ALTER VIEW public.vw_resumo_por_descricao_evento SET (security_invoker = true);
+ALTER VIEW public.vw_assiduidade_obreiros_anual SET (security_invoker = true);
+ALTER VIEW public.vw_escalas_obreiros_por_posto SET (security_invoker = true);
+
