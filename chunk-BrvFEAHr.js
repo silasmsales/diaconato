@@ -1,4 +1,4 @@
-import{E as H,In as po,Ut as Zy,dt as S,ot as Qy}from"./chunk-YzxS7Zkq.js";var f=class i{supabase=S(Zy).client;toast=S(Qy);eventos=po([]);loading=po(!1);async fetchAll(){this.loading.set(!0);try{let r=[],e=0,o=1e3,t=!0;for(;t;){let{data:s,error:a}=await this.supabase.from(`eventos`).select(`
+import{Kn as tv,T as H,hn as go,mt as S,un as ev}from"./chunk-B22FJM3N.js";var f=class i{supabase=S(ev).client;toast=S(tv);eventos=go([]);loading=go(!1);async fetchAll(){this.loading.set(!0);try{let r=[],e=0,o=1e3,t=!0;for(;t;){let{data:s,error:a}=await this.supabase.from(`eventos`).select(`
             *,
             mes (*)
           `).order(`data`,{ascending:!0}).order(`turno`,{ascending:!0}).range(e,e+o-1);if(a)throw a;s&&s.length>0?(r.push(...s),s.length<o?t=!1:e+=o):t=!1}return this.eventos.set(r),r}catch(r){return console.error(`Erro ao buscar eventos:`,r),this.toast.error(`Erro ao carregar eventos`,r.message),[]}finally{this.loading.set(!1)}}async fetchByMes(r){this.loading.set(!0);try{let{data:e,error:o}=await this.supabase.from(`eventos`).select(`
