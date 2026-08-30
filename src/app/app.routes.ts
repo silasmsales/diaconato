@@ -1,8 +1,36 @@
 import { Routes } from '@angular/router';
 import { authGuard, guestGuard } from './core/guards/auth.guard';
 import { roleGuard } from './core/guards/role.guard';
+import { obreiroGuard, obreiroGuestGuard } from './core/guards/obreiro.guard';
 
 export const routes: Routes = [
+  // ==========================================
+  // 👥 PORTAL DO OBREIRO / DIÁCONO
+  // ==========================================
+  {
+    path: 'portal/login',
+    canActivate: [obreiroGuestGuard],
+    loadComponent: () => import('./features/portal/portal-login.component').then(m => m.PortalLoginComponent)
+  },
+  {
+    path: 'portal',
+    canActivate: [obreiroGuard],
+    loadComponent: () => import('./features/portal/portal-dashboard.component').then(m => m.PortalDashboardComponent)
+  },
+  {
+    path: 'portal/escalas',
+    canActivate: [obreiroGuard],
+    loadComponent: () => import('./features/portal/portal-escalas.component').then(m => m.PortalEscalasComponent)
+  },
+  {
+    path: 'portal/bloqueios',
+    canActivate: [obreiroGuard],
+    loadComponent: () => import('./features/portal/portal-bloqueios.component').then(m => m.PortalBloqueiosComponent)
+  },
+
+  // ==========================================
+  // 🔐 ADMINISTRAÇÃO & OPERAÇÃO GERAL
+  // ==========================================
   {
     path: 'login',
     canActivate: [guestGuard],

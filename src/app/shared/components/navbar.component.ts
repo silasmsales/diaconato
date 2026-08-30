@@ -1,7 +1,8 @@
-import { Component, ElementRef, HostListener, inject, signal } from '@angular/core';
-import { RouterLink, RouterLinkActive } from '@angular/router';
+import { Component, ElementRef, HostListener, inject, signal, computed } from '@angular/core';
+import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../core/services/auth.service';
+import { ObreiroAuthService } from '../../core/services/obreiro-auth.service';
 import { ROLE_LABELS, ROLE_BADGE_STYLES, UserRole } from '../../core/models/usuario.model';
 
 @Component({
@@ -12,9 +13,16 @@ import { ROLE_LABELS, ROLE_BADGE_STYLES, UserRole } from '../../core/models/usua
 })
 export class NavbarComponent {
   authService = inject(AuthService);
+  obreiroAuth = inject(ObreiroAuthService);
+  private router = inject(Router);
   private elementRef = inject(ElementRef);
 
   isProfileMenuOpen = signal<boolean>(false);
+
+  isPortalRoute = computed(() => {
+    const url = this.router.url;
+    return url.startsWith('/portal') || (this.obreiroAuth.isAuthenticated() && !this.authService.isAuthenticated());
+  });
 
   toggleProfileMenu(event?: Event) {
     if (event) event.stopPropagation();
@@ -38,11 +46,18 @@ export class NavbarComponent {
   }
 
   getUserInitial(): string {
+    if (this.isPortalRoute() && this.obreiroAuth.currentObreiro()) {
+      return (this.obreiroAuth.currentObreiro()?.nome || 'O').charAt(0).toUpperCase();
+    }
     const name = this.authService.currentProfile()?.nome_completo || this.authService.currentUser()?.email || 'U';
     return name.charAt(0).toUpperCase();
   }
 
   getFirstName(): string {
+    if (this.isPortalRoute() && this.obreiroAuth.currentObreiro()) {
+      const nome = this.obreiroAuth.currentObreiro()?.nome;
+      return nome ? nome.split(' ')[0] : 'Obreiro';
+    }
     const fullName = this.authService.currentProfile()?.nome_completo;
     if (fullName) {
       return fullName.split(' ')[0];

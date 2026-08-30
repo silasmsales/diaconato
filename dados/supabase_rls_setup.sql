@@ -99,6 +99,29 @@ ON public.usuarios FOR UPDATE
 TO authenticated 
 USING (auth.uid() = user_id);
 
+ALTER TABLE public.obreiros ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Permitir leitura de obreiros para todos" ON public.obreiros;
+CREATE POLICY "Permitir leitura de obreiros para todos" ON public.obreiros FOR SELECT USING (true);
+ALTER TABLE public.bloqueios ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Permitir acesso total a bloqueios" ON public.bloqueios;
+CREATE POLICY "Permitir acesso total a bloqueios" ON public.bloqueios FOR ALL USING (true);
+ALTER TABLE public.escala ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Permitir leitura de escalas para todos" ON public.escala;
+CREATE POLICY "Permitir leitura de escalas para todos" ON public.escala FOR SELECT USING (true);
+ALTER TABLE public.eventos ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Permitir leitura de eventos para todos" ON public.eventos;
+CREATE POLICY "Permitir leitura de eventos para todos" ON public.eventos FOR SELECT USING (true);
+ALTER TABLE public.locais ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Permitir leitura de locais para todos" ON public.locais;
+CREATE POLICY "Permitir leitura de locais para todos" ON public.locais FOR SELECT USING (true);
+ALTER TABLE public.areas ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Permitir leitura de areas para todos" ON public.areas;
+CREATE POLICY "Permitir leitura de areas para todos" ON public.areas FOR SELECT USING (true);
+ALTER TABLE public.evento_area_horarios ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Permitir leitura de evento_area_horarios para todos" ON public.evento_area_horarios;
+CREATE POLICY "Permitir leitura de evento_area_horarios para todos" ON public.evento_area_horarios FOR SELECT USING (true);
+
+
 -- 4. Habilitar Security Invoker em todas as Views
 -- (Faz com que as views respeitem o RLS das tabelas base e remove a label "Unrestricted" no Supabase)
 ALTER VIEW public.vw_escala_detalhada SET (security_invoker = true);
