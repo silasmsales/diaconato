@@ -105,6 +105,9 @@ export class AuthService {
 
       if (error) throw error;
 
+      // Encerra qualquer sessão do portal do obreiro para garantir exclusividade
+      localStorage.removeItem('diaconato_obreiro_session');
+
       this.session.set(data.session);
       this.currentUser.set(data.user);
       if (data.user) {

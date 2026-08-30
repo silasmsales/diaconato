@@ -146,16 +146,21 @@
 
             <!-- Turno & Horário de Atuação -->
             <div class="flex items-center gap-2 flex-wrap sm:self-center">
-              @if (proximaEscala()?.horario_turno) {
+              @if (proximaEscala()?.local?.nome && proximaEscala()?.horario_turno) {
                 <div class="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-slate-200 font-semibold flex items-center gap-1.5">
                   <span class="text-indigo-400 font-bold">{{ proximaEscala()?.horario_turno }}º Horário</span>
                 </div>
               }
 
-              @if (getHorarioAtuacao(proximaEscala()?.evento?.id_evento, proximaEscala()?.local?.id_area, proximaEscala()?.horario_turno)) {
+              @if (proximaEscala()?.local?.nome && getHorarioAtuacao(proximaEscala()?.evento?.id_evento, proximaEscala()?.local?.id_area, proximaEscala()?.horario_turno)) {
                 <div class="px-3.5 py-1.5 rounded-xl bg-amber-500/15 border border-amber-500/40 text-xs font-black text-amber-300 flex items-center gap-1.5 shadow-sm">
                   <span>⏰</span>
                   <span>{{ getHorarioAtuacao(proximaEscala()?.evento?.id_evento, proximaEscala()?.local?.id_area, proximaEscala()?.horario_turno) }}</span>
+                </div>
+              } @else {
+                <div class="px-3.5 py-1.5 rounded-xl bg-slate-900 border border-slate-700/80 text-xs font-semibold text-slate-400 flex items-center gap-1.5 shadow-sm">
+                  <span>⏰</span>
+                  <span>Horário Indefinido</span>
                 </div>
               }
             </div>
@@ -213,9 +218,6 @@
                 <span class="text-sm font-black text-amber-300 block leading-tight">
                   {{ getLideresResponsaveis(proximaEscala()?.evento) }}
                 </span>
-                <span class="text-[10px] text-slate-400 mt-1 block">
-                  Responsáveis pela coordenação do culto
-                </span>
               </div>
             </div>
           </div>
@@ -238,9 +240,6 @@
                     <span>Crachá Dispensado</span>
                   </span>
                 }
-                <span class="text-[10px] text-slate-400 mt-1.5 block">
-                  Uso obrigatório de credencial oficial
-                </span>
               </div>
             </div>
           </div>
@@ -303,7 +302,7 @@
           <div class="flex items-center justify-between">
             <span class="text-2xl">🚫</span>
             <span class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
-              {{ totalBloqueiosAtivos() }} ativa(s)
+              {{ totalBloqueiosAtivos() }} dia(s) ativo(s)
             </span>
           </div>
           <h3 class="text-base font-bold text-white">Minhas Ausências</h3>

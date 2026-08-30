@@ -52,7 +52,8 @@ export class PortalDashboardComponent implements OnInit {
   totalEscalasAno = computed(() => this.minhasEscalas().length);
   totalBloqueiosAtivos = computed(() => {
     const hojeStr = new Date().toISOString().split('T')[0];
-    return this.meusBloqueios().filter(b => b.data >= hojeStr).length;
+    const datas = this.meusBloqueios().filter(b => b.data >= hojeStr).map(b => b.data);
+    return new Set(datas).size;
   });
 
   ngOnInit(): void {

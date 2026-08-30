@@ -15,6 +15,7 @@ export class EventoOperacaoService {
   evento = signal<Evento | null>(null);
   escalas = signal<Escala[]>([]);
   areaHorarios = signal<EventoAreaHorario[]>([]);
+  horariosSugeridos = signal<{ [key: string]: { hora_inicio: string; hora_fim: string } }>({});
   loading = signal<boolean>(false);
   saving = signal<boolean>(false);
 
@@ -51,6 +52,64 @@ export class EventoOperacaoService {
 
       if (ahError) throw ahError;
       this.areaHorarios.set((ahData as EventoAreaHorario[]) || []);
+
+      // 4. Carrega os últimos horários configurados em eventos anteriores para pré-preenchimento
+      const descAtual = (evData?.descricao || '').trim().toLowerCase();
+      const dataAtual = evData?.data;
+      const turnoAtual = evData?.turno;
+
+      let query = this.supabase
+        .from('evento_area_horarios')
+        .select('id_area, horario_turno, hora_inicio, hora_fim, eventos!inner(id_evento, data, descricao, turno)')
+        .neq('id_evento', idEvento);
+
+      if (dataAtual) {
+        query = query.lte('eventos.data', dataAtual);
+      }
+
+      const { data: ultimosData } = await query
+        .order('id_area_horario', { ascending: false })
+        .limit(200);
+
+      const sugeridosMap: { [key: string]: { hora_inicio: string; hora_fim: string } } = {};
+
+      if (ultimosData && ultimosData.length > 0) {
+        // Prioridade 1: Mesmo tipo/descrição de evento
+        for (const item of ultimosData as any[]) {
+          const key = `${item.id_area}_${item.horario_turno}`;
+          const evItemDesc = (item.eventos?.descricao || '').trim().toLowerCase();
+          if (evItemDesc === descAtual && !sugeridosMap[key]) {
+            sugeridosMap[key] = {
+              hora_inicio: item.hora_inicio,
+              hora_fim: item.hora_fim
+            };
+          }
+        }
+
+        // Prioridade 2: Mesmo turno
+        for (const item of ultimosData as any[]) {
+          const key = `${item.id_area}_${item.horario_turno}`;
+          if (!sugeridosMap[key] && item.eventos?.turno === turnoAtual) {
+            sugeridosMap[key] = {
+              hora_inicio: item.hora_inicio,
+              hora_fim: item.hora_fim
+            };
+          }
+        }
+
+        // Prioridade 3: Qualquer evento anterior mais recente
+        for (const item of ultimosData as any[]) {
+          const key = `${item.id_area}_${item.horario_turno}`;
+          if (!sugeridosMap[key]) {
+            sugeridosMap[key] = {
+              hora_inicio: item.hora_inicio,
+              hora_fim: item.hora_fim
+            };
+          }
+        }
+      }
+
+      this.horariosSugeridos.set(sugeridosMap);
 
     } catch (err: any) {
       console.error('Erro ao carregar dados operacionais do evento:', err);
@@ -123,6 +182,47 @@ export class EventoOperacaoService {
       console.error('Erro ao salvar horário da área:', err);
       this.toast.error('Erro', err.message || 'Falha ao salvar horário da área.');
       return null;
+    } finally {
+      this.saving.set(false);
+    }
+  }
+
+  async saveAreaHorariosBatch(idEvento: number, dtos: SaveAreaHorarioDto[]): Promise<boolean> {
+    if (!dtos.length) return true;
+    this.saving.set(true);
+    try {
+      const records = dtos.map(dto => ({
+        id_evento: idEvento,
+        id_area: dto.id_area,
+        horario_turno: dto.horario_turno,
+        hora_inicio: dto.hora_inicio,
+        hora_fim: dto.hora_fim
+      }));
+
+      const { error } = await this.supabase
+        .from('evento_area_horarios')
+        .upsert(records, { onConflict: 'id_evento,id_area,horario_turno' });
+
+      if (error) throw error;
+
+      // Recarrega todos os horários do evento
+      const { data: ahData, error: ahError } = await this.supabase
+        .from('evento_area_horarios')
+        .select('*, areas(*)')
+        .eq('id_evento', idEvento)
+        .order('id_area', { ascending: true })
+        .order('horario_turno', { ascending: true });
+
+      if (!ahError && ahData) {
+        this.areaHorarios.set(ahData as EventoAreaHorario[]);
+      }
+
+      this.toast.success('Horários Atualizados', `${dtos.length} horário(s) configurado(s) com sucesso!`);
+      return true;
+    } catch (err: any) {
+      console.error('Erro ao salvar lote de horários:', err);
+      this.toast.error('Erro ao Salvar', err.message || 'Falha ao salvar horários por setor.');
+      return false;
     } finally {
       this.saving.set(false);
     }

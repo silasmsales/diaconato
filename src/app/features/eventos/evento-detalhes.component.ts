@@ -206,17 +206,20 @@ export class EventoDetalhesComponent implements OnInit {
     return desc.includes('ceia');
   });
 
-  // Áreas ativas e filtradas para o evento (A área "Ceia" só aparece se o evento for "Santa Ceia")
+  // Áreas ativas e filtradas para o evento:
+  // - Se for "Santa Ceia": APENAS a área "Ceia" é apresentada.
+  // - Se NÃO for "Santa Ceia": todas as áreas ativas, EXCETO a área "Ceia", são apresentadas.
   areasEvento = computed<Area[]>(() => {
     const areas = this.areaService.areas().filter(a => a.ativo);
     const isCeia = this.isEventoSantaCeia();
     return areas.filter(a => {
       const nomeArea = (a.nome || '').toLowerCase();
       const isAreaCeia = nomeArea.includes('ceia');
-      if (isAreaCeia && !isCeia) {
-        return false;
+      if (isCeia) {
+        return isAreaCeia;
+      } else {
+        return !isAreaCeia;
       }
-      return true;
     });
   });
 
@@ -258,14 +261,16 @@ export class EventoDetalhesComponent implements OnInit {
         });
       }
 
-      // Caso haja algum com área não mapeada nas áreas cadastradas
-      const mappedAreaIds = new Set(allAreas.map(a => a.id_area));
-      const outros = items.filter(e => !mappedAreaIds.has(Number(e.locais?.id_area)));
-      if (outros.length > 0) {
-        setoresMap.push({
-          area: { id_area: 0, nome: 'Outros Setores', icone: '📍', ativo: true },
-          escalas: outros
-        });
+      // Caso haja algum com área não mapeada nas áreas cadastradas (apenas se NÃO for Santa Ceia)
+      if (!this.isEventoSantaCeia()) {
+        const mappedAreaIds = new Set(allAreas.map(a => a.id_area));
+        const outros = items.filter(e => !mappedAreaIds.has(Number(e.locais?.id_area)));
+        if (outros.length > 0) {
+          setoresMap.push({
+            area: { id_area: 0, nome: 'Outros Setores', icone: '📍', ativo: true },
+            escalas: outros
+          });
+        }
       }
 
       return {
@@ -445,6 +450,135 @@ export class EventoDetalhesComponent implements OnInit {
   }
 
   // --- Ações de Horários por Área ---
+  getHorarioConfigurado(idArea: number, horarioTurno: number): {
+    inicio: string;
+    fim: string;
+    exists: boolean;
+    isSugerido: boolean;
+    id?: number;
+  } {
+    // 1. Já salvo para este evento
+    const found = this.operacaoService.areaHorarios().find(
+      h => Number(h.id_area) === Number(idArea) && Number(h.horario_turno) === Number(horarioTurno)
+    );
+    if (found) {
+      return {
+        inicio: found.hora_inicio?.substring(0, 5) || '18:00',
+        fim: found.hora_fim?.substring(0, 5) || '21:00',
+        exists: true,
+        isSugerido: false,
+        id: found.id_area_horario
+      };
+    }
+
+    // 2. Pré-preenchimento sugerido do último evento anterior
+    const key = `${idArea}_${horarioTurno}`;
+    const sugerido = this.operacaoService.horariosSugeridos()[key];
+    if (sugerido && sugerido.hora_inicio && sugerido.hora_fim) {
+      return {
+        inicio: sugerido.hora_inicio.substring(0, 5),
+        fim: sugerido.hora_fim.substring(0, 5),
+        exists: false,
+        isSugerido: true
+      };
+    }
+
+    // 3. Padrão inteligente por turno
+    const ev = this.operacaoService.evento();
+    const isManha = ev?.turno === 1;
+    if (isManha) {
+      if (horarioTurno === 1) return { inicio: '08:30', fim: '10:00', exists: false, isSugerido: false };
+      if (horarioTurno === 2) return { inicio: '10:00', fim: '11:30', exists: false, isSugerido: false };
+      return { inicio: '08:30', fim: '11:30', exists: false, isSugerido: false };
+    }
+
+    if (horarioTurno === 1) return { inicio: '18:00', fim: '19:30', exists: false, isSugerido: false };
+    if (horarioTurno === 2) return { inicio: '19:30', fim: '21:00', exists: false, isSugerido: false };
+    return { inicio: '18:00', fim: '21:00', exists: false, isSugerido: false };
+  }
+
+  async salvarHorarioIndividual(idArea: number, horarioTurno: number, inicio: string, fim: string) {
+    if (!this.authService.canManageOperacao() || !inicio || !fim) return;
+    await this.operacaoService.saveAreaHorario(this.idEvento(), {
+      id_area: idArea,
+      horario_turno: horarioTurno,
+      hora_inicio: inicio,
+      hora_fim: fim
+    });
+    this.cdr.markForCheck();
+  }
+
+  async aplicarPredefinicaoGeral(tipo: 'noite_2turnos' | 'noite_integral' | 'manha_2turnos' | 'manha_integral' | 'quarta_noite') {
+    if (!this.authService.canManageOperacao()) return;
+    const areas = this.areasEvento();
+    const turnos = this.turnosDisponiveis();
+    const dtos: SaveAreaHorarioDto[] = [];
+
+    for (const area of areas) {
+      for (const t of turnos) {
+        let inicio = '18:00';
+        let fim = '21:00';
+
+        if (tipo === 'noite_2turnos') {
+          if (t.id === 1) { inicio = '18:00'; fim = '19:30'; }
+          else if (t.id === 2) { inicio = '19:30'; fim = '21:00'; }
+          else { inicio = '18:00'; fim = '21:00'; }
+        } else if (tipo === 'noite_integral') {
+          inicio = '18:00'; fim = '21:00';
+        } else if (tipo === 'manha_2turnos') {
+          if (t.id === 1) { inicio = '08:30'; fim = '10:00'; }
+          else if (t.id === 2) { inicio = '10:00'; fim = '11:30'; }
+          else { inicio = '08:30'; fim = '11:30'; }
+        } else if (tipo === 'manha_integral') {
+          inicio = '08:30'; fim = '11:30';
+        } else if (tipo === 'quarta_noite') {
+          if (t.id === 1) { inicio = '19:00'; fim = '20:15'; }
+          else if (t.id === 2) { inicio = '20:15'; fim = '21:30'; }
+          else { inicio = '19:00'; fim = '21:30'; }
+        }
+
+        dtos.push({
+          id_area: area.id_area,
+          horario_turno: t.id,
+          hora_inicio: inicio,
+          hora_fim: fim
+        });
+      }
+    }
+
+    await this.operacaoService.saveAreaHorariosBatch(this.idEvento(), dtos);
+    this.cdr.markForCheck();
+  }
+
+  async copiarHorariosDoPrimeiroSetor() {
+    if (!this.authService.canManageOperacao()) return;
+    const horarios = this.operacaoService.areaHorarios();
+    if (!horarios.length) {
+      this.toast.warning('Atenção', 'Defina os horários de pelo menos um setor para poder replicar para os demais.');
+      return;
+    }
+    const primeiroAreaId = horarios[0].id_area;
+    const modelos = horarios.filter(h => h.id_area === primeiroAreaId);
+    const outrasAreas = this.areasEvento().filter(a => a.id_area !== primeiroAreaId);
+    
+    const dtos: SaveAreaHorarioDto[] = [];
+    for (const area of outrasAreas) {
+      for (const mod of modelos) {
+        dtos.push({
+          id_area: area.id_area,
+          horario_turno: mod.horario_turno,
+          hora_inicio: mod.hora_inicio?.substring(0, 5) || '18:00',
+          hora_fim: mod.hora_fim?.substring(0, 5) || '21:00'
+        });
+      }
+    }
+
+    if (dtos.length > 0) {
+      await this.operacaoService.saveAreaHorariosBatch(this.idEvento(), dtos);
+      this.cdr.markForCheck();
+    }
+  }
+
   async adicionarHorarioArea() {
     if (!this.novoHorario.id_area || !this.novoHorario.hora_inicio || !this.novoHorario.hora_fim) return;
     await this.operacaoService.saveAreaHorario(this.idEvento(), this.novoHorario);
@@ -456,6 +590,32 @@ export class EventoDetalhesComponent implements OnInit {
       await this.operacaoService.deleteAreaHorario(horario.id_area_horario);
       this.cdr.markForCheck();
     }
+  }
+
+  opcoesHorariosSugeridos = computed(() => {
+    const ev = this.operacaoService.evento();
+    if (ev?.turno === 1) {
+      return ['07:30', '08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00'];
+    }
+    if (ev?.turno === 2) {
+      return ['14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00'];
+    }
+    return ['17:30', '18:00', '18:30', '19:00', '19:30', '20:00', '20:30', '21:00', '21:30', '22:00'];
+  });
+
+  onTimeMask(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    let v = input.value.replace(/\D/g, '');
+    if (v.length > 4) v = v.substring(0, 4);
+
+    let formatted = '';
+    if (v.length <= 2) {
+      formatted = v;
+    } else {
+      formatted = `${v.substring(0, 2)}:${v.substring(2)}`;
+    }
+
+    input.value = formatted;
   }
 
   // --- Seletor Modal / Bottom Sheet de Designação de Posto ---

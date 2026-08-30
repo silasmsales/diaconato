@@ -13,6 +13,23 @@ import { DIAS_SEMANA_LABELS } from '../../core/models/tipo-evento.model';
 
 export type AusenciaTipoMode = 'especifico' | 'periodo' | 'par_impar' | 'dia_semana';
 
+export interface AusenciaDiaGrupo {
+  data: string;
+  isFuturo: boolean;
+  bloqueios: Bloqueio[];
+  ids: number[];
+  turnos: number[];
+  motivo?: string | null;
+  isDiaTodo: boolean;
+}
+
+export interface ConfirmacaoModalData {
+  titulo: string;
+  mensagem: string;
+  confirmLabel: string;
+  onConfirm: () => Promise<void>;
+}
+
 @Component({
   selector: 'app-portal-bloqueios',
   standalone: true,
@@ -28,8 +45,11 @@ export class PortalBloqueiosComponent implements OnInit {
 
   loading = signal<boolean>(true);
   saving = signal<boolean>(false);
+  deleting = signal<boolean>(false);
   bloqueios = signal<Bloqueio[]>([]);
   isModalAddOpen = signal<boolean>(false);
+  isConfirmModalOpen = signal<boolean>(false);
+  confirmData = signal<ConfirmacaoModalData | null>(null);
 
   mode: AusenciaTipoMode = 'especifico';
   TurnoEnum = TurnoEnum;
@@ -53,11 +73,48 @@ export class PortalBloqueiosComponent implements OnInit {
     return this.bloqueios().filter(b => b.data < this.hojeStr);
   });
 
+  ausenciasFuturasAgrupadas = computed<AusenciaDiaGrupo[]>(() => {
+    return this.agruparPorDia(this.bloqueiosFuturos());
+  });
+
+  ausenciasPassadasAgrupadas = computed<AusenciaDiaGrupo[]>(() => {
+    return this.agruparPorDia(this.bloqueiosPassados());
+  });
+
   ngOnInit(): void {
     this.mesService.fetchAll();
     this.buildMesesList();
     this.initForm();
     this.carregarBloqueios();
+  }
+
+  private agruparPorDia(lista: Bloqueio[]): AusenciaDiaGrupo[] {
+    const map = new Map<string, Bloqueio[]>();
+    for (const b of lista) {
+      if (!map.has(b.data)) {
+        map.set(b.data, []);
+      }
+      map.get(b.data)!.push(b);
+    }
+
+    const grupos: AusenciaDiaGrupo[] = [];
+    for (const [data, items] of map.entries()) {
+      const ids = items.map(i => i.id_bloqueio!).filter(Boolean);
+      const turnos = items.map(i => i.turno).sort();
+      const isDiaTodo = [1, 2, 3].every(t => turnos.includes(t)) || turnos.includes(4);
+      const motivo = items.find(i => i.motivo)?.motivo || null;
+      grupos.push({
+        data,
+        isFuturo: data >= this.hojeStr,
+        bloqueios: items,
+        ids,
+        turnos,
+        motivo,
+        isDiaTodo
+      });
+    }
+
+    return grupos.sort((a, b) => a.data.localeCompare(b.data));
   }
 
   private buildMesesList() {
@@ -306,23 +363,75 @@ export class PortalBloqueiosComponent implements OnInit {
     }
   }
 
-  async removerBloqueio(idBloqueio: number): Promise<void> {
-    if (!confirm('Deseja realmente remover o registro desta ausência?')) return;
+  // Abertura do Modal Customizado de Confirmação para Remoção de Dia
+  solicitarRemoverDia(grupo: AusenciaDiaGrupo): void {
+    if (!grupo.ids.length) return;
+    const dataFormatada = this.formatDataExtensa(grupo.data);
 
-    try {
-      const { error } = await this.supabase
-        .from('bloqueios')
-        .delete()
-        .eq('id_bloqueio', idBloqueio);
+    this.confirmData.set({
+      titulo: 'Remover Ausências do Dia?',
+      mensagem: `Deseja realmente remover todas as ausências cadastradas para ${dataFormatada}? Sua disponibilidade voltará a ficar ativa para escalas nesta data.`,
+      confirmLabel: 'Sim, Remover Ausências',
+      onConfirm: async () => {
+        const { error } = await this.supabase
+          .from('bloqueios')
+          .delete()
+          .in('id_bloqueio', grupo.ids);
 
-      if (error) throw error;
+        if (error) throw error;
+        this.toast.success('Ausências Removidas', `As ausências do dia ${dataFormatada} foram excluídas com sucesso.`);
+        await this.carregarBloqueios();
+      }
+    });
 
-      this.toast.success('Ausência Removida', 'O registro de ausência foi excluído com sucesso.');
-      await this.carregarBloqueios();
-    } catch (err: any) {
-      console.error('Erro ao remover ausência:', err);
-      this.toast.error('Erro ao Excluir', 'Não foi possível remover a ausência.');
+    this.isConfirmModalOpen.set(true);
+  }
+
+  // Abertura do Modal Customizado de Confirmação para Remoção de Turno
+  solicitarRemoverTurno(idBloqueio: number, turnoLabel: string, dataStr: string, event?: Event): void {
+    if (event) {
+      event.stopPropagation();
     }
+    const dataFormatada = this.formatDataExtensa(dataStr);
+
+    this.confirmData.set({
+      titulo: 'Remover Turno de Ausência?',
+      mensagem: `Deseja remover a ausência do turno ${turnoLabel} no dia ${dataFormatada}? Os demais turnos desta data permanecerão bloqueados.`,
+      confirmLabel: 'Sim, Remover Turno',
+      onConfirm: async () => {
+        const { error } = await this.supabase
+          .from('bloqueios')
+          .delete()
+          .eq('id_bloqueio', idBloqueio);
+
+        if (error) throw error;
+        this.toast.success('Turno Removido', 'A ausência deste turno foi excluída com sucesso.');
+        await this.carregarBloqueios();
+      }
+    });
+
+    this.isConfirmModalOpen.set(true);
+  }
+
+  async confirmarAcao(): Promise<void> {
+    const data = this.confirmData();
+    if (!data) return;
+
+    this.deleting.set(true);
+    try {
+      await data.onConfirm();
+      this.closeConfirmModal();
+    } catch (err: any) {
+      console.error('Erro ao executar remoção:', err);
+      this.toast.error('Erro ao Excluir', 'Não foi possível concluir a exclusão.');
+    } finally {
+      this.deleting.set(false);
+    }
+  }
+
+  closeConfirmModal(): void {
+    this.isConfirmModalOpen.set(false);
+    this.confirmData.set(null);
   }
 
   formatDataExtensa(dataStr?: string): string {

@@ -160,16 +160,21 @@
 
               <!-- Turno & Horário de Atuação -->
               <div class="flex items-center gap-2 flex-wrap sm:self-center">
-                @if (item.horario_turno) {
+                @if (item.local?.nome && item.horario_turno) {
                   <div class="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-slate-200 font-semibold flex items-center gap-1.5">
                     <span class="text-indigo-400 font-bold">{{ item.horario_turno }}º Horário</span>
                   </div>
                 }
 
-                @if (getHorarioAtuacao(item.evento?.id_evento, item.local?.id_area, item.horario_turno)) {
+                @if (item.local?.nome && getHorarioAtuacao(item.evento?.id_evento, item.local?.id_area, item.horario_turno)) {
                   <div class="px-3.5 py-1.5 rounded-xl bg-amber-500/15 border border-amber-500/40 text-xs font-black text-amber-300 flex items-center gap-1.5 shadow-sm">
                     <span>⏰</span>
                     <span>{{ getHorarioAtuacao(item.evento?.id_evento, item.local?.id_area, item.horario_turno) }}</span>
+                  </div>
+                } @else {
+                  <div class="px-3.5 py-1.5 rounded-xl bg-slate-900 border border-slate-700/80 text-xs font-semibold text-slate-400 flex items-center gap-1.5 shadow-sm">
+                    <span>⏰</span>
+                    <span>Horário Indefinido</span>
                   </div>
                 }
               </div>
@@ -227,9 +232,6 @@
                   <span class="text-sm font-black text-amber-300 block leading-tight">
                     {{ getLideresResponsaveis(item.evento) }}
                   </span>
-                  <span class="text-[10px] text-slate-400 mt-1 block">
-                    Coordenação geral da escala
-                  </span>
                 </div>
               </div>
             </div>
@@ -252,9 +254,6 @@
                       <span>Crachá Dispensado</span>
                     </span>
                   }
-                  <span class="text-[10px] text-slate-400 mt-1.5 block">
-                    Credencial oficial do diaconato
-                  </span>
                 </div>
               </div>
             </div>

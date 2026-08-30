@@ -100,6 +100,11 @@ export class ObreiroAuthService {
         return false;
       }
 
+      // Encerra qualquer sessão administrativa ativa para garantir exclusividade mútua
+      try {
+        await this.supabase.auth.signOut();
+      } catch (_) {}
+
       const obreiro = data as Obreiro;
       this.currentObreiro.set(obreiro);
       localStorage.setItem(OBREIRO_STORAGE_KEY, JSON.stringify(obreiro));
