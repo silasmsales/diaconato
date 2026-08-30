@@ -8,15 +8,16 @@ import { LocalService } from '../../core/services/local.service';
 import { ObreiroService } from '../../core/services/obreiro.service';
 import { AuthService } from '../../core/services/auth.service';
 import { ToastService } from '../../core/services/toast.service';
-import { 
-  TRAJE_OPCOES, 
-  CORES_TERNO, 
-  CORES_GRAVATA, 
-  CORES_CAMISA, 
-  TrajeTipo, 
-  TrajeAndLideresConfigDto, 
-  SaveAreaHorarioDto, 
-  EventoAreaHorario 
+import { SupabaseService } from '../../core/services/supabase.service';
+import {
+  TRAJE_OPCOES,
+  CORES_TERNO,
+  CORES_GRAVATA,
+  CORES_CAMISA,
+  TrajeTipo,
+  TrajeAndLideresConfigDto,
+  SaveAreaHorarioDto,
+  EventoAreaHorario
 } from '../../core/models/evento-operacao.model';
 import { Area, getAreaBadgeStyle } from '../../core/models/area.model';
 import { Escala } from '../../core/models/escala.model';
@@ -41,6 +42,37 @@ export interface TurnoCardGroup {
   alocadosCount: number;
 }
 
+export interface ObreiroHistoricoAno {
+  ano: number;
+  idObreiro: number;
+  nomeObreiro: string;
+  totalEscalasAno: number;
+  horariosCount: { [turnoId: number]: number };
+  horarioMenosAtuadoId: number;
+  horarioMenosAtuadoLabel: string;
+  horarioMenosAtuadoQtd: number;
+  postosCount: { [idLocal: number]: number };
+  postoMenosAtuadoNome: string;
+  postoMenosAtuadoQtd: number;
+  locaisMenosAtuadosIds: number[];
+}
+
+export interface ObreiroPostoCandidate {
+  escala: Escala;
+  nome: string;
+  isDiacono: boolean;
+  isPulpito: boolean;
+  isLider: boolean;
+  isPendente: boolean;
+  postoAtualNome?: string;
+  horarioAtualLabel?: string;
+  escalasNoPostoAno: number;
+  escalasNoTurnoAno: number;
+  totalEscalasAno: number;
+  isMenosAtuouNoPosto: boolean;
+  isMenosAtuouNoTurno: boolean;
+}
+
 @Component({
   selector: 'app-evento-detalhes',
   standalone: true,
@@ -52,6 +84,7 @@ export class EventoDetalhesComponent implements OnInit {
   private router = inject(Router);
   private cdr = inject(ChangeDetectorRef);
   private toast = inject(ToastService);
+  private supabase = inject(SupabaseService).client;
   public operacaoService = inject(EventoOperacaoService);
   public areaService = inject(AreaService);
   public localService = inject(LocalService);
@@ -78,8 +111,21 @@ export class EventoDetalhesComponent implements OnInit {
         const diaSemana = diasSemana[d.getDay()];
         return `${diaSemana}, ${parts[2]}/${parts[1]}/${parts[0]}`;
       }
-    } catch (_) {}
+    } catch (_) { }
     return dataStr;
+  }
+
+  getDiaSemana(dataStr?: string): string {
+    if (!dataStr) return '';
+    try {
+      const parts = dataStr.split('-');
+      if (parts.length === 3) {
+        const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+        const diasSemana = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
+        return diasSemana[d.getDay()];
+      }
+    } catch (_) { }
+    return '';
   }
 
   formatHoraAmPm(timeStr?: string): string {
@@ -162,8 +208,8 @@ export class EventoDetalhesComponent implements OnInit {
     const areaId = this.filtroAreaPosto();
     const status = this.filtroStatusPosto();
 
-    const turnosFiltrados = filtroTurno === 'TODOS' 
-      ? turnos 
+    const turnosFiltrados = filtroTurno === 'TODOS'
+      ? turnos
       : turnos.filter(t => t.id === Number(filtroTurno));
 
     return turnosFiltrados.map(t => {
@@ -179,17 +225,16 @@ export class EventoDetalhesComponent implements OnInit {
         items = [];
       }
 
-      // Agrupar obreiros por Setor / Área
+      // Agrupar por Setor / Área
       const setoresMap: SetorAlocacaoGroup[] = [];
 
       for (const area of allAreas) {
+        if (areaId !== 'TODAS' && Number(areaId) !== area.id_area) continue;
         const escalasArea = items.filter(e => Number(e.locais?.id_area) === area.id_area);
-        if (escalasArea.length > 0) {
-          setoresMap.push({
-            area,
-            escalas: escalasArea
-          });
-        }
+        setoresMap.push({
+          area,
+          escalas: escalasArea
+        });
       }
 
       // Caso haja algum com área não mapeada nas áreas cadastradas
@@ -395,15 +440,154 @@ export class EventoDetalhesComponent implements OnInit {
   // --- Seletor Modal / Bottom Sheet de Designação de Posto ---
   selectedEscalaForPicker = signal<Escala | null>(null);
   selectedTurnoForPicker = signal<number>(1);
+  obreiroStatsAno = signal<ObreiroHistoricoAno | null>(null);
+  loadingObreiroStats = signal<boolean>(false);
 
-  openPostoPicker(escala: Escala) {
+  async openPostoPicker(escala: Escala) {
     if (!this.authService.canManageOperacao()) return;
     this.selectedEscalaForPicker.set(escala);
     this.selectedTurnoForPicker.set(escala.horario_turno || 1);
+    this.obreiroStatsAno.set(null);
+    if (escala.id_obreiro) {
+      await this.carregarHistoricoObreiro(escala.id_obreiro);
+    }
+  }
+
+  async carregarHistoricoObreiro(idObreiro: number) {
+    this.loadingObreiroStats.set(true);
+    try {
+      const ev = this.operacaoService.evento();
+      const ano = ev?.mes?.ano_referencia || (ev?.data ? Number(ev.data.split('-')[0]) : new Date().getFullYear());
+
+      const { data, error } = await this.supabase
+        .from('escala')
+        .select('id_local, horario_turno, mes!inner(ano_referencia)')
+        .eq('id_obreiro', idObreiro)
+        .eq('mes.ano_referencia', ano);
+
+      if (error) throw error;
+
+      const rows = data || [];
+      const totalEscalasAno = rows.length;
+
+      // 1. Contagem por Horário (1, 2, 3)
+      const turnos = this.turnosDisponiveis();
+      const horariosCount: { [turnoId: number]: number } = {};
+      turnos.forEach(t => {
+        horariosCount[t.id] = 0;
+      });
+
+      for (const r of rows) {
+        const turno = Number(r.horario_turno ?? 1);
+        if (horariosCount[turno] !== undefined) {
+          horariosCount[turno]++;
+        } else {
+          horariosCount[turno] = 1;
+        }
+      }
+
+      // Descobrir qual turno/horário teve menor atuação
+      let menorTurnoId = turnos.length > 0 ? turnos[0].id : 1;
+      let menorTurnoQtd = Infinity;
+      turnos.forEach(t => {
+        const qtd = horariosCount[t.id] ?? 0;
+        if (qtd < menorTurnoQtd) {
+          menorTurnoQtd = qtd;
+          menorTurnoId = t.id;
+        }
+      });
+      if (menorTurnoQtd === Infinity) menorTurnoQtd = 0;
+      const horarioMenosAtuadoLabel = `${menorTurnoId}º Horário`;
+
+      // 2. Contagem por Posto / Local ativo
+      const obreiro = this.obreiroService.obreiros().find(o => o.id_obreiro === idObreiro) || this.selectedEscalaForPicker()?.obreiros;
+      const isPulpito = !!obreiro?.pulpito;
+
+      let locaisAtivos = this.localService.locais().filter(l => l.ativo);
+      // Se não for do tipo púlpito, ignora locais chamados "Púlpito" na recomendação
+      if (!isPulpito) {
+        locaisAtivos = locaisAtivos.filter(l => {
+          const nomeLower = (l.nome || '').toLowerCase();
+          return !nomeLower.includes('púlpito') && !nomeLower.includes('pulpito') && l.id_local !== 3;
+        });
+      }
+
+      const postosCount: { [idLocal: number]: number } = {};
+      this.localService.locais().forEach(l => {
+        if (l.id_local) postosCount[l.id_local] = 0;
+      });
+
+      for (const r of rows) {
+        if (r.id_local && postosCount[r.id_local] !== undefined) {
+          postosCount[r.id_local]++;
+        }
+      }
+
+      // Descobrir qual local ativo elegível teve menor atuação no ano (inclui 0x)
+      let menorLocalQtd = Infinity;
+      locaisAtivos.forEach(l => {
+        if (l.id_local) {
+          const qtd = postosCount[l.id_local] ?? 0;
+          if (qtd < menorLocalQtd) {
+            menorLocalQtd = qtd;
+          }
+        }
+      });
+      if (menorLocalQtd === Infinity) menorLocalQtd = 0;
+
+      const locaisMenosAtuados = locaisAtivos.filter(l => l.id_local && (postosCount[l.id_local] ?? 0) === menorLocalQtd);
+      const locaisMenosAtuadosIds = locaisMenosAtuados.map(l => l.id_local!);
+      const postoMenosAtuadoNome = locaisMenosAtuados.length > 0 ? locaisMenosAtuados[0].nome : 'Nenhum';
+
+      this.obreiroStatsAno.set({
+        ano,
+        idObreiro,
+        nomeObreiro: this.getObreiroNome(idObreiro),
+        totalEscalasAno,
+        horariosCount,
+        horarioMenosAtuadoId: menorTurnoId,
+        horarioMenosAtuadoLabel,
+        horarioMenosAtuadoQtd: menorTurnoQtd,
+        postosCount,
+        postoMenosAtuadoNome,
+        postoMenosAtuadoQtd: menorLocalQtd,
+        locaisMenosAtuadosIds
+      });
+    } catch (err) {
+      console.error('Erro ao carregar histórico anual do obreiro:', err);
+    } finally {
+      this.loadingObreiroStats.set(false);
+      this.cdr.markForCheck();
+    }
+  }
+
+  getObreiroHorarioCountNoAno(turnoId: number): number {
+    const stats = this.obreiroStatsAno();
+    if (!stats) return 0;
+    return stats.horariosCount[turnoId] ?? 0;
+  }
+
+  isHorarioMenosAtuado(turnoId: number): boolean {
+    const stats = this.obreiroStatsAno();
+    if (!stats || stats.totalEscalasAno === 0) return false;
+    return stats.horarioMenosAtuadoId === turnoId;
+  }
+
+  getObreiroPostoCountNoAno(idLocal: number): number {
+    const stats = this.obreiroStatsAno();
+    if (!stats) return 0;
+    return stats.postosCount[idLocal] ?? 0;
+  }
+
+  isPostoMenosAtuado(idLocal: number): boolean {
+    const stats = this.obreiroStatsAno();
+    if (!stats) return false;
+    return stats.locaisMenosAtuadosIds.includes(idLocal);
   }
 
   closePostoPicker() {
     this.selectedEscalaForPicker.set(null);
+    this.obreiroStatsAno.set(null);
   }
 
   setPickerTurno(turnoId: number) {
@@ -436,10 +620,254 @@ export class EventoDetalhesComponent implements OnInit {
     }
   }
 
+  // --- Novo Modo: Designar por Posto & Horário (Posto Primeiro) ---
+  isPostoSelectorModalOpen = signal<boolean>(false);
+  isObreiroForPostoModalOpen = signal<boolean>(false);
+  selectedPostoPickerLocal = signal<Local | null>(null);
+  selectedPostoPickerTurno = signal<number>(1);
+  searchObreiroParaPosto = signal<string>('');
+  filtroModalCandidatosStatus = signal<'TODOS' | 'PENDENTES' | 'ALOCADOS'>('TODOS');
+  loadingPostoObreiros = signal<boolean>(false);
+  obreirosStatsPorPosto = signal<Map<number, { escalasNoPosto: number; escalasNoTurno: number; totalAno: number }>>(new Map());
+
+  openPostoFirstPicker() {
+    if (!this.authService.canManageOperacao()) return;
+    this.selectedPostoPickerTurno.set(1);
+    this.isPostoSelectorModalOpen.set(true);
+  }
+
+  closePostoFirstPicker() {
+    this.isPostoSelectorModalOpen.set(false);
+  }
+
+  async selectLocalETurnoParaDesignar(local: Local, turnoId?: number) {
+    if (!this.authService.canManageOperacao()) return;
+    const turno = turnoId || this.selectedPostoPickerTurno() || 1;
+    this.selectedPostoPickerLocal.set(local);
+    this.selectedPostoPickerTurno.set(turno);
+    this.filtroModalCandidatosStatus.set('TODOS');
+    this.isPostoSelectorModalOpen.set(false);
+    this.isObreiroForPostoModalOpen.set(true);
+    this.searchObreiroParaPosto.set('');
+    await this.carregarEstatisticasParaPosto(local, turno);
+  }
+
+  closeObreiroForPostoModal() {
+    this.isObreiroForPostoModalOpen.set(false);
+    this.selectedPostoPickerLocal.set(null);
+  }
+
+  getObreirosAlocadosNoEventoParaPostoETurnoCount(idLocal?: number, turnoId?: number): number {
+    if (!idLocal || !turnoId) return 0;
+    return this.operacaoService.escalas()
+      .filter(e => e.id_local === idLocal && Number(e.horario_turno) === turnoId)
+      .length;
+  }
+
+  getEscalasDoLocalNoTurno(idLocal?: number, turnoId?: number): Escala[] {
+    if (!idLocal || !turnoId) return [];
+    return this.operacaoService.escalas()
+      .filter(e => e.id_local === idLocal && Number(e.horario_turno) === turnoId);
+  }
+
+  getObreirosAlocadosNomesTexto(idLocal?: number, turnoId?: number): string {
+    if (!idLocal || !turnoId) return '';
+    const escalas = this.operacaoService.escalas()
+      .filter(e => e.id_local === idLocal && Number(e.horario_turno) === turnoId && e.obreiros?.nome);
+    return escalas.map(e => e.obreiros!.nome).join(', ');
+  }
+
+  async setPostoPickerTurnoAndRefresh(turnoId: number) {
+    this.selectedPostoPickerTurno.set(turnoId);
+    const local = this.selectedPostoPickerLocal();
+    if (local) {
+      await this.carregarEstatisticasParaPosto(local, turnoId);
+    }
+  }
+
+  async carregarEstatisticasParaPosto(local: Local, turnoId: number) {
+    this.loadingPostoObreiros.set(true);
+    try {
+      const ev = this.operacaoService.evento();
+      const ano = ev?.mes?.ano_referencia || (ev?.data ? Number(ev.data.split('-')[0]) : new Date().getFullYear());
+      const obreiroIds = this.operacaoService.escalas()
+        .map(e => e.id_obreiro)
+        .filter((id): id is number => typeof id === 'number' && id > 0);
+
+      if (obreiroIds.length === 0) {
+        this.obreirosStatsPorPosto.set(new Map());
+        return;
+      }
+
+      const { data, error } = await this.supabase
+        .from('escala')
+        .select('id_obreiro, id_local, horario_turno, mes!inner(ano_referencia)')
+        .in('id_obreiro', obreiroIds)
+        .eq('mes.ano_referencia', ano);
+
+      if (error) throw error;
+
+      const map = new Map<number, { escalasNoPosto: number; escalasNoTurno: number; totalAno: number }>();
+      obreiroIds.forEach(id => {
+        map.set(id, { escalasNoPosto: 0, escalasNoTurno: 0, totalAno: 0 });
+      });
+
+      for (const row of (data || [])) {
+        const id = row.id_obreiro;
+        if (!map.has(id)) {
+          map.set(id, { escalasNoPosto: 0, escalasNoTurno: 0, totalAno: 0 });
+        }
+        const stat = map.get(id)!;
+        stat.totalAno++;
+        if (row.id_local === local.id_local) {
+          stat.escalasNoPosto++;
+        }
+        if (Number(row.horario_turno) === turnoId) {
+          stat.escalasNoTurno++;
+        }
+      }
+
+      this.obreirosStatsPorPosto.set(map);
+    } catch (err) {
+      console.error('Erro ao carregar estatísticas para o posto:', err);
+    } finally {
+      this.loadingPostoObreiros.set(false);
+      this.cdr.markForCheck();
+    }
+  }
+
+  getObreirosCandidatosParaPosto(): ObreiroPostoCandidate[] {
+    const local = this.selectedPostoPickerLocal();
+    const turnoId = this.selectedPostoPickerTurno();
+    if (!local) return [];
+
+    const isPulpitoPosto = (local.nome || '').toLowerCase().includes('púlpito') ||
+      (local.nome || '').toLowerCase().includes('pulpito') ||
+      local.id_local === 3;
+
+    const statsMap = this.obreirosStatsPorPosto();
+    const escalas = this.operacaoService.escalas();
+    const search = this.searchObreiroParaPosto().trim().toLowerCase();
+
+    // 1. Filtrar
+    const filtered = escalas.filter(e => {
+      if (!e.obreiros) return false;
+      if (isPulpitoPosto && !e.obreiros.pulpito) return false;
+      if (search && !e.obreiros.nome.toLowerCase().includes(search)) return false;
+      return true;
+    });
+
+    // 2. Mapear candidatos
+    const candidates: ObreiroPostoCandidate[] = filtered.map(e => {
+      const stats = statsMap.get(e.id_obreiro) || { escalasNoPosto: 0, escalasNoTurno: 0, totalAno: 0 };
+      const isPendente = !e.id_local;
+      const postoAtual = this.localService.locais().find(l => l.id_local === e.id_local);
+
+      return {
+        escala: e,
+        nome: e.obreiros?.nome || `Obreiro #${e.id_obreiro}`,
+        isDiacono: !!e.obreiros?.diacono,
+        isPulpito: !!e.obreiros?.pulpito,
+        isLider: !!e.obreiros?.lider,
+        isPendente,
+        postoAtualNome: postoAtual?.nome,
+        horarioAtualLabel: e.horario_turno ? `${e.horario_turno}º Horário` : undefined,
+        escalasNoPostoAno: stats.escalasNoPosto,
+        escalasNoTurnoAno: stats.escalasNoTurno,
+        totalEscalasAno: stats.totalAno,
+        isMenosAtuouNoPosto: false,
+        isMenosAtuouNoTurno: false
+      };
+    });
+
+    if (candidates.length === 0) return [];
+
+    // 3. Identificar menor quantidade no posto e menor no turno
+    const minPostoCount = Math.min(...candidates.map(c => c.escalasNoPostoAno));
+    const minTurnoCount = Math.min(...candidates.map(c => c.escalasNoTurnoAno));
+
+    candidates.forEach(c => {
+      c.isMenosAtuouNoPosto = c.escalasNoPostoAno === minPostoCount;
+      c.isMenosAtuouNoTurno = c.escalasNoTurnoAno === minTurnoCount;
+    });
+
+    // 4. Ordenação inteligente:
+    // Prioridade 0: Se o posto NÃO é púlpito, diáconos de púlpito vão para o final
+    // Prioridade 1: Pendentes primeiro (isPendente = true)
+    // Prioridade 2: Menor atuação no posto no ano (escalasNoPostoAno crescente)
+    // Prioridade 3: Menor atuação no horário no ano (escalasNoTurnoAno crescente)
+    // Prioridade 4: Menor total no ano
+    candidates.sort((a, b) => {
+      if (!isPulpitoPosto) {
+        if (!a.isPulpito && b.isPulpito) return -1;
+        if (a.isPulpito && !b.isPulpito) return 1;
+      }
+
+      if (a.isPendente && !b.isPendente) return -1;
+      if (!a.isPendente && b.isPendente) return 1;
+
+      if (a.escalasNoPostoAno !== b.escalasNoPostoAno) {
+        return a.escalasNoPostoAno - b.escalasNoPostoAno;
+      }
+      if (a.escalasNoTurnoAno !== b.escalasNoTurnoAno) {
+        return a.escalasNoTurnoAno - b.escalasNoTurnoAno;
+      }
+      return a.totalEscalasAno - b.totalEscalasAno;
+    });
+
+    const statusFiltro = this.filtroModalCandidatosStatus();
+    if (statusFiltro === 'PENDENTES') {
+      return candidates.filter(c => c.isPendente);
+    }
+    if (statusFiltro === 'ALOCADOS') {
+      return candidates.filter(c => !c.isPendente);
+    }
+
+    return candidates;
+  }
+
+  getCandidatosCounts(): { total: number; pendentes: number; alocados: number } {
+    const local = this.selectedPostoPickerLocal();
+    if (!local) return { total: 0, pendentes: 0, alocados: 0 };
+
+    const isPulpitoPosto =
+      (local.nome || '').toLowerCase().includes('pulpito') ||
+      local.id_local === 3;
+
+    const escalas = this.operacaoService.escalas();
+    const search = this.searchObreiroParaPosto().trim().toLowerCase();
+
+    const filtered = escalas.filter(e => {
+      if (!e.obreiros) return false;
+      if (isPulpitoPosto && !e.obreiros.pulpito) return false;
+      if (search && !e.obreiros.nome.toLowerCase().includes(search)) return false;
+      return true;
+    });
+
+    const pendentes = filtered.filter(e => !e.id_local).length;
+    const alocados = filtered.filter(e => !!e.id_local).length;
+
+    return {
+      total: filtered.length,
+      pendentes,
+      alocados
+    };
+  }
+
+  async designarObreiroParaPosto(escala: Escala) {
+    const local = this.selectedPostoPickerLocal();
+    const turno = this.selectedPostoPickerTurno();
+    if (escala?.id_escala && local?.id_local && turno) {
+      await this.operacaoService.designarPosto(escala.id_escala, local.id_local, turno);
+      this.closeObreiroForPostoModal();
+      this.cdr.markForCheck();
+    }
+  }
+
   getLocaisPorArea(idArea?: number): Local[] {
     const list = this.localService.locais().filter(l => l.ativo);
-    if (!idArea) return list;
-    return list.filter(l => l.id_area === idArea);
+    const filtered = idArea ? list.filter(l => l.id_area === idArea) : list;
+    return filtered.sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0) || a.nome.localeCompare(b.nome));
   }
 
   getObreiroNome(idObreiro: number): string {
@@ -521,12 +949,26 @@ export class EventoDetalhesComponent implements OnInit {
 
         const hArea = horarios.find((h: EventoAreaHorario) => h.id_area === area.id_area && h.horario_turno === turno.id);
         const horaTxt = hArea ? ` (${this.formatHoraAmPm(hArea.hora_inicio)} às ${this.formatHoraAmPm(hArea.hora_fim)})` : '';
-        
+
         lines.push(`\n 🕒 *${turno.label}${horaTxt}*:`);
 
-        // Agrupar por Posto / Local dentro deste horário
+        // Agrupar por Posto / Local ordenados pela coluna ordem (locais.ordem)
+        const locaisDaArea = this.getLocaisPorArea(area.id_area);
         const postosMap = new Map<string, string[]>();
-        for (const esc of escTurno) {
+
+        // 1. Inserir postos cadastrados na ordem oficial (ordem)
+        for (const loc of locaisDaArea) {
+          const escDoLocal = escTurno.filter(e => e.id_local === loc.id_local);
+          if (escDoLocal.length > 0) {
+            const obreiros = escDoLocal.map(e => e.obreiros?.nome || this.getObreiroNome(e.id_obreiro));
+            postosMap.set(loc.nome, obreiros);
+          }
+        }
+
+        // 2. Fallback para quaisquer escalas em locais não mapeados na área
+        const locaisIdsCadastrados = new Set(locaisDaArea.map(l => l.id_local));
+        const outrosLocais = escTurno.filter(e => !locaisIdsCadastrados.has(e.id_local || 0));
+        for (const esc of outrosLocais) {
           const postoNome = esc.locais?.nome || 'Posto Geral';
           const obNome = esc.obreiros?.nome || this.getObreiroNome(esc.id_obreiro);
           const list = postosMap.get(postoNome) || [];

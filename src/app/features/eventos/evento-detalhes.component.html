@@ -3,9 +3,7 @@
   <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-4">
     <div class="space-y-1">
       <div class="flex items-center gap-2 text-xs font-semibold text-slate-400">
-        <a 
-          routerLink="/escalas" 
-          [queryParams]="{ mes: operacaoService.evento()?.id_mes }"
+        <a routerLink="/escalas" [queryParams]="{ mes: operacaoService.evento()?.id_mes }"
           class="hover:text-indigo-400 transition-colors flex items-center gap-1">
           <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -16,67 +14,73 @@
         <span class="text-indigo-400">Gerenciar Culto</span>
       </div>
 
-      <h1 class="text-xl sm:text-2xl md:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2.5 flex-wrap">
+      <h1
+        class="text-xl sm:text-2xl md:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2 sm:gap-2.5 flex-wrap">
         <span>{{ operacaoService.evento()?.descricao || 'Culto / Evento' }}</span>
-        
+
+        <!-- Dia da Semana Badge -->
+        @if (getDiaSemana(operacaoService.evento()?.data)) {
+        <span
+          class="text-xs sm:text-sm px-3 py-1 rounded-xl bg-purple-500/10 text-purple-300 border border-purple-500/30 font-bold flex items-center gap-1.5 shadow-sm">
+          <span>🗓️</span>
+          <span>{{ getDiaSemana(operacaoService.evento()?.data) }}</span>
+        </span>
+        }
+
         <!-- Data Badge -->
         @if (operacaoService.evento()?.data) {
-          <span class="text-xs sm:text-sm px-3 py-1 rounded-xl bg-slate-800/90 text-indigo-300 border border-slate-700/80 font-bold flex items-center gap-1.5 shadow-sm">
-            <span>📅</span>
-            <span>{{ operacaoService.evento()?.data | date:'dd/MM/yyyy' }}</span>
-          </span>
+        <span
+          class="text-xs sm:text-sm px-3 py-1 rounded-xl bg-slate-800/90 text-indigo-300 border border-slate-700/80 font-bold flex items-center gap-1.5 shadow-sm">
+          <span>📅</span>
+          <span>{{ operacaoService.evento()?.data | date:'dd/MM/yyyy' }}</span>
+        </span>
         }
 
         <!-- Turno Badge -->
         @if (operacaoService.evento()?.turno === 1) {
-          <span class="text-xs sm:text-sm px-3 py-1 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/30 font-bold flex items-center gap-1">☀️ Manhã</span>
+        <span
+          class="text-xs sm:text-sm px-3 py-1 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/30 font-bold flex items-center gap-1">☀️
+          Manhã</span>
         } @else if (operacaoService.evento()?.turno === 2) {
-          <span class="text-xs sm:text-sm px-3 py-1 rounded-xl bg-orange-500/10 text-orange-400 border border-orange-500/30 font-bold flex items-center gap-1">🌤️ Tarde</span>
+        <span
+          class="text-xs sm:text-sm px-3 py-1 rounded-xl bg-orange-500/10 text-orange-400 border border-orange-500/30 font-bold flex items-center gap-1">🌤️
+          Tarde</span>
         } @else {
-          <span class="text-xs sm:text-sm px-3 py-1 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 font-bold flex items-center gap-1">🌙 Noite</span>
+        <span
+          class="text-xs sm:text-sm px-3 py-1 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 font-bold flex items-center gap-1">🌙
+          Noite</span>
         }
       </h1>
-
-      <p class="text-xs text-slate-400 flex items-center gap-2 flex-wrap pt-0.5">
-        @if (operacaoService.evento()?.data) {
-          <span class="font-semibold text-slate-200">{{ formatDataEvento(operacaoService.evento()?.data) }}</span>
-          <span>•</span>
-        }
-        @if (operacaoService.evento()?.mes) {
-          <span>Mês de Referência: {{ operacaoService.evento()?.mes?.mes_referencia }}/{{ operacaoService.evento()?.mes?.ano_referencia }}</span>
-        }
-      </p>
     </div>
 
     <!-- Quick Navigation Link, WhatsApp Share & Reload -->
     <div class="flex items-center gap-2 self-start sm:self-center flex-wrap">
       <!-- Botão Compartilhar WhatsApp -->
-      <button 
-        type="button"
-        (click)="openShareModal()"
+      <button type="button" (click)="openShareModal()"
         class="px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 border border-emerald-500/80 transition-all flex items-center gap-1.5 shadow-sm active:scale-95">
         <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
-          <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+          <path
+            d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z" />
         </svg>
         <span>WhatsApp</span>
       </button>
 
-      <a 
-        routerLink="/escalas" 
-        [queryParams]="{ mes: operacaoService.evento()?.id_mes }"
+      <a routerLink="/escalas" [queryParams]="{ mes: operacaoService.evento()?.id_mes }"
         class="px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-all flex items-center gap-1.5 shadow-sm">
         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
         </svg>
         <span>Ver Escala</span>
       </a>
 
-      <button 
-        (click)="carregarDados(idEvento())" 
+      <button (click)="carregarDados(idEvento())"
         class="p-2 text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl transition-all"
         title="Recarregar">
-        <svg class="w-4 h-4" [class.animate-spin]="operacaoService.loading()" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        <svg class="w-4 h-4" [class.animate-spin]="operacaoService.loading()" fill="none" viewBox="0 0 24 24"
+          stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
         </svg>
       </button>
     </div>
@@ -85,7 +89,8 @@
   <!-- KPI Mobile Summary Bar -->
   <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
     <div class="glass-card rounded-xl p-3 border border-slate-800 flex items-center gap-2.5">
-      <div class="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center text-sm font-bold shrink-0">
+      <div
+        class="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center text-sm font-bold shrink-0">
         👥
       </div>
       <div class="min-w-0">
@@ -95,7 +100,8 @@
     </div>
 
     <div class="glass-card rounded-xl p-3 border border-slate-800 flex items-center gap-2.5">
-      <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-sm font-bold shrink-0">
+      <div
+        class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-sm font-bold shrink-0">
         ✓
       </div>
       <div class="min-w-0">
@@ -105,19 +111,22 @@
     </div>
 
     <div class="glass-card rounded-xl p-3 border border-slate-800 flex items-center gap-2.5">
-      <div class="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center text-sm font-bold shrink-0">
+      <div
+        class="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center text-sm font-bold shrink-0">
         ⏳
       </div>
       <div class="min-w-0">
         <div class="text-[10px] text-slate-400 uppercase font-semibold truncate">Sem Posto</div>
-        <div class="text-sm font-bold" [class.text-amber-400]="totalPendentes() > 0" [class.text-slate-400]="totalPendentes() === 0">
+        <div class="text-sm font-bold" [class.text-amber-400]="totalPendentes() > 0"
+          [class.text-slate-400]="totalPendentes() === 0">
           {{ totalPendentes() }}
         </div>
       </div>
     </div>
 
     <div class="glass-card rounded-xl p-3 border border-slate-800 flex items-center gap-2.5">
-      <div class="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center text-sm font-bold shrink-0">
+      <div
+        class="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center text-sm font-bold shrink-0">
         👔
       </div>
       <div class="min-w-0">
@@ -135,7 +144,8 @@
   <section class="glass-panel rounded-2xl p-4 sm:p-5 border border-slate-800/90 space-y-3.5 shadow-lg">
     <div class="flex items-center justify-between border-b border-slate-800/80 pb-3 flex-wrap gap-2">
       <div class="flex items-center gap-2.5">
-        <div class="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center text-base font-bold">
+        <div
+          class="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center text-base font-bold">
           ⭐
         </div>
         <div>
@@ -152,23 +162,21 @@
 
     <!-- Multi-select Pills: Apenas obreiros com flag lider = true -->
     @if (diaconosLideres().length === 0) {
-      <div class="text-xs text-slate-500 p-3 text-center">Nenhum obreiro cadastrado com a função de Líder.</div>
+    <div class="text-xs text-slate-500 p-3 text-center">Nenhum obreiro cadastrado com a função de Líder.</div>
     } @else {
-      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-        @for (lider of diaconosLideres(); track lider.id_obreiro) {
-          <button 
-            type="button" 
-            [disabled]="!authService.canManageOperacao()"
-            (click)="authService.canManageOperacao() ? toggleLider(lider.id_obreiro) : null"
-            [class]="isLiderSelecionado(lider.id_obreiro) ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 shadow font-bold ring-1 ring-amber-500/50' : 'bg-slate-900/90 text-slate-400 border-slate-800 hover:text-slate-200'"
-            class="px-3 py-2 rounded-xl text-xs border transition-all flex items-center justify-between gap-1.5 text-left active:scale-95 disabled:cursor-not-allowed">
-            <span class="truncate">{{ lider.nome }}</span>
-            <span class="text-xs font-bold shrink-0">
-              {{ isLiderSelecionado(lider.id_obreiro) ? '✓' : '+' }}
-            </span>
-          </button>
-        }
-      </div>
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+      @for (lider of diaconosLideres(); track lider.id_obreiro) {
+      <button type="button" [disabled]="!authService.canManageOperacao()"
+        (click)="authService.canManageOperacao() ? toggleLider(lider.id_obreiro) : null"
+        [class]="isLiderSelecionado(lider.id_obreiro) ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 shadow font-bold ring-1 ring-amber-500/50' : 'bg-slate-900/90 text-slate-400 border-slate-800 hover:text-slate-200'"
+        class="px-3 py-2 rounded-xl text-xs border transition-all flex items-center justify-between gap-1.5 text-left active:scale-95 disabled:cursor-not-allowed">
+        <span class="truncate">{{ lider.nome }}</span>
+        <span class="text-xs font-bold shrink-0">
+          {{ isLiderSelecionado(lider.id_obreiro) ? '✓' : '+' }}
+        </span>
+      </button>
+      }
+    </div>
     }
   </section>
 
@@ -177,7 +185,8 @@
   <!-- ========================================================================= -->
   <section class="glass-panel rounded-2xl p-4 sm:p-5 border border-slate-800/90 space-y-4 shadow-lg">
     <div class="flex items-center gap-2.5 border-b border-slate-800/80 pb-3">
-      <div class="w-8 h-8 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center text-base font-bold">
+      <div
+        class="w-8 h-8 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center text-base font-bold">
         👔
       </div>
       <div>
@@ -189,173 +198,178 @@
     <!-- Grid de Opções de Uniforme -->
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
       @for (op of trajeOpcoes; track op.value) {
-        <button 
-          type="button" 
-          [disabled]="!authService.canManageOperacao()"
-          (click)="authService.canManageOperacao() ? setTrajeTipo(op.value) : null"
-          [class]="trajeConfig().traje_tipo === op.value 
+      <button type="button" [disabled]="!authService.canManageOperacao()"
+        (click)="authService.canManageOperacao() ? setTrajeTipo(op.value) : null"
+        [class]="trajeConfig().traje_tipo === op.value 
             ? 'relative ring-2 ring-indigo-400 border-2 border-indigo-400 bg-indigo-950/90 text-white shadow-xl shadow-indigo-950/60 scale-[1.02]' 
             : 'relative bg-slate-900/80 border border-slate-800 text-slate-300 hover:border-slate-600 hover:bg-slate-800/80 hover:text-white'"
-          class="p-3 sm:p-3.5 rounded-2xl text-center space-y-2 transition-all group active:scale-95 disabled:cursor-not-allowed flex flex-col items-center justify-center">
-          
-          <!-- Badge de Selecionado -->
-          @if (trajeConfig().traje_tipo === op.value) {
-            <span class="absolute top-2 right-2 flex items-center justify-center w-5 h-5 rounded-full bg-indigo-500 text-white text-[10px] font-black shadow-md animate-scale-in">
-              ✓
-            </span>
+        class="p-3 sm:p-3.5 rounded-2xl text-center space-y-2 transition-all group active:scale-95 disabled:cursor-not-allowed flex flex-col items-center justify-center">
+
+        <!-- Badge de Selecionado -->
+        @if (trajeConfig().traje_tipo === op.value) {
+        <span
+          class="absolute top-2 right-2 flex items-center justify-center w-5 h-5 rounded-full bg-indigo-500 text-white text-[10px] font-black shadow-md animate-scale-in">
+          ✓
+        </span>
+        }
+
+        <!-- Ícone Visual de Camisa / Terno com a Cor Real -->
+        <div class="flex items-center justify-center">
+          @if (op.value === 'Camisa Preta') {
+          <div
+            class="w-10 h-10 rounded-xl bg-black border border-zinc-500 flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform">
+            <svg viewBox="0 0 24 24" class="w-6 h-6" fill="none">
+              <!-- Camisa Preta -->
+              <path d="M6 4L2 8L5 11L7 9V20H17V9L19 11L22 8L18 4L14 6C13.5 6.5 12.8 7 12 7C11.2 7 10.5 6.5 10 6L6 4Z"
+                fill="#09090b" stroke="#a1a1aa" stroke-width="1.2" stroke-linejoin="round" />
+              <!-- Gola -->
+              <path d="M9.5 4.5L12 8L14.5 4.5" stroke="#e4e4e7" stroke-width="1.2" stroke-linecap="round"
+                stroke-linejoin="round" />
+            </svg>
+          </div>
+          } @else if (op.value === 'Camisa Vinho') {
+          <div
+            class="w-10 h-10 rounded-xl bg-rose-950 border border-rose-600 flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform">
+            <svg viewBox="0 0 24 24" class="w-6 h-6" fill="none">
+              <!-- Camisa Vinho -->
+              <path d="M6 4L2 8L5 11L7 9V20H17V9L19 11L22 8L18 4L14 6C13.5 6.5 12.8 7 12 7C11.2 7 10.5 6.5 10 6L6 4Z"
+                fill="#881337" stroke="#fb7185" stroke-width="1.2" stroke-linejoin="round" />
+              <!-- Gola -->
+              <path d="M9.5 4.5L12 8L14.5 4.5" stroke="#ffe4e6" stroke-width="1.2" stroke-linecap="round"
+                stroke-linejoin="round" />
+            </svg>
+          </div>
+          } @else if (op.value === 'Camisa Cinza') {
+          <div
+            class="w-10 h-10 rounded-xl bg-slate-800 border border-slate-400 flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform">
+            <svg viewBox="0 0 24 24" class="w-6 h-6" fill="none">
+              <!-- Camisa Cinza -->
+              <path d="M6 4L2 8L5 11L7 9V20H17V9L19 11L22 8L18 4L14 6C13.5 6.5 12.8 7 12 7C11.2 7 10.5 6.5 10 6L6 4Z"
+                fill="#64748b" stroke="#e2e8f0" stroke-width="1.2" stroke-linejoin="round" />
+              <!-- Gola -->
+              <path d="M9.5 4.5L12 8L14.5 4.5" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round"
+                stroke-linejoin="round" />
+            </svg>
+          </div>
+          } @else {
+          <!-- Terno Completo -->
+          <div
+            class="w-10 h-10 rounded-xl bg-indigo-950 border border-indigo-500 flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform">
+            <svg viewBox="0 0 24 24" class="w-6 h-6" fill="none">
+              <!-- Blazer -->
+              <path d="M4 4L2 8L5 11L7 9V20H17V9L19 11L22 8L20 4L16 6L12 8L8 6L4 4Z" fill="#1e1b4b" stroke="#a5b4fc"
+                stroke-width="1.2" stroke-linejoin="round" />
+              <!-- Camisa Branca interna -->
+              <path d="M8 6L12 8L16 6L14 4L10 4L8 6Z" fill="#ffffff" />
+              <!-- Gravata Vermelha -->
+              <path d="M12 7.5L13 11L12 14L11 11L12 7.5Z" fill="#f43f5e" />
+            </svg>
+          </div>
           }
+        </div>
 
-          <!-- Ícone Visual de Camisa / Terno com a Cor Real -->
-          <div class="flex items-center justify-center">
-            @if (op.value === 'Camisa Preta') {
-              <div class="w-10 h-10 rounded-xl bg-black border border-zinc-500 flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform">
-                <svg viewBox="0 0 24 24" class="w-6 h-6" fill="none">
-                  <!-- Camisa Preta -->
-                  <path d="M6 4L2 8L5 11L7 9V20H17V9L19 11L22 8L18 4L14 6C13.5 6.5 12.8 7 12 7C11.2 7 10.5 6.5 10 6L6 4Z" fill="#09090b" stroke="#a1a1aa" stroke-width="1.2" stroke-linejoin="round"/>
-                  <!-- Gola -->
-                  <path d="M9.5 4.5L12 8L14.5 4.5" stroke="#e4e4e7" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </div>
-            } @else if (op.value === 'Camisa Vinho') {
-              <div class="w-10 h-10 rounded-xl bg-rose-950 border border-rose-600 flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform">
-                <svg viewBox="0 0 24 24" class="w-6 h-6" fill="none">
-                  <!-- Camisa Vinho -->
-                  <path d="M6 4L2 8L5 11L7 9V20H17V9L19 11L22 8L18 4L14 6C13.5 6.5 12.8 7 12 7C11.2 7 10.5 6.5 10 6L6 4Z" fill="#881337" stroke="#fb7185" stroke-width="1.2" stroke-linejoin="round"/>
-                  <!-- Gola -->
-                  <path d="M9.5 4.5L12 8L14.5 4.5" stroke="#ffe4e6" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </div>
-            } @else if (op.value === 'Camisa Cinza') {
-              <div class="w-10 h-10 rounded-xl bg-slate-800 border border-slate-400 flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform">
-                <svg viewBox="0 0 24 24" class="w-6 h-6" fill="none">
-                  <!-- Camisa Cinza -->
-                  <path d="M6 4L2 8L5 11L7 9V20H17V9L19 11L22 8L18 4L14 6C13.5 6.5 12.8 7 12 7C11.2 7 10.5 6.5 10 6L6 4Z" fill="#64748b" stroke="#e2e8f0" stroke-width="1.2" stroke-linejoin="round"/>
-                  <!-- Gola -->
-                  <path d="M9.5 4.5L12 8L14.5 4.5" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </div>
-            } @else {
-              <!-- Terno Completo -->
-              <div class="w-10 h-10 rounded-xl bg-indigo-950 border border-indigo-500 flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform">
-                <svg viewBox="0 0 24 24" class="w-6 h-6" fill="none">
-                  <!-- Blazer -->
-                  <path d="M4 4L2 8L5 11L7 9V20H17V9L19 11L22 8L20 4L16 6L12 8L8 6L4 4Z" fill="#1e1b4b" stroke="#a5b4fc" stroke-width="1.2" stroke-linejoin="round"/>
-                  <!-- Camisa Branca interna -->
-                  <path d="M8 6L12 8L16 6L14 4L10 4L8 6Z" fill="#ffffff"/>
-                  <!-- Gravata Vermelha -->
-                  <path d="M12 7.5L13 11L12 14L11 11L12 7.5Z" fill="#f43f5e"/>
-                </svg>
-              </div>
-            }
-          </div>
-
-          <div class="text-xs font-bold transition-colors truncate" [class.text-white]="trajeConfig().traje_tipo === op.value">
-            {{ op.label }}
-          </div>
-        </button>
+        <div class="text-xs font-bold transition-colors truncate"
+          [class.text-white]="trajeConfig().traje_tipo === op.value">
+          {{ op.label }}
+        </div>
+      </button>
       }
     </div>
 
     <!-- Regras Específicas se Terno -->
     @if (trajeConfig().traje_tipo === 'Terno') {
-      <div class="bg-indigo-950/30 border border-indigo-500/30 rounded-xl p-3.5 space-y-3 animate-fade-in">
-        <h4 class="text-[11px] font-bold text-indigo-300 uppercase tracking-wider">Cores Obrigatórias do Terno</h4>
-        
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <!-- Cor do Terno -->
-          <div class="bg-slate-900/90 p-3 rounded-xl border border-slate-800 space-y-2">
-            <div class="flex items-center justify-between">
-              <span class="text-xs font-semibold text-slate-200">Terno</span>
-              <label class="relative inline-flex items-center cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  [disabled]="!authService.canManageOperacao()"
-                  [checked]="trajeConfig().terno_cor_obrigatoria" 
-                  (change)="updateTrajeField('terno_cor_obrigatoria', !trajeConfig().terno_cor_obrigatoria)" 
-                  class="sr-only peer" />
-                <div class="w-8 h-4 bg-slate-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600"></div>
-              </label>
-            </div>
-            @if (trajeConfig().terno_cor_obrigatoria) {
-              <button 
-                type="button"
-                [disabled]="!authService.canManageOperacao()"
-                (click)="openColorPicker('terno_cor')"
-                class="w-full px-2.5 py-1.5 bg-slate-950 hover:bg-slate-800 border border-slate-700 hover:border-indigo-400 rounded-lg text-xs text-white font-bold transition-all flex items-center justify-between gap-2 text-left active:scale-95 disabled:opacity-60">
-                <div class="flex items-center gap-2 truncate">
-                  <span class="w-3.5 h-3.5 rounded-full border border-white/30 shrink-0 shadow" [style.background-color]="getColorHex(trajeConfig().terno_cor || '')"></span>
-                  <span class="truncate">{{ trajeConfig().terno_cor || 'Selecionar Cor' }}</span>
-                </div>
-                <span class="text-[10px] text-indigo-400 font-bold shrink-0">✎ Alterar</span>
-              </button>
-            } @else {
-              <div class="text-[10px] text-slate-500 italic py-1">Cor Livre</div>
-            }
-          </div>
+    <div class="bg-indigo-950/30 border border-indigo-500/30 rounded-xl p-3.5 space-y-3 animate-fade-in">
+      <h4 class="text-[11px] font-bold text-indigo-300 uppercase tracking-wider">Cores Obrigatórias do Terno</h4>
 
-          <!-- Cor da Gravata -->
-          <div class="bg-slate-900/90 p-3 rounded-xl border border-slate-800 space-y-2">
-            <div class="flex items-center justify-between">
-              <span class="text-xs font-semibold text-slate-200">Gravata</span>
-              <label class="relative inline-flex items-center cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  [disabled]="!authService.canManageOperacao()"
-                  [checked]="trajeConfig().gravata_cor_obrigatoria" 
-                  (change)="updateTrajeField('gravata_cor_obrigatoria', !trajeConfig().gravata_cor_obrigatoria)" 
-                  class="sr-only peer" />
-                <div class="w-8 h-4 bg-slate-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600"></div>
-              </label>
-            </div>
-            @if (trajeConfig().gravata_cor_obrigatoria) {
-              <button 
-                type="button"
-                [disabled]="!authService.canManageOperacao()"
-                (click)="openColorPicker('gravata_cor')"
-                class="w-full px-2.5 py-1.5 bg-slate-950 hover:bg-slate-800 border border-slate-700 hover:border-indigo-400 rounded-lg text-xs text-white font-bold transition-all flex items-center justify-between gap-2 text-left active:scale-95 disabled:opacity-60">
-                <div class="flex items-center gap-2 truncate">
-                  <span class="w-3.5 h-3.5 rounded-full border border-white/30 shrink-0 shadow" [style.background-color]="getColorHex(trajeConfig().gravata_cor || '')"></span>
-                  <span class="truncate">{{ trajeConfig().gravata_cor || 'Selecionar Cor' }}</span>
-                </div>
-                <span class="text-[10px] text-indigo-400 font-bold shrink-0">✎ Alterar</span>
-              </button>
-            } @else {
-              <div class="text-[10px] text-slate-500 italic py-1">Cor Livre</div>
-            }
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <!-- Cor do Terno -->
+        <div class="bg-slate-900/90 p-3 rounded-xl border border-slate-800 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold text-slate-200">Terno</span>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" [disabled]="!authService.canManageOperacao()"
+                [checked]="trajeConfig().terno_cor_obrigatoria"
+                (change)="updateTrajeField('terno_cor_obrigatoria', !trajeConfig().terno_cor_obrigatoria)"
+                class="sr-only peer" />
+              <div
+                class="w-8 h-4 bg-slate-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600">
+              </div>
+            </label>
           </div>
+          @if (trajeConfig().terno_cor_obrigatoria) {
+          <button type="button" [disabled]="!authService.canManageOperacao()" (click)="openColorPicker('terno_cor')"
+            class="w-full px-2.5 py-1.5 bg-slate-950 hover:bg-slate-800 border border-slate-700 hover:border-indigo-400 rounded-lg text-xs text-white font-bold transition-all flex items-center justify-between gap-2 text-left active:scale-95 disabled:opacity-60">
+            <div class="flex items-center gap-2 truncate">
+              <span class="w-3.5 h-3.5 rounded-full border border-white/30 shrink-0 shadow"
+                [style.background-color]="getColorHex(trajeConfig().terno_cor || '')"></span>
+              <span class="truncate">{{ trajeConfig().terno_cor || 'Selecionar Cor' }}</span>
+            </div>
+            <span class="text-[10px] text-indigo-400 font-bold shrink-0">✎ Alterar</span>
+          </button>
+          } @else {
+          <div class="text-[10px] text-slate-500 italic py-1">Cor Livre</div>
+          }
+        </div>
 
-          <!-- Cor da Camisa -->
-          <div class="bg-slate-900/90 p-3 rounded-xl border border-slate-800 space-y-2">
-            <div class="flex items-center justify-between">
-              <span class="text-xs font-semibold text-slate-200">Camisa</span>
-              <label class="relative inline-flex items-center cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  [disabled]="!authService.canManageOperacao()"
-                  [checked]="trajeConfig().camisa_cor_obrigatoria" 
-                  (change)="updateTrajeField('camisa_cor_obrigatoria', !trajeConfig().camisa_cor_obrigatoria)" 
-                  class="sr-only peer" />
-                <div class="w-8 h-4 bg-slate-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600"></div>
-              </label>
-            </div>
-            @if (trajeConfig().camisa_cor_obrigatoria) {
-              <button 
-                type="button"
-                [disabled]="!authService.canManageOperacao()"
-                (click)="openColorPicker('camisa_cor')"
-                class="w-full px-2.5 py-1.5 bg-slate-950 hover:bg-slate-800 border border-slate-700 hover:border-indigo-400 rounded-lg text-xs text-white font-bold transition-all flex items-center justify-between gap-2 text-left active:scale-95 disabled:opacity-60">
-                <div class="flex items-center gap-2 truncate">
-                  <span class="w-3.5 h-3.5 rounded-full border border-white/30 shrink-0 shadow" [style.background-color]="getColorHex(trajeConfig().camisa_cor || '')"></span>
-                  <span class="truncate">{{ trajeConfig().camisa_cor || 'Selecionar Cor' }}</span>
-                </div>
-                <span class="text-[10px] text-indigo-400 font-bold shrink-0">✎ Alterar</span>
-              </button>
-            } @else {
-              <div class="text-[10px] text-slate-500 italic py-1">Cor Livre</div>
-            }
+        <!-- Cor da Gravata -->
+        <div class="bg-slate-900/90 p-3 rounded-xl border border-slate-800 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold text-slate-200">Gravata</span>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" [disabled]="!authService.canManageOperacao()"
+                [checked]="trajeConfig().gravata_cor_obrigatoria"
+                (change)="updateTrajeField('gravata_cor_obrigatoria', !trajeConfig().gravata_cor_obrigatoria)"
+                class="sr-only peer" />
+              <div
+                class="w-8 h-4 bg-slate-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600">
+              </div>
+            </label>
           </div>
+          @if (trajeConfig().gravata_cor_obrigatoria) {
+          <button type="button" [disabled]="!authService.canManageOperacao()" (click)="openColorPicker('gravata_cor')"
+            class="w-full px-2.5 py-1.5 bg-slate-950 hover:bg-slate-800 border border-slate-700 hover:border-indigo-400 rounded-lg text-xs text-white font-bold transition-all flex items-center justify-between gap-2 text-left active:scale-95 disabled:opacity-60">
+            <div class="flex items-center gap-2 truncate">
+              <span class="w-3.5 h-3.5 rounded-full border border-white/30 shrink-0 shadow"
+                [style.background-color]="getColorHex(trajeConfig().gravata_cor || '')"></span>
+              <span class="truncate">{{ trajeConfig().gravata_cor || 'Selecionar Cor' }}</span>
+            </div>
+            <span class="text-[10px] text-indigo-400 font-bold shrink-0">✎ Alterar</span>
+          </button>
+          } @else {
+          <div class="text-[10px] text-slate-500 italic py-1">Cor Livre</div>
+          }
+        </div>
+
+        <!-- Cor da Camisa -->
+        <div class="bg-slate-900/90 p-3 rounded-xl border border-slate-800 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold text-slate-200">Camisa</span>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" [disabled]="!authService.canManageOperacao()"
+                [checked]="trajeConfig().camisa_cor_obrigatoria"
+                (change)="updateTrajeField('camisa_cor_obrigatoria', !trajeConfig().camisa_cor_obrigatoria)"
+                class="sr-only peer" />
+              <div
+                class="w-8 h-4 bg-slate-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600">
+              </div>
+            </label>
+          </div>
+          @if (trajeConfig().camisa_cor_obrigatoria) {
+          <button type="button" [disabled]="!authService.canManageOperacao()" (click)="openColorPicker('camisa_cor')"
+            class="w-full px-2.5 py-1.5 bg-slate-950 hover:bg-slate-800 border border-slate-700 hover:border-indigo-400 rounded-lg text-xs text-white font-bold transition-all flex items-center justify-between gap-2 text-left active:scale-95 disabled:opacity-60">
+            <div class="flex items-center gap-2 truncate">
+              <span class="w-3.5 h-3.5 rounded-full border border-white/30 shrink-0 shadow"
+                [style.background-color]="getColorHex(trajeConfig().camisa_cor || '')"></span>
+              <span class="truncate">{{ trajeConfig().camisa_cor || 'Selecionar Cor' }}</span>
+            </div>
+            <span class="text-[10px] text-indigo-400 font-bold shrink-0">✎ Alterar</span>
+          </button>
+          } @else {
+          <div class="text-[10px] text-slate-500 italic py-1">Cor Livre</div>
+          }
         </div>
       </div>
+    </div>
     }
 
     <!-- Crachá Switch -->
@@ -365,13 +379,12 @@
         <span class="text-xs font-semibold text-slate-200">Uso de Crachá Oficial Obrigatório</span>
       </div>
       <label class="relative inline-flex items-center cursor-pointer shrink-0">
-        <input 
-          type="checkbox" 
-          [disabled]="!authService.canManageOperacao()"
-          [checked]="trajeConfig().cracha_obrigatorio" 
-          (change)="updateTrajeField('cracha_obrigatorio', !trajeConfig().cracha_obrigatorio)" 
-          class="sr-only peer" />
-        <div class="w-10 h-5 bg-slate-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
+        <input type="checkbox" [disabled]="!authService.canManageOperacao()"
+          [checked]="trajeConfig().cracha_obrigatorio"
+          (change)="updateTrajeField('cracha_obrigatorio', !trajeConfig().cracha_obrigatorio)" class="sr-only peer" />
+        <div
+          class="w-10 h-5 bg-slate-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600">
+        </div>
       </label>
     </div>
   </section>
@@ -382,113 +395,104 @@
   <section class="glass-panel rounded-2xl p-4 sm:p-5 border border-slate-800/90 space-y-4 shadow-lg">
     <div class="flex items-center justify-between border-b border-slate-800/80 pb-3 flex-wrap gap-2">
       <div class="flex items-center gap-2.5">
-        <div class="w-8 h-8 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center text-base font-bold">
+        <div
+          class="w-8 h-8 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center text-base font-bold">
           ⏰
         </div>
         <div>
           <h2 class="text-sm sm:text-base font-bold text-white">3. Horários por Setor de Atuação</h2>
-          <p class="text-[11px] text-slate-400">Defina início e término para cada setor (Igreja, Estacionamento, etc.).</p>
+          <p class="text-[11px] text-slate-400">Defina início e término para cada setor (Igreja, Estacionamento, etc.).
+          </p>
         </div>
       </div>
     </div>
 
     <!-- Mini-form Add Horário -->
     @if (authService.canManageOperacao()) {
-      <form (ngSubmit)="adicionarHorarioArea()" class="grid grid-cols-1 sm:grid-cols-4 gap-2 bg-slate-950/60 p-3 rounded-xl border border-slate-800">
-        <div>
-          <label class="block text-[10px] font-semibold text-slate-400 uppercase mb-1">Setor</label>
-          <select 
-            [(ngModel)]="novoHorario.id_area" 
-            name="id_area"
-            class="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white">
-            @for (area of areaService.areas(); track area.id_area) {
-              <option [value]="area.id_area">{{ area.icone || '📍' }} {{ area.nome }}</option>
-            }
-          </select>
-        </div>
+    <form (ngSubmit)="adicionarHorarioArea()"
+      class="grid grid-cols-1 sm:grid-cols-4 gap-2 bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+      <div>
+        <label class="block text-[10px] font-semibold text-slate-400 uppercase mb-1">Setor</label>
+        <select [(ngModel)]="novoHorario.id_area" name="id_area"
+          class="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white">
+          @for (area of areaService.areas(); track area.id_area) {
+          <option [value]="area.id_area">{{ area.icone || '📍' }} {{ area.nome }}</option>
+          }
+        </select>
+      </div>
 
-        <div>
-          <label class="block text-[10px] font-semibold text-slate-400 uppercase mb-1">Turno / Horário</label>
-          <select 
-            [(ngModel)]="novoHorario.horario_turno" 
-            name="horario_turno"
-            class="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white">
-            @for (t of turnosDisponiveis(); track t.id) {
-              <option [value]="t.id">{{ t.label }}</option>
-            }
-          </select>
-        </div>
+      <div>
+        <label class="block text-[10px] font-semibold text-slate-400 uppercase mb-1">Turno / Horário</label>
+        <select [(ngModel)]="novoHorario.horario_turno" name="horario_turno"
+          class="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white">
+          @for (t of turnosDisponiveis(); track t.id) {
+          <option [value]="t.id">{{ t.label }}</option>
+          }
+        </select>
+      </div>
 
-        <div>
-          <label class="block text-[10px] font-semibold text-slate-400 uppercase mb-1">Início</label>
-          <input 
-            type="time" 
-            [(ngModel)]="novoHorario.hora_inicio" 
-            name="hora_inicio"
-            required
-            class="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white"
-          />
-        </div>
+      <div>
+        <label class="block text-[10px] font-semibold text-slate-400 uppercase mb-1">Início</label>
+        <input type="time" [(ngModel)]="novoHorario.hora_inicio" name="hora_inicio" required
+          class="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white" />
+      </div>
 
-        <div class="flex items-end gap-1.5">
-          <div class="flex-1">
-            <label class="block text-[10px] font-semibold text-slate-400 uppercase mb-1">Fim</label>
-            <input 
-              type="time" 
-              [(ngModel)]="novoHorario.hora_fim" 
-              name="hora_fim"
-              required
-              class="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white"
-            />
-          </div>
-          <button 
-            type="submit" 
-            class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg transition-all h-[34px] active:scale-95">
-            + Adicionar
-          </button>
+      <div class="flex items-end gap-1.5">
+        <div class="flex-1">
+          <label class="block text-[10px] font-semibold text-slate-400 uppercase mb-1">Fim</label>
+          <input type="time" [(ngModel)]="novoHorario.hora_fim" name="hora_fim" required
+            class="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white" />
         </div>
-      </form>
+        <button type="submit"
+          class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg transition-all h-[34px] active:scale-95">
+          + Adicionar
+        </button>
+      </div>
+    </form>
     }
 
     <!-- Horários Ativos Configurados -->
     @if (operacaoService.areaHorarios().length > 0) {
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-        @for (h of operacaoService.areaHorarios(); track h.id_area_horario) {
-          <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-3 flex items-center justify-between gap-3 shadow-sm">
-            <div class="flex items-center gap-2.5 min-w-0">
-              <span class="text-xl shrink-0">{{ h.areas?.icone || '📍' }}</span>
-              <div class="min-w-0">
-                <div class="text-xs font-bold text-white truncate">{{ h.areas?.nome }}</div>
-                <div class="text-xs text-indigo-400 font-semibold mt-0.5">
-                  {{ h.horario_turno }}º Horário: <span class="text-white">{{ h.hora_inicio?.substring(0,5) }} às {{ h.hora_fim?.substring(0,5) }}</span>
-                </div>
-              </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+      @for (h of operacaoService.areaHorarios(); track h.id_area_horario) {
+      <div
+        class="bg-slate-900/90 border border-slate-800 rounded-xl p-3 flex items-center justify-between gap-3 shadow-sm">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <span class="text-xl shrink-0">{{ h.areas?.icone || '📍' }}</span>
+          <div class="min-w-0">
+            <div class="text-xs font-bold text-white truncate">{{ h.areas?.nome }}</div>
+            <div class="text-xs text-indigo-400 font-semibold mt-0.5">
+              {{ h.horario_turno }}º Horário: <span class="text-white">{{ h.hora_inicio?.substring(0,5) }} às {{
+                h.hora_fim?.substring(0,5) }}</span>
             </div>
-
-            @if (authService.canManageOperacao()) {
-              <button 
-                (click)="removerHorarioArea(h)"
-                class="px-2.5 py-1.5 text-xs font-semibold text-rose-300 hover:text-white bg-rose-500/10 hover:bg-rose-600 border border-rose-500/30 rounded-lg transition-all flex items-center gap-1 shrink-0 active:scale-95"
-                title="Excluir este horário">
-                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-                <span>Excluir</span>
-              </button>
-            }
           </div>
+        </div>
+
+        @if (authService.canManageOperacao()) {
+        <button (click)="removerHorarioArea(h)"
+          class="px-2.5 py-1.5 text-xs font-semibold text-rose-300 hover:text-white bg-rose-500/10 hover:bg-rose-600 border border-rose-500/30 rounded-lg transition-all flex items-center gap-1 shrink-0 active:scale-95"
+          title="Excluir este horário">
+          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+          <span>Excluir</span>
+        </button>
         }
       </div>
+      }
+    </div>
     }
   </section>
 
   <!-- ========================================================================= -->
   <!-- PASSO 4: 📍 DESIGNAÇÃO DE POSTOS DOS OBREIROS ESCALADOS -->
   <!-- ========================================================================= -->
-  <section class="glass-panel rounded-2xl p-4 sm:p-5 border border-slate-800/90 space-y-4 shadow-lg">
+  <section class="glass-panel rounded-2xl p-3 sm:p-5 border border-slate-800/90 space-y-4 shadow-lg">
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
       <div class="flex items-center gap-2.5">
-        <div class="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center text-base font-bold">
+        <div
+          class="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center text-base font-bold shrink-0">
           📍
         </div>
         <div>
@@ -503,21 +507,17 @@
       </div>
 
       <!-- Quick filters: Turno & Status -->
-      <div class="flex items-center gap-1.5 overflow-x-auto scrollbar-none self-stretch sm:self-auto">
-        <select 
-          [ngModel]="filtroTurnoPosto()" 
-          (ngModelChange)="onFiltroTurnoChanged($event)"
-          class="px-2.5 py-1 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white focus:outline-none">
+      <div class="flex items-center gap-2 flex-wrap w-full sm:w-auto">
+        <select [ngModel]="filtroTurnoPosto()" (ngModelChange)="onFiltroTurnoChanged($event)"
+          class="flex-1 sm:flex-initial px-3 py-2 sm:py-1 bg-slate-900 border border-slate-700 rounded-xl sm:rounded-lg text-xs sm:text-sm text-white focus:outline-none focus:border-indigo-500">
           <option value="TODOS">Todos Horários</option>
           @for (t of turnosDisponiveis(); track t.id) {
-            <option [value]="t.id">{{ t.label }}</option>
+          <option [value]="t.id">{{ t.label }}</option>
           }
         </select>
 
-        <select 
-          [ngModel]="filtroStatusPosto()" 
-          (ngModelChange)="onFiltroStatusChanged($event)"
-          class="px-2.5 py-1 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white focus:outline-none">
+        <select [ngModel]="filtroStatusPosto()" (ngModelChange)="onFiltroStatusChanged($event)"
+          class="flex-1 sm:flex-initial px-3 py-2 sm:py-1 bg-slate-900 border border-slate-700 rounded-xl sm:rounded-lg text-xs sm:text-sm text-white focus:outline-none focus:border-indigo-500">
           <option value="TODOS">Todos</option>
           <option value="PENDENTES">⏳ Sem Posto ({{ totalPendentes() }})</option>
           <option value="ALOCADOS">✓ Alocados ({{ totalAlocados() }})</option>
@@ -525,443 +525,738 @@
       </div>
     </div>
 
-    <!-- 1. CARD DEDICADO DE OBREIROS SEM POSTO / PENDENTES -->
-    @if (obreirosSemPosto().length > 0) {
-      <div class="bg-amber-950/20 border border-amber-500/30 rounded-2xl p-4 space-y-3 shadow-inner">
-        <div class="flex items-center justify-between border-b border-amber-500/20 pb-2.5 flex-wrap gap-2">
-          <div class="flex items-center gap-2">
-            <span class="text-lg">⏳</span>
-            <h3 class="text-sm sm:text-base font-bold text-amber-300">Obreiros Sem Posto Definido</h3>
-            <span class="text-[11px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">
-              {{ obreirosSemPosto().length }} pendentes
+    <!-- 1. POSTOS ORGANIZADOS POR HORÁRIO & SETOR -->
+    <div class="space-y-4 sm:space-y-5">
+      @for (group of gruposPorTurno(); track group.id) {
+      <div class="bg-transparent sm:bg-slate-950/70 border-0 sm:border border-slate-800/90 rounded-none sm:rounded-2xl p-0 sm:p-5 space-y-3.5 sm:space-y-4">
+        <!-- Turno Header -->
+        <div class="flex items-center justify-between border-b border-slate-800 pb-2 sm:pb-3 flex-wrap gap-2">
+          <div class="flex items-center gap-2.5">
+            <h3 class="text-base sm:text-lg font-bold text-white tracking-tight">{{ group.label }}</h3>
+            <span
+              [class]="group.alocadosCount > 0 ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20' : 'bg-slate-800 text-slate-400 border-slate-700'"
+              class="text-xs px-2.5 py-0.5 rounded-full font-semibold border">
+              {{ group.alocadosCount }} alocados
             </span>
           </div>
-          <span class="text-[11px] text-amber-200/70">Selecione o turno e o posto para alocar</span>
-        </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          @for (escala of obreirosSemPosto(); track escala.id_escala) {
-            <div class="rounded-xl p-3 border border-amber-500/20 bg-slate-900/90 flex flex-col justify-between space-y-2.5 transition-all hover:border-amber-500/40 shadow-sm">
-              <!-- Card Header -->
-              <div class="flex items-start justify-between gap-2">
-                <div class="flex items-center gap-2.5 min-w-0">
-                  <div class="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500/30 text-amber-300 font-bold text-xs flex items-center justify-center shrink-0">
-                    {{ escala.obreiros?.nome?.charAt(0) || 'O' }}
-                  </div>
-                  <div class="min-w-0">
-                    <h4 class="text-xs sm:text-sm font-bold text-white truncate">
-                      {{ escala.obreiros?.nome }}
-                    </h4>
-                    <div class="flex items-center gap-1 mt-0.5 flex-wrap">
-                      @if (escala.obreiros?.pulpito) {
-                        <span class="text-[9px] px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-300 border border-purple-500/40 font-bold flex items-center gap-0.5">
-                          <span>🎙️</span>
-                          <span>Púlpito</span>
-                        </span>
-                      }
-                      @if (escala.obreiros?.diacono) {
-                        <span class="text-[9px] px-1.5 py-0.2 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-semibold">
-                          Diácono
-                        </span>
-                      }
-                      @if (escala.obreiros?.lider) {
-                        <span class="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 font-semibold">
-                          Líder
-                        </span>
-                      }
-                    </div>
-                  </div>
-                </div>
-
-                <span class="bg-amber-500/10 text-amber-400 border-amber-500/30 text-[9px] uppercase font-bold px-1.5 py-0.5 rounded border shrink-0">
-                  Pendente
-                </span>
-              </div>
-
-              <!-- Action: Escolher Posto (Abre o seletor modal seguro) -->
-              <div class="pt-2 border-t border-slate-800/80">
-                <button 
-                  type="button" 
-                  [disabled]="!authService.canManageOperacao()"
-                  (click)="openPostoPicker(escala)"
-                  class="w-full py-2 px-3 bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/30 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed group">
-                  <svg class="w-3.5 h-3.5 text-indigo-400 group-hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                  </svg>
-                  <span>Designar Posto & Horário</span>
-                </button>
-              </div>
-            </div>
+          @if (group.maxVagas) {
+          <div class="text-xs text-slate-400">
+            Meta: <span class="text-slate-200 font-bold">{{ group.maxVagas }} vagas</span>
+          </div>
           }
         </div>
-      </div>
-    }
 
-    <!-- 2. CARDS ORGANIZADOS POR HORÁRIO / TURNO -->
-    <div class="space-y-4">
-      @for (group of gruposPorTurno(); track group.id) {
-        <div class="bg-slate-950/70 border border-slate-800/90 rounded-2xl p-4 sm:p-5 space-y-4 shadow-inner">
-          <!-- Turno Card Header (Sem ícone de sol) -->
-          <div class="flex items-center justify-between border-b border-slate-800/80 pb-3 flex-wrap gap-2">
-            <div class="flex items-center gap-2">
-              <h3 class="text-sm sm:text-base font-bold text-white tracking-tight">{{ group.label }}</h3>
-              <span 
-                [class]="group.alocadosCount > 0 ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20' : 'bg-slate-800 text-slate-400 border-slate-700'"
-                class="text-[11px] px-2.5 py-0.5 rounded-full font-semibold border">
-                {{ group.alocadosCount }} alocados
+        <!-- Sub-agrupamento por Setor (Igreja, Estacionamento, etc.) -->
+        <div class="space-y-3 sm:space-y-4">
+          @for (setor of group.setores; track setor.area.id_area) {
+          <div class="space-y-2.5 sm:space-y-3 bg-transparent sm:bg-slate-900/40 p-0 sm:p-3.5 border-0 sm:border border-slate-800/60 rounded-none sm:rounded-xl">
+            <!-- Setor Sub-header -->
+            <div class="flex items-center justify-between border-b border-slate-800/60 pb-1.5 sm:pb-2 pt-1 sm:pt-0">
+              <div class="flex items-center gap-2">
+                <span class="text-base sm:text-lg">{{ setor.area.icone || '📍' }}</span>
+                <h4 class="text-xs sm:text-sm font-bold text-slate-200 uppercase tracking-wider">
+                  {{ setor.area.nome }}
+                </h4>
+              </div>
+              <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+                {{ getLocaisPorArea(setor.area.id_area).length }} postos
               </span>
             </div>
 
-            @if (group.maxVagas) {
-              <div class="text-[11px] text-slate-400">
-                Meta do modelo: <span class="text-slate-200 font-bold">{{ group.maxVagas }} vagas</span>
-              </div>
-            }
-          </div>
-
-          @if (group.alocadosCount === 0) {
-            <div class="p-5 text-center text-xs text-slate-500 italic bg-slate-900/40 rounded-xl border border-slate-800/60">
-              Nenhum obreiro alocado para o {{ group.label }} ainda.
-            </div>
-          } @else {
-            <!-- Sub-agrupamento por Setor (Igreja, Estacionamento, etc.) -->
-            <div class="space-y-4">
-              @for (setor of group.setores; track setor.area.id_area) {
-                <div class="space-y-2.5 bg-slate-900/40 rounded-xl p-3 sm:p-3.5 border border-slate-800/60">
-                  <!-- Setor Sub-header -->
-                  <div class="flex items-center justify-between border-b border-slate-800/60 pb-2">
-                    <div class="flex items-center gap-2">
-                      <span class="text-base">{{ setor.area.icone || '📍' }}</span>
-                      <h4 class="text-xs sm:text-sm font-bold text-slate-200 uppercase tracking-wider">
-                        {{ setor.area.nome }}
-                      </h4>
-                      <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
-                        {{ setor.escalas.length }} {{ setor.escalas.length === 1 ? 'obreiro' : 'obreiros' }}
-                      </span>
+            <!-- Grade de Postos deste Setor (Cards de Nível Principal no Mobile) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              @for (local of getLocaisPorArea(setor.area.id_area); track local.id_local) {
+              <div class="bg-slate-900 sm:bg-slate-950/70 border border-slate-800 sm:border-slate-800/80 rounded-2xl sm:rounded-xl p-3.5 sm:p-3 space-y-3 sm:space-y-2.5 transition-all hover:border-slate-700 flex flex-col justify-between shadow-md sm:shadow-none">
+                <!-- Local Header -->
+                <div class="flex items-start justify-between gap-2 border-b border-slate-800/70 pb-2.5 sm:pb-2">
+                  <div class="min-w-0 flex-1">
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                      <span class="text-sm sm:text-xs font-bold text-white leading-tight break-words">{{ local.nome }}</span>
+                      @if (getEscalasDoLocalNoTurno(local.id_local, group.id).length > 0) {
+                        <span class="text-[10px] sm:text-[9px] px-2 sm:px-1.5 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30 shrink-0">
+                          {{ getEscalasDoLocalNoTurno(local.id_local, group.id).length }} escalado(s)
+                        </span>
+                      } @else {
+                        <span class="text-[10px] sm:text-[9px] px-2 sm:px-1.5 py-0.5 rounded-md bg-slate-800 text-slate-400 font-medium shrink-0">
+                          Vago
+                        </span>
+                      }
                     </div>
                   </div>
 
-                  <!-- Grid de Obreiros deste Setor -->
-                  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    @for (escala of setor.escalas; track escala.id_escala) {
-                      <div class="rounded-xl p-3 border border-emerald-500/30 bg-slate-900/90 flex flex-col justify-between space-y-2.5 transition-all hover:border-slate-700 shadow-sm">
-                        
-                        <!-- Card Header with Púlpito Highlight -->
-                        <div class="flex items-start justify-between gap-2">
-                          <div class="flex items-center gap-2.5 min-w-0">
-                            <div class="w-8 h-8 rounded-lg bg-indigo-600/30 border border-indigo-500/30 text-indigo-300 font-bold text-xs flex items-center justify-center shrink-0">
-                              {{ escala.obreiros?.nome?.charAt(0) || 'O' }}
-                            </div>
-                            <div class="min-w-0">
-                              <h4 class="text-xs sm:text-sm font-bold text-white truncate">
-                                {{ escala.obreiros?.nome }}
-                              </h4>
-                              <div class="flex items-center gap-1 mt-0.5 flex-wrap">
-                                @if (escala.obreiros?.pulpito) {
-                                  <span class="text-[9px] px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-300 border border-purple-500/40 font-bold flex items-center gap-0.5">
-                                    <span>🎙️</span>
-                                    <span>Púlpito</span>
-                                  </span>
-                                }
-                                @if (escala.obreiros?.diacono) {
-                                  <span class="text-[9px] px-1.5 py-0.2 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-semibold">
-                                    Diácono
-                                  </span>
-                                }
-                                @if (escala.obreiros?.lider) {
-                                  <span class="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 font-semibold">
-                                    Líder
-                                  </span>
-                                }
-                              </div>
-                            </div>
-                          </div>
+                  <!-- Botão Alocar Diácono (Touch target espaçoso) -->
+                  <button 
+                    type="button" 
+                    [disabled]="!authService.canManageOperacao()" 
+                    (click)="selectLocalETurnoParaDesignar(local, group.id)"
+                    class="px-3.5 py-1.5 sm:px-2.5 sm:py-1 bg-purple-600/20 hover:bg-purple-600 text-purple-300 hover:text-white border border-purple-500/30 rounded-xl sm:rounded-lg text-xs sm:text-[11px] font-bold transition-all flex items-center gap-1.5 shrink-0 active:scale-95 disabled:opacity-50 group shadow-sm"
+                    title="Alocar diácono neste posto no {{ group.label }}">
+                    <span class="text-purple-400 group-hover:text-white font-black text-sm sm:text-xs">+</span>
+                    <span>Alocar</span>
+                  </button>
+                </div>
 
-                          <!-- Status Tag -->
-                          <span class="bg-emerald-500/10 text-emerald-400 border-emerald-500/30 text-[9px] uppercase font-bold px-1.5 py-0.5 rounded border shrink-0">
-                            Alocado
-                          </span>
+                <!-- Lista de Obreiros Alocados no Posto -->
+                <div class="space-y-2 sm:space-y-1.5 flex-1">
+                  @for (escala of getEscalasDoLocalNoTurno(local.id_local, group.id); track escala.id_escala) {
+                    <div class="rounded-xl sm:rounded-lg p-2.5 sm:p-2 bg-slate-950/80 sm:bg-slate-900 border border-emerald-500/30 flex items-center justify-between gap-2 shadow-sm">
+                      <div class="flex items-center gap-2.5 min-w-0">
+                        <div class="w-8 h-8 sm:w-6 sm:h-6 rounded-lg sm:rounded-md bg-indigo-600/30 border border-indigo-500/30 text-indigo-300 font-bold text-xs sm:text-[10px] flex items-center justify-center shrink-0">
+                          {{ escala.obreiros?.nome?.charAt(0) || 'O' }}
                         </div>
-
-                        <!-- Posto Info & Actions -->
-                        <div class="pt-2 border-t border-slate-800/80 flex items-center justify-between gap-2">
-                          <button 
-                            type="button" 
-                            [disabled]="!authService.canManageOperacao()"
-                            (click)="openPostoPicker(escala)"
-                            class="flex-1 min-w-0 flex items-center gap-1.5 text-xs text-indigo-200 font-bold bg-indigo-950/60 hover:bg-indigo-900/80 px-2.5 py-1.5 rounded-lg border border-indigo-500/30 transition-all text-left group active:scale-95 disabled:opacity-60">
-                            <span class="shrink-0">{{ escala.locais?.areas?.icone || '📍' }}</span>
-                            <span class="truncate">{{ escala.locais?.nome }}</span>
-                            <span class="text-[10px] text-indigo-400 opacity-60 group-hover:opacity-100 ml-auto shrink-0">✎</span>
-                          </button>
-
-                          @if (authService.canManageOperacao()) {
-                            <button 
-                              (click)="desvincularPosto(escala)"
-                              class="h-[32px] px-2.5 text-xs font-semibold text-rose-300 hover:text-white bg-rose-500/10 hover:bg-rose-600 border border-rose-500/30 rounded-lg transition-all flex items-center justify-center gap-1 shrink-0 active:scale-95"
-                              title="Remover este posto e retornar obreiro para pendentes">
-                              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                              </svg>
-                              <span>Remover</span>
-                            </button>
-                          }
+                        <div class="min-w-0">
+                          <span class="text-xs sm:text-xs font-bold text-white truncate block leading-tight">{{ escala.obreiros?.nome }}</span>
+                          <div class="flex items-center gap-1.5 flex-wrap text-[10px] sm:text-[9px] mt-0.5">
+                            @if (escala.obreiros?.pulpito) {
+                              <span class="text-purple-300 font-bold">🎙️ Púlpito</span>
+                            }
+                            @if (escala.obreiros?.diacono) {
+                              <span class="text-indigo-400">Diácono</span>
+                            }
+                            @if (escala.obreiros?.lider) {
+                              <span class="text-amber-400 font-bold">Líder</span>
+                            }
+                          </div>
                         </div>
                       </div>
-                    }
-                  </div>
+
+                      <div class="flex items-center gap-1 shrink-0">
+                        @if (authService.canManageOperacao()) {
+                          <button 
+                            type="button" 
+                            (click)="openPostoPicker(escala)" 
+                            class="h-8 sm:h-auto px-2.5 py-1 sm:p-1 rounded-lg sm:rounded text-slate-300 sm:text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/20 bg-slate-800 sm:bg-transparent text-xs" 
+                            title="Trocar Posto / Horário">
+                            ✎
+                          </button>
+                          <button 
+                            type="button" 
+                            (click)="desvincularPosto(escala)" 
+                            class="h-8 sm:h-auto px-2.5 py-1 sm:p-1 rounded-lg sm:rounded text-rose-300 sm:text-slate-400 hover:text-white sm:hover:text-rose-400 hover:bg-rose-600 sm:hover:bg-rose-500/10 bg-rose-500/20 sm:bg-transparent text-xs" 
+                            title="Remover do Posto">
+                            ✕
+                          </button>
+                        }
+                      </div>
+                    </div>
+                  } @empty {
+                    <button 
+                      type="button" 
+                      [disabled]="!authService.canManageOperacao()" 
+                      (click)="selectLocalETurnoParaDesignar(local, group.id)"
+                      class="w-full py-3 sm:py-2.5 px-3 rounded-xl sm:rounded-lg border border-dashed border-slate-800 hover:border-purple-500/40 bg-slate-950/40 sm:bg-slate-900/20 hover:bg-purple-950/20 text-slate-400 sm:text-slate-500 hover:text-purple-300 text-xs sm:text-[11px] font-medium transition-all flex items-center justify-center gap-1.5 active:scale-95 group">
+                      <span class="text-purple-400 font-bold">+</span>
+                      <span>Toque para alocar diácono</span>
+                    </button>
+                  }
                 </div>
+              </div>
               }
             </div>
+          </div>
           }
         </div>
+      </div>
       }
     </div>
+
+    <!-- 2. CARD DEDICADO DE OBREIROS SEM POSTO / PENDENTES (Após os Horários) -->
+    @if (obreirosSemPosto().length > 0) {
+    <div class="bg-amber-950/20 border border-amber-500/30 rounded-2xl p-3.5 sm:p-4 space-y-3 shadow-inner">
+      <div class="flex items-center justify-between border-b border-amber-500/20 pb-2.5 flex-wrap gap-2">
+        <div class="flex items-center gap-2">
+          <span class="text-lg">⏳</span>
+          <h3 class="text-sm sm:text-base font-bold text-amber-300">Obreiros Sem Posto Definido</h3>
+          <span
+            class="text-[11px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">
+            {{ obreirosSemPosto().length }} pendentes
+          </span>
+        </div>
+        <span class="text-[11px] text-amber-200/70">Toque em um obreiro para escolher o horário e posto</span>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        @for (escala of obreirosSemPosto(); track escala.id_escala) {
+        <div
+          class="rounded-2xl sm:rounded-xl p-3.5 sm:p-3 border border-amber-500/20 bg-slate-900/90 flex flex-col justify-between space-y-3 sm:space-y-2.5 transition-all hover:border-amber-500/40 shadow-sm">
+          <!-- Card Header -->
+          <div class="flex items-start justify-between gap-2">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <div
+                class="w-9 h-9 sm:w-8 sm:h-8 rounded-xl sm:rounded-lg bg-amber-500/20 border border-amber-500/30 text-amber-300 font-bold text-sm sm:text-xs flex items-center justify-center shrink-0">
+                {{ escala.obreiros?.nome?.charAt(0) || 'O' }}
+              </div>
+              <div class="min-w-0">
+                <h4 class="text-sm sm:text-xs font-bold text-white truncate">
+                  {{ escala.obreiros?.nome }}
+                </h4>
+                <div class="flex items-center gap-1 mt-0.5 flex-wrap">
+                  @if (escala.obreiros?.pulpito) {
+                  <span
+                    class="text-[9px] px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-300 border border-purple-500/40 font-bold flex items-center gap-0.5">
+                    <span>🎙️</span>
+                    <span>Púlpito</span>
+                  </span>
+                  }
+                  @if (escala.obreiros?.diacono) {
+                  <span
+                    class="text-[9px] px-1.5 py-0.2 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-semibold">
+                    Diácono
+                  </span>
+                  }
+                  @if (escala.obreiros?.lider) {
+                  <span
+                    class="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 font-semibold">
+                    Líder
+                  </span>
+                  }
+                </div>
+              </div>
+            </div>
+
+            <span
+              class="bg-amber-500/10 text-amber-400 border-amber-500/30 text-[9px] uppercase font-bold px-1.5 py-0.5 rounded border shrink-0">
+              Pendente
+            </span>
+          </div>
+
+          <!-- Action: Escolher Posto -->
+          <div class="pt-2 border-t border-slate-800/80">
+            <button type="button" [disabled]="!authService.canManageOperacao()" (click)="openPostoPicker(escala)"
+              class="w-full py-2.5 sm:py-2 px-3 bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/30 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed group">
+              <svg class="w-3.5 h-3.5 text-indigo-400 group-hover:text-white transition-colors" fill="none"
+                viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+              </svg>
+              <span>Designar Posto & Horário</span>
+            </button>
+          </div>
+        </div>
+        }
+      </div>
+    </div>
+    }
   </section>
 
   <!-- ========================================================================= -->
   <!-- MODAL SEGURO: DESIGNAR POSTO PARA O OBREIRO -->
   <!-- ========================================================================= -->
   @if (selectedEscalaForPicker()) {
-    <div class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">
-      <div class="bg-slate-900 border border-slate-700/80 rounded-2xl max-w-lg w-full p-4 sm:p-5 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
-        <!-- Modal Header -->
-        <div class="flex items-start justify-between border-b border-slate-800 pb-3 gap-2">
-          <div>
-            <span class="text-[10px] uppercase font-bold tracking-wider text-indigo-400 block">Designar Posto</span>
-            <h3 class="text-base sm:text-lg font-bold text-white flex items-center gap-1.5 flex-wrap">
-              <span>{{ selectedEscalaForPicker()?.obreiros?.nome }}</span>
-              @if (selectedEscalaForPicker()?.obreiros?.pulpito) {
-                <span class="text-[9px] px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-300 border border-purple-500/40 font-bold">🎙️ Púlpito</span>
-              }
-              @if (selectedEscalaForPicker()?.obreiros?.diacono) {
-                <span class="text-[9px] px-1.5 py-0.2 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-semibold">Diácono</span>
-              }
-            </h3>
-          </div>
-          <button 
-            type="button" 
-            (click)="closePostoPicker()"
-            class="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors">
-            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+  <div
+    class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">
+    <div
+      class="bg-slate-900 border border-slate-700/80 rounded-2xl max-w-lg w-full p-4 sm:p-5 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+      <!-- Modal Header -->
+      <div class="flex items-start justify-between border-b border-slate-800 pb-3 gap-2">
+        <div>
+          <span class="text-[10px] uppercase font-bold tracking-wider text-indigo-400 block">Designar Posto</span>
+          <h3 class="text-base sm:text-lg font-bold text-white flex items-center gap-1.5 flex-wrap">
+            <span>{{ selectedEscalaForPicker()?.obreiros?.nome }}</span>
+            @if (selectedEscalaForPicker()?.obreiros?.pulpito) {
+            <span
+              class="text-[9px] px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-300 border border-purple-500/40 font-bold">🎙️
+              Púlpito</span>
+            }
+            @if (selectedEscalaForPicker()?.obreiros?.diacono) {
+            <span
+              class="text-[9px] px-1.5 py-0.2 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-semibold">Diácono</span>
+            }
+          </h3>
         </div>
+        <button type="button" (click)="closePostoPicker()"
+          class="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
 
-        <!-- 1. Seleção de Turno / Horário -->
-        <div class="space-y-1.5">
-          <label class="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-            1. Horário de Atuação:
-          </label>
-          <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            @for (t of turnosDisponiveis(); track t.id) {
-              <button 
-                type="button"
-                (click)="setPickerTurno(t.id)"
-                [class]="selectedTurnoForPicker() === t.id ? 'bg-indigo-600 text-white font-bold border-indigo-500 shadow-md ring-1 ring-indigo-400' : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-slate-200'"
-                class="py-2 px-3 rounded-xl text-xs border transition-all text-center">
-                {{ t.label }}
-              </button>
+      <!-- Banner de Sugestão e Diagnóstico Anual -->
+      @if (obreiroStatsAno()) {
+      <div
+        class="p-3 bg-gradient-to-r from-indigo-950/70 via-slate-900 to-indigo-950/70 border border-indigo-500/30 rounded-xl space-y-1 shadow-inner">
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-[10px] uppercase font-extrabold tracking-wider text-indigo-400 flex items-center gap-1.5">
+            <span>💡</span>
+            <span>Equilíbrio de Escala • Ano {{ obreiroStatsAno()?.ano }}</span>
+          </span>
+          <span class="text-[10px] font-mono text-slate-400">{{ obreiroStatsAno()?.totalEscalasAno }} escala(s) no
+            ano</span>
+        </div>
+        <p class="text-xs text-slate-200 leading-snug">
+          Menos atuou no <strong class="text-amber-300 font-bold">{{ obreiroStatsAno()?.horarioMenosAtuadoLabel
+            }}</strong> ({{ obreiroStatsAno()?.horarioMenosAtuadoQtd }}x)
+          e no posto <strong class="text-emerald-300 font-bold">{{ obreiroStatsAno()?.postoMenosAtuadoNome }}</strong>
+          ({{ obreiroStatsAno()?.postoMenosAtuadoQtd }}x).
+        </p>
+      </div>
+      }
+
+      <!-- 1. Seleção de Turno / Horário -->
+      <div class="space-y-1.5">
+        <label class="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+          1. Horário de Atuação:
+        </label>
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          @for (t of turnosDisponiveis(); track t.id) {
+          <button type="button" (click)="setPickerTurno(t.id)" [class]="selectedTurnoForPicker() === t.id 
+                  ? 'bg-indigo-600 text-white font-bold border-indigo-400 shadow-md ring-2 ring-indigo-400' 
+                  : (isHorarioMenosAtuado(t.id) 
+                    ? 'bg-slate-950 text-amber-200 border-amber-500/40 hover:border-amber-400 hover:text-white' 
+                    : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-slate-200')"
+            class="py-2.5 px-3 rounded-xl text-xs border transition-all text-center flex flex-col items-center justify-center gap-0.5">
+            <div class="flex items-center gap-1">
+              <span>{{ t.label }}</span>
+              @if (isHorarioMenosAtuado(t.id)) {
+              <span
+                class="text-[8px] px-1 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold">
+                💡 Menos atuou
+              </span>
+              }
+            </div>
+            @if (obreiroStatsAno()) {
+            <span class="text-[10px] font-mono opacity-80" [class.text-amber-300]="isHorarioMenosAtuado(t.id)">
+              {{ getObreiroHorarioCountNoAno(t.id) }}x no ano
+            </span>
+            }
+          </button>
+          }
+        </div>
+      </div>
+
+      <!-- 2. Seleção de Posto por Setor -->
+      <div class="space-y-3 pt-1">
+        <label class="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+          2. Toque no Posto para Confirmar:
+        </label>
+
+        @for (area of areaService.areas(); track area.id_area) {
+        <div class="bg-slate-950/70 border border-slate-800 rounded-xl p-3 space-y-2">
+          <div class="flex items-center gap-1.5 text-xs font-bold text-slate-300">
+            <span>{{ area.icone || '📍' }}</span>
+            <span>{{ area.nome }}</span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+            @for (local of getLocaisPorArea(area.id_area); track local.id_local) {
+            <button type="button" (click)="selectPosto(local)"
+              [class]="selectedEscalaForPicker()?.id_local === local.id_local && selectedEscalaForPicker()?.horario_turno === selectedTurnoForPicker() 
+                      ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/60 font-bold ring-1 ring-emerald-500/40' 
+                      : (isPostoMenosAtuado(local.id_local!) 
+                        ? 'bg-slate-900 text-slate-200 border-indigo-500/30 hover:border-indigo-400 hover:bg-slate-800 hover:text-white' 
+                        : 'bg-slate-900/90 text-slate-300 border-slate-800 hover:border-indigo-500/50 hover:bg-slate-800 hover:text-white')"
+              class="px-3 py-2.5 rounded-lg text-xs border text-left flex items-center justify-between gap-1 transition-all active:scale-95 group">
+              <div class="flex items-center gap-1.5 truncate">
+                <span class="truncate">{{ local.nome }}</span>
+                @if (isPostoMenosAtuado(local.id_local!)) {
+                <span
+                  class="text-[8px] font-extrabold px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shrink-0">
+                  💡 Menos atuou
+                </span>
+                }
+              </div>
+              <div class="flex items-center gap-1.5 shrink-0">
+                @if (obreiroStatsAno()) {
+                <span class="text-[10px] font-mono text-slate-400 group-hover:text-slate-200">
+                  {{ getObreiroPostoCountNoAno(local.id_local!) }}x
+                </span>
+                }
+                @if (selectedEscalaForPicker()?.id_local === local.id_local && selectedEscalaForPicker()?.horario_turno
+                === selectedTurnoForPicker()) {
+                <span class="text-xs font-bold text-emerald-400">✓ Atual</span>
+                }
+              </div>
+            </button>
             }
           </div>
         </div>
+        }
+      </div>
 
-        <!-- 2. Seleção de Posto por Setor -->
-        <div class="space-y-3 pt-1">
-          <label class="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-            2. Toque no Posto para Confirmar:
-          </label>
+      <!-- Modal Footer -->
+      <div class="flex items-center justify-between pt-3 border-t border-slate-800 gap-2">
+        @if (selectedEscalaForPicker()?.id_local) {
+        <button type="button" (click)="removerPostoModal()"
+          class="px-3 py-2 text-xs font-semibold text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all flex items-center gap-1.5">
+          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+          <span>Remover Posto</span>
+        </button>
+        } @else {
+        <div></div>
+        }
 
-          @for (area of areaService.areas(); track area.id_area) {
-            <div class="bg-slate-950/70 border border-slate-800 rounded-xl p-3 space-y-2">
-              <div class="flex items-center gap-1.5 text-xs font-bold text-slate-300">
-                <span>{{ area.icone || '📍' }}</span>
-                <span>{{ area.nome }}</span>
-              </div>
-
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                @for (local of getLocaisPorArea(area.id_area); track local.id_local) {
-                  <button 
-                    type="button"
-                    (click)="selectPosto(local)"
-                    [class]="selectedEscalaForPicker()?.id_local === local.id_local && selectedEscalaForPicker()?.horario_turno === selectedTurnoForPicker() ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/60 font-bold ring-1 ring-emerald-500/40' : 'bg-slate-900/90 text-slate-300 border-slate-800 hover:border-indigo-500/50 hover:bg-slate-800 hover:text-white'"
-                    class="px-3 py-2.5 rounded-lg text-xs border text-left flex items-center justify-between gap-1 transition-all active:scale-95 group">
-                    <span class="truncate">{{ local.nome }}</span>
-                    @if (selectedEscalaForPicker()?.id_local === local.id_local && selectedEscalaForPicker()?.horario_turno === selectedTurnoForPicker()) {
-                      <span class="text-xs font-bold text-emerald-400">✓ Atual</span>
-                    }
-                  </button>
-                }
-              </div>
-            </div>
-          }
-        </div>
-
-        <!-- Modal Footer -->
-        <div class="flex items-center justify-between pt-3 border-t border-slate-800 gap-2">
-          @if (selectedEscalaForPicker()?.id_local) {
-            <button 
-              type="button"
-              (click)="removerPostoModal()"
-              class="px-3 py-2 text-xs font-semibold text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all flex items-center gap-1.5">
-              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-              <span>Remover Posto</span>
-            </button>
-          } @else {
-            <div></div>
-          }
-
-          <button 
-            type="button"
-            (click)="closePostoPicker()"
-            class="px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-xl transition-all">
-            Cancelar
-          </button>
-        </div>
+        <button type="button" (click)="closePostoPicker()"
+          class="px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-xl transition-all">
+          Cancelar
+        </button>
       </div>
     </div>
+  </div>
   }
 
   <!-- ========================================================================= -->
   <!-- MODAL SEGURO: SELETOR DE COR DO TERNO / GRAVATA / CAMISA -->
   <!-- ========================================================================= -->
   @if (activeColorPickerField()) {
-    <div class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">
-      <div class="bg-slate-900 border border-slate-700/80 rounded-2xl max-w-md w-full p-4 sm:p-5 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
-        <!-- Modal Header -->
-        <div class="flex items-start justify-between border-b border-slate-800 pb-3 gap-2">
-          <div>
-            <span class="text-[10px] uppercase font-bold tracking-wider text-indigo-400 block">Especificação de Traje</span>
-            <h3 class="text-base sm:text-lg font-bold text-white">{{ getColorPickerTitle() }}</h3>
-          </div>
-          <button 
-            type="button" 
-            (click)="closeColorPicker()"
-            class="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors">
-            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+  <div
+    class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">
+    <div
+      class="bg-slate-900 border border-slate-700/80 rounded-2xl max-w-md w-full p-4 sm:p-5 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+      <!-- Modal Header -->
+      <div class="flex items-start justify-between border-b border-slate-800 pb-3 gap-2">
+        <div>
+          <span class="text-[10px] uppercase font-bold tracking-wider text-indigo-400 block">Especificação de
+            Traje</span>
+          <h3 class="text-base sm:text-lg font-bold text-white">{{ getColorPickerTitle() }}</h3>
         </div>
+        <button type="button" (click)="closeColorPicker()"
+          class="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
 
-        <!-- Opções de Cores em Grade de Botões -->
-        <div class="space-y-1.5">
-          <label class="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-            Selecione uma cor para confirmar:
-          </label>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-            @for (cor of getColorPickerOptions(); track cor) {
-              <button 
-                type="button"
-                (click)="selectColorOption(cor)"
-                [class]="getColorBorderStyle(cor, getColorPickerCurrentValue() === cor)"
-                class="px-3.5 py-3 rounded-xl text-xs flex items-center justify-between gap-2.5 transition-all active:scale-95 group">
-                <div class="flex items-center gap-2.5 min-w-0">
-                  <span 
-                    class="w-4 h-4 rounded-full border border-white/40 shrink-0 shadow-md"
-                    [style.background-color]="getColorHex(cor)">
-                  </span>
-                  <span class="truncate font-semibold" [class.font-black]="getColorPickerCurrentValue() === cor">
-                    {{ cor }}
-                  </span>
-                </div>
-                @if (getColorPickerCurrentValue() === cor) {
-                  <span class="px-2 py-0.5 rounded-md bg-indigo-500 text-white text-[10px] font-black shrink-0 shadow">
-                    ✓ Selecionada
-                  </span>
-                }
-              </button>
+      <!-- Opções de Cores em Grade de Botões -->
+      <div class="space-y-1.5">
+        <label class="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+          Selecione uma cor para confirmar:
+        </label>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+          @for (cor of getColorPickerOptions(); track cor) {
+          <button type="button" (click)="selectColorOption(cor)"
+            [class]="getColorBorderStyle(cor, getColorPickerCurrentValue() === cor)"
+            class="px-3.5 py-3 rounded-xl text-xs flex items-center justify-between gap-2.5 transition-all active:scale-95 group">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <span class="w-4 h-4 rounded-full border border-white/40 shrink-0 shadow-md"
+                [style.background-color]="getColorHex(cor)">
+              </span>
+              <span class="truncate font-semibold" [class.font-black]="getColorPickerCurrentValue() === cor">
+                {{ cor }}
+              </span>
+            </div>
+            @if (getColorPickerCurrentValue() === cor) {
+            <span class="px-2 py-0.5 rounded-md bg-indigo-500 text-white text-[10px] font-black shrink-0 shadow">
+              ✓ Selecionada
+            </span>
             }
-          </div>
-        </div>
-
-        <!-- Modal Footer -->
-        <div class="flex items-center justify-end pt-3 border-t border-slate-800">
-          <button 
-            type="button"
-            (click)="closeColorPicker()"
-            class="px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-xl transition-all">
-            Cancelar
           </button>
+          }
         </div>
       </div>
+
+      <!-- Modal Footer -->
+      <div class="flex items-center justify-end pt-3 border-t border-slate-800">
+        <button type="button" (click)="closeColorPicker()"
+          class="px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-xl transition-all">
+          Cancelar
+        </button>
+      </div>
     </div>
+  </div>
   }
 
   <!-- ========================================================================= -->
   <!-- MODAL: COMPARTILHAR NO WHATSAPP -->
   <!-- ========================================================================= -->
   @if (isShareModalOpen()) {
-    <div class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">
-      <div 
-        (click)="$event.stopPropagation()"
-        class="bg-slate-900 border border-slate-700/80 rounded-3xl max-w-lg w-full p-4 sm:p-6 shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
-        
-        <!-- Modal Header -->
-        <div class="flex items-start justify-between border-b border-slate-800 pb-3.5 gap-2">
-          <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center text-lg font-bold shrink-0">
-              <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
-                <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
-              </svg>
-            </div>
-            <div>
-              <h3 class="text-base font-bold text-white">Compartilhar no WhatsApp</h3>
-              <p class="text-xs text-slate-400 mt-0.5">Informações do culto, liderança, traje e escala de postos</p>
-            </div>
-          </div>
-          <button 
-            type="button" 
-            (click)="closeShareModal()"
-            class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors">
-            ✕
-          </button>
-        </div>
+  <div
+    class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">
+    <div (click)="$event.stopPropagation()"
+      class="bg-slate-900 border border-slate-700/80 rounded-3xl max-w-lg w-full p-4 sm:p-6 shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
 
-        <!-- Preview da Mensagem formatada -->
-        <div class="flex-1 overflow-y-auto space-y-2 min-h-0">
-          <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-            Pré-visualização da Mensagem:
-          </label>
-          <div class="bg-slate-950 border border-slate-800/80 rounded-2xl p-4 text-xs font-mono text-slate-300 whitespace-pre-wrap select-all leading-relaxed shadow-inner max-h-[50vh] overflow-y-auto">
-{{ gerarTextoWhatsApp() }}
-          </div>
-        </div>
-
-        <!-- Modal Footer Actions -->
-        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-3 border-t border-slate-800">
-          <button 
-            type="button"
-            (click)="copiarTextoWhatsApp()"
-            class="px-4 py-2.5 text-xs font-bold text-slate-200 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl transition-all flex items-center justify-center gap-2 active:scale-95">
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+      <!-- Modal Header -->
+      <div class="flex items-start justify-between border-b border-slate-800 pb-3.5 gap-2">
+        <div class="flex items-center gap-3">
+          <div
+            class="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center text-lg font-bold shrink-0">
+            <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
+              <path
+                d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z" />
             </svg>
-            <span>Copiar Mensagem</span>
-          </button>
-
-          <div class="flex items-center gap-2">
-            <button 
-              type="button"
-              (click)="closeShareModal()"
-              class="px-4 py-2.5 text-xs font-semibold text-slate-400 hover:text-white transition-colors">
-              Fechar
-            </button>
-            <button 
-              type="button"
-              (click)="compartilharDiretoWhatsApp()"
-              class="flex-1 sm:flex-initial px-5 py-2.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/40 active:scale-95">
-              <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
-              </svg>
-              <span>Abrir no WhatsApp</span>
-            </button>
           </div>
+          <div>
+            <h3 class="text-base font-bold text-white">Compartilhar no WhatsApp</h3>
+            <p class="text-xs text-slate-400 mt-0.5">Informações do culto, liderança, traje e escala de postos</p>
+          </div>
+        </div>
+        <button type="button" (click)="closeShareModal()"
+          class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors">
+          ✕
+        </button>
+      </div>
+
+      <!-- Preview da Mensagem formatada -->
+      <div class="flex-1 overflow-y-auto space-y-2 min-h-0">
+        <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+          Pré-visualização da Mensagem:
+        </label>
+        <div
+          class="bg-slate-950 border border-slate-800/80 rounded-2xl p-4 text-xs font-mono text-slate-300 whitespace-pre-wrap select-all leading-relaxed shadow-inner max-h-[50vh] overflow-y-auto">
+          {{ gerarTextoWhatsApp() }}
+        </div>
+      </div>
+
+      <!-- Modal Footer Actions -->
+      <div
+        class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-3 border-t border-slate-800">
+        <button type="button" (click)="copiarTextoWhatsApp()"
+          class="px-4 py-2.5 text-xs font-bold text-slate-200 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl transition-all flex items-center justify-center gap-2 active:scale-95">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+          </svg>
+          <span>Copiar Mensagem</span>
+        </button>
+
+        <div class="flex items-center gap-2">
+          <button type="button" (click)="closeShareModal()"
+            class="px-4 py-2.5 text-xs font-semibold text-slate-400 hover:text-white transition-colors">
+            Fechar
+          </button>
+          <button type="button" (click)="compartilharDiretoWhatsApp()"
+            class="flex-1 sm:flex-initial px-5 py-2.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/40 active:scale-95">
+            <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
+              <path
+                d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z" />
+            </svg>
+            <span>Abrir no WhatsApp</span>
+          </button>
         </div>
       </div>
     </div>
+  </div>
+  }
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: SELECIONAR DIÁCONO PARA O POSTO & HORÁRIO SELECIONADO -->
+  <!-- ========================================================================= -->
+  @if (isObreiroForPostoModalOpen() && selectedPostoPickerLocal()) {
+  <div
+    class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">
+    <div (click)="$event.stopPropagation()"
+      class="bg-slate-900 border border-slate-700/80 rounded-3xl max-w-2xl w-full p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] flex flex-col">
+
+      <!-- Modal Header -->
+      <div class="flex items-start justify-between border-b border-slate-800 pb-3 gap-2">
+        <div class="space-y-1">
+          <span class="text-[10px] uppercase font-bold tracking-wider text-purple-400 block">Designação
+            Inteligente</span>
+          <h3 class="text-base sm:text-lg font-bold text-white flex items-center gap-2 flex-wrap">
+            <span>📍 Posto:</span>
+            <span class="text-purple-300">{{ selectedPostoPickerLocal()?.nome }}</span>
+            <span class="text-slate-500">•</span>
+            <span class="text-amber-300">{{ selectedPostoPickerTurno() }}º Horário</span>
+          </h3>
+
+          <!-- Resumo de Obreiros Já Escalados neste Posto e Horário do Evento -->
+          <div class="flex items-center gap-1.5 flex-wrap text-xs pt-0.5">
+            <span class="text-slate-400 text-[11px]">Neste culto:</span>
+            @if (getObreirosAlocadosNoEventoParaPostoETurnoCount(selectedPostoPickerLocal()?.id_local,
+            selectedPostoPickerTurno()) > 0) {
+            <span
+              class="text-[11px] px-2 py-0.5 rounded-md bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 font-bold flex items-center gap-1">
+              <span>👥 {{ getObreirosAlocadosNoEventoParaPostoETurnoCount(selectedPostoPickerLocal()?.id_local,
+                selectedPostoPickerTurno()) }} já escalado(s):</span>
+              <span class="font-medium text-slate-200">{{
+                getObreirosAlocadosNomesTexto(selectedPostoPickerLocal()?.id_local, selectedPostoPickerTurno())
+                }}</span>
+            </span>
+            } @else {
+            <span
+              class="text-[11px] px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-300 border border-amber-500/30 font-medium">
+              0 obreiros escalados até o momento
+            </span>
+            }
+          </div>
+        </div>
+        <button type="button" (click)="closeObreiroForPostoModal()"
+          class="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Barra de Ações: Troca de Horário, Busca & Filtros de Status -->
+      <div class="space-y-2">
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+          <!-- Troca rápida de horário -->
+          <div class="flex items-center p-1 bg-slate-950 border border-slate-800 rounded-xl shrink-0">
+            @for (t of turnosDisponiveis(); track t.id) {
+            <button type="button" (click)="setPostoPickerTurnoAndRefresh(t.id)"
+              [class]="selectedPostoPickerTurno() === t.id ? 'bg-purple-600 text-white font-bold shadow' : 'text-slate-400 hover:text-slate-200'"
+              class="px-3 py-1 rounded-lg text-xs font-semibold transition-all">
+              {{ t.label }}
+            </button>
+            }
+          </div>
+
+          <!-- Busca de obreiro -->
+          <div class="relative flex-1">
+            <input type="text" placeholder="Buscar diácono..." [ngModel]="searchObreiroParaPosto()"
+              (ngModelChange)="searchObreiroParaPosto.set($event)"
+              class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500" />
+            <svg class="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2" fill="none"
+              viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+        </div>
+
+        <!-- Filtros Rápidos de Disponibilidade -->
+        <div class="flex items-center gap-1.5 flex-wrap">
+          <button type="button" (click)="filtroModalCandidatosStatus.set('TODOS')"
+            [class]="filtroModalCandidatosStatus() === 'TODOS' ? 'bg-purple-600/30 text-purple-200 border-purple-500/50 font-bold' : 'bg-slate-950/60 text-slate-400 border-slate-800 hover:text-slate-200'"
+            class="px-2.5 py-1 rounded-lg text-[11px] border transition-all">
+            Todos ({{ getCandidatosCounts().total }})
+          </button>
+
+          <button type="button" (click)="filtroModalCandidatosStatus.set('PENDENTES')"
+            [class]="filtroModalCandidatosStatus() === 'PENDENTES' ? 'bg-emerald-500/30 text-emerald-200 border-emerald-500/50 font-bold' : 'bg-slate-950/60 text-slate-400 border-slate-800 hover:text-emerald-300'"
+            class="px-2.5 py-1 rounded-lg text-[11px] border transition-all flex items-center gap-1">
+            <span>✨</span>
+            <span>Sem Posto / Disponíveis ({{ getCandidatosCounts().pendentes }})</span>
+          </button>
+
+          <button type="button" (click)="filtroModalCandidatosStatus.set('ALOCADOS')"
+            [class]="filtroModalCandidatosStatus() === 'ALOCADOS' ? 'bg-slate-800 text-slate-200 border-slate-600 font-bold' : 'bg-slate-950/60 text-slate-500 border-slate-800 hover:text-slate-300'"
+            class="px-2.5 py-1 rounded-lg text-[11px] border transition-all flex items-center gap-1">
+            <span>🔒</span>
+            <span>Já Escalados ({{ getCandidatosCounts().alocados }})</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Banner de Orientação Inteligente -->
+      <div
+        class="p-2.5 bg-gradient-to-r from-purple-950/60 via-slate-900 to-indigo-950/60 border border-purple-500/30 rounded-xl flex items-center justify-between gap-2 text-xs">
+        <div class="flex items-center gap-2 text-slate-200">
+          <span>💡</span>
+          <span>
+            Diáconos <strong>sem posto</strong> aparecem em destaque primeiro; obreiros <strong>já escalados</strong>
+            aparecem escurecidos.
+          </span>
+        </div>
+      </div>
+
+      <!-- Lista de Diáconos Candidatos -->
+      <div class="flex-1 overflow-y-auto space-y-2 min-h-0 pr-1">
+        @if (loadingPostoObreiros()) {
+        <div class="py-12 text-center text-xs text-purple-400 animate-pulse">
+          Carregando histórico e calculando recomendações...
+        </div>
+        } @else {
+        @for (cand of getObreirosCandidatosParaPosto(); track cand.escala.id_escala) {
+        <div [class]="cand.isPendente 
+            ? (cand.isMenosAtuouNoPosto ? 'border-amber-500/50 bg-gradient-to-r from-slate-900 via-amber-950/20 to-slate-900 shadow-md ring-1 ring-amber-500/30' : 'border-emerald-500/30 bg-slate-900/90 shadow-sm hover:border-purple-500/50') 
+            : 'opacity-60 hover:opacity-100 bg-slate-950/70 border-slate-800/80 hover:border-slate-700'"
+          class="border rounded-2xl p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 transition-all group">
+
+          <!-- Info do Obreiro -->
+          <div class="space-y-1 min-w-0 flex-1">
+            <div class="flex items-center gap-2 flex-wrap">
+              <div [class]="cand.isPendente ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'"
+                class="font-bold text-sm truncate flex items-center gap-1.5">
+                <span>{{ cand.nome }}</span>
+              </div>
+
+              @if (cand.isPendente) {
+              <span
+                class="text-[9px] px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold flex items-center gap-1">
+                <span>✨</span>
+                <span>Disponível (Sem Posto)</span>
+              </span>
+              } @else {
+              <span
+                class="text-[9px] px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-300 border border-amber-500/30 font-semibold flex items-center gap-1">
+                <span>🔒</span>
+                <span>Já escalado: <strong>{{ cand.postoAtualNome }}</strong> ({{ cand.horarioAtualLabel }})</span>
+              </span>
+              }
+
+              @if (cand.isPulpito) {
+              <span
+                class="text-[9px] px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-300 border border-purple-500/40 font-bold">
+                🎙️ Púlpito
+              </span>
+              }
+              @if (cand.isDiacono) {
+              <span
+                class="text-[9px] px-1.5 py-0.2 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-semibold">
+                Diácono
+              </span>
+              }
+            </div>
+
+            <!-- Métricas de Atuação no Ano -->
+            <div class="flex items-center gap-2 flex-wrap text-xs">
+              @if (cand.isMenosAtuouNoPosto) {
+              <span
+                class="text-[10px] px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 font-black flex items-center gap-1">
+                <span>⭐</span>
+                <span>Menos atuou neste posto ({{ cand.escalasNoPostoAno }}x no ano)</span>
+              </span>
+              } @else {
+              <span [class]="cand.isPendente ? 'text-slate-300' : 'text-slate-500'" class="text-[11px] font-mono">
+                Neste posto: <strong [class]="cand.isPendente ? 'text-slate-100' : 'text-slate-300'">{{
+                  cand.escalasNoPostoAno }}x</strong> no ano
+              </span>
+              }
+
+              <span class="text-slate-600">•</span>
+
+              <span [class]="cand.isPendente ? 'text-slate-300' : 'text-slate-500'" class="text-[11px] font-mono">
+                No {{ selectedPostoPickerTurno() }}º Horário: <strong
+                  [class]="cand.isPendente ? 'text-slate-100' : 'text-slate-300'">{{ cand.escalasNoTurnoAno }}x</strong>
+              </span>
+
+              <span class="text-slate-600">•</span>
+
+              <span class="text-[11px] text-slate-500 font-mono">
+                Total ano: {{ cand.totalEscalasAno }}x
+              </span>
+            </div>
+          </div>
+
+          <!-- Botão de Ação: Confirmar Designação / Re-alocação -->
+          @if (cand.isPendente) {
+          <button type="button" (click)="designarObreiroParaPosto(cand.escala)"
+            class="w-full sm:w-auto px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-purple-950/40 flex items-center justify-center gap-1.5 active:scale-95 shrink-0">
+            <span>Designar</span>
+            <span>✓</span>
+          </button>
+          } @else {
+          <button type="button" (click)="designarObreiroParaPosto(cand.escala)"
+            class="w-full sm:w-auto px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 active:scale-95 shrink-0"
+            title="Mover obreiro deste posto atual para o novo posto">
+            <span>Re-alocar</span>
+            <span>⇄</span>
+          </button>
+          }
+        </div>
+        } @empty {
+        <div
+          class="py-12 text-center text-xs text-slate-500 italic bg-slate-950/40 rounded-2xl border border-slate-800">
+          Nenhum obreiro encontrado para os critérios selecionados.
+        </div>
+        }
+        }
+      </div>
+
+      <!-- Footer -->
+      <div class="flex items-center justify-end pt-3 border-t border-slate-800 gap-2">
+        <button type="button" (click)="closeObreiroForPostoModal()"
+          class="px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-xl transition-all">
+          Fechar
+        </button>
+      </div>
+    </div>
+  </div>
   }
 </div>
