@@ -199,11 +199,32 @@ export class EventoDetalhesComponent implements OnInit {
     return turnos.length > 0 ? turnos : [{ id: 1, label: '1º Horário', maxVagas: 10 }];
   });
 
+  isEventoSantaCeia = computed<boolean>(() => {
+    const ev = this.operacaoService.evento();
+    if (!ev) return false;
+    const desc = (ev.descricao || '').toLowerCase();
+    return desc.includes('ceia');
+  });
+
+  // Áreas ativas e filtradas para o evento (A área "Ceia" só aparece se o evento for "Santa Ceia")
+  areasEvento = computed<Area[]>(() => {
+    const areas = this.areaService.areas().filter(a => a.ativo);
+    const isCeia = this.isEventoSantaCeia();
+    return areas.filter(a => {
+      const nomeArea = (a.nome || '').toLowerCase();
+      const isAreaCeia = nomeArea.includes('ceia');
+      if (isAreaCeia && !isCeia) {
+        return false;
+      }
+      return true;
+    });
+  });
+
   // Grupos de Escala organizados por Horário / Turno e agrupados por Setor
   gruposPorTurno = computed<TurnoCardGroup[]>(() => {
     const turnos = this.turnosDisponiveis();
     const allEscalas = this.operacaoService.escalas();
-    const allAreas = this.areaService.areas();
+    const allAreas = this.areasEvento();
     const filtroTurno = this.filtroTurnoPosto();
     const areaId = this.filtroAreaPosto();
     const status = this.filtroStatusPosto();
@@ -865,7 +886,8 @@ export class EventoDetalhesComponent implements OnInit {
   }
 
   getLocaisPorArea(idArea?: number): Local[] {
-    const list = this.localService.locais().filter(l => l.ativo);
+    const activeAreaIds = new Set(this.areasEvento().map(a => a.id_area));
+    const list = this.localService.locais().filter(l => l.ativo && activeAreaIds.has(l.id_area));
     const filtered = idArea ? list.filter(l => l.id_area === idArea) : list;
     return filtered.sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0) || a.nome.localeCompare(b.nome));
   }
@@ -929,7 +951,7 @@ export class EventoDetalhesComponent implements OnInit {
     lines.push(`━━━━━━━━━━━━━━━━━━━━━`);
 
     const allEscalas = this.operacaoService.escalas();
-    const allAreas = this.areaService.areas();
+    const allAreas = this.areasEvento();
     const allTurnos = this.turnosDisponiveis();
     const horarios = this.operacaoService.areaHorarios();
 

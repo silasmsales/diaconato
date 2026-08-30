@@ -415,7 +415,7 @@
         <label class="block text-[10px] font-semibold text-slate-400 uppercase mb-1">Setor</label>
         <select [(ngModel)]="novoHorario.id_area" name="id_area"
           class="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white">
-          @for (area of areaService.areas(); track area.id_area) {
+          @for (area of areasEvento(); track area.id_area) {
           <option [value]="area.id_area">{{ area.icone || '📍' }} {{ area.nome }}</option>
           }
         </select>
@@ -1133,17 +1133,6 @@
         </div>
       </div>
 
-      <!-- Banner de Orientação Inteligente -->
-      <div
-        class="p-2.5 bg-gradient-to-r from-purple-950/60 via-slate-900 to-indigo-950/60 border border-purple-500/30 rounded-xl flex items-center justify-between gap-2 text-xs">
-        <div class="flex items-center gap-2 text-slate-200">
-          <span>💡</span>
-          <span>
-            Diáconos <strong>sem posto</strong> aparecem em destaque primeiro; obreiros <strong>já escalados</strong>
-            aparecem escurecidos.
-          </span>
-        </div>
-      </div>
 
       <!-- Lista de Diáconos Candidatos -->
       <div class="flex-1 overflow-y-auto space-y-2 min-h-0 pr-1">
