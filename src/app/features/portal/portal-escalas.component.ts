@@ -120,13 +120,13 @@ export class PortalEscalasComponent implements OnInit {
         this.areaHorarios.set(horData);
       }
 
-      // Obreiros para líderes
+      // Obreiros para identificação e contato dos líderes
       const { data: obData } = await this.supabase
         .from('obreiros')
-        .select('id_obreiro, nome');
+        .select('id_obreiro, nome, apelido, telefone, email');
 
       if (obData) {
-        this.obreirosLista.set(obData);
+        this.obreirosLista.set(obData as any[]);
       }
     } catch (e) {
       console.error('Erro ao carregar escalas do portal:', e);
@@ -150,16 +150,29 @@ export class PortalEscalasComponent implements OnInit {
     return null;
   }
 
-  getLideresResponsaveis(evento?: Evento): string {
+  getLideresObjetos(evento?: Evento): any[] {
     if (!evento?.lideres_responsaveis_ids || evento.lideres_responsaveis_ids.length === 0) {
-      return 'A definir pela liderança';
+      return [];
     }
     const ids = evento.lideres_responsaveis_ids;
-    const nomes = this.obreirosLista()
-      .filter(o => ids.includes(o.id_obreiro))
-      .map(o => o.nome);
+    return this.obreirosLista().filter(o => o.id_obreiro && ids.includes(o.id_obreiro));
+  }
 
-    return nomes.length > 0 ? nomes.join(', ') : 'A definir pela liderança';
+  getLideresResponsaveis(evento?: Evento): string {
+    const lideres = this.getLideresObjetos(evento);
+    return lideres.length > 0 ? lideres.map(o => o.nome).join(', ') : 'A definir pela liderança';
+  }
+
+  getCleanWhatsAppNumber(phone?: string | null): string {
+    if (!phone) return '';
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length === 10 || digits.length === 11) {
+      return `55${digits}`;
+    }
+    if (digits.startsWith('55')) {
+      return digits;
+    }
+    return `55${digits}`;
   }
 
   formatDataExtensa(dataStr?: string): string {

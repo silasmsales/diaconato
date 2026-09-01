@@ -411,9 +411,15 @@ export class EscalasListComponent implements OnInit {
     this.selectedEscala = null;
   }
 
-  async handleSave(dto: CreateEscalaDto) {
-    const res = await this.escalaService.addObreiroToEvento(dto);
-    if (res) this.closeModal();
+  async handleSave(dtos: CreateEscalaDto[] | CreateEscalaDto) {
+    const list = Array.isArray(dtos) ? dtos : [dtos];
+    if (list.length === 1) {
+      const res = await this.escalaService.addObreiroToEvento(list[0]);
+      if (res) this.closeModal();
+    } else if (list.length > 1) {
+      const res = await this.escalaService.addMultipleObreirosToEvento(list);
+      if (res.length > 0) this.closeModal();
+    }
   }
 
   async handleDelete() {

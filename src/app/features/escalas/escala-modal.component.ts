@@ -25,7 +25,7 @@ export class EscalaModalComponent implements OnChanges {
   @Input() defaultEventoId: number | null = null;
   @Input() loading = false;
 
-  @Output() save = new EventEmitter<CreateEscalaDto>();
+  @Output() save = new EventEmitter<CreateEscalaDto[]>();
   @Output() close = new EventEmitter<void>();
 
   formatMesReferencia = formatMesReferencia;
@@ -40,7 +40,8 @@ export class EscalaModalComponent implements OnChanges {
 
   selectedMesId = signal<number | null>(null);
   selectedEventoId = signal<number | null>(null);
-  selectedObreiroId = signal<number | null>(null);
+  selectedObreiroIds = signal<Set<number>>(new Set());
+  selectedCount = computed(() => this.selectedObreiroIds().size);
   searchQuery = signal<string>('');
 
   ngOnChanges(changes: SimpleChanges) {
@@ -76,11 +77,12 @@ export class EscalaModalComponent implements OnChanges {
         null;
       
       this.selectedEventoId.set(initialEventoId);
-      this.selectedObreiroId.set(null);
+      this.selectedObreiroIds.set(new Set());
       this.searchQuery.set('');
     } else if (changes['defaultEventoId'] || changes['defaultMesId']) {
       if (this.defaultMesId) this.selectedMesId.set(this.defaultMesId);
       if (this.defaultEventoId) this.selectedEventoId.set(this.defaultEventoId);
+      this.selectedObreiroIds.set(new Set());
     }
   }
 
@@ -114,6 +116,19 @@ export class EscalaModalComponent implements OnChanges {
     );
   });
 
+  escalasPorObreiroNoMes = computed(() => {
+    const mesId = this.selectedMesId();
+    const countMap = new Map<number, number>();
+    if (!mesId) return countMap;
+
+    for (const esc of this.escalasData()) {
+      if (esc.id_mes === mesId && typeof esc.id_obreiro === 'number') {
+        countMap.set(esc.id_obreiro, (countMap.get(esc.id_obreiro) || 0) + 1);
+      }
+    }
+    return countMap;
+  });
+
   candidatosObreiros = computed(() => {
     const evento = this.currentEvento();
     const query = this.searchQuery().toLowerCase().trim();
@@ -121,11 +136,13 @@ export class EscalaModalComponent implements OnChanges {
     const turnoEvento = evento?.turno;
     const jaEscalados = this.escaladosNesteEvento();
     const allBloqueios = this.bloqueiosData();
+    const escalasMesCount = this.escalasPorObreiroNoMes();
 
     return this.obreirosData()
       .filter((ob): ob is Obreiro & { id_obreiro: number } => typeof ob.id_obreiro === 'number' && !!ob.ativo)
       .map(ob => {
         const isJaEscalado = jaEscalados.has(ob.id_obreiro);
+        const totalEscalasMes = escalasMesCount.get(ob.id_obreiro) || 0;
         let isBloqueado = false;
         let motivoBloqueio = '';
 
@@ -145,7 +162,8 @@ export class EscalaModalComponent implements OnChanges {
           ...ob,
           isJaEscalado,
           isBloqueado,
-          motivoBloqueio
+          motivoBloqueio,
+          totalEscalasMes
         };
       })
       .filter(ob => {
@@ -156,14 +174,29 @@ export class EscalaModalComponent implements OnChanges {
         );
       })
       .sort((a, b) => {
-        // Já escalados vão pro final
+        // 1. Já escalados no evento vão para o final absoluto
         if (a.isJaEscalado !== b.isJaEscalado) {
           return a.isJaEscalado ? 1 : -1;
         }
-        // Disponíveis primeiro
+
+        // 2. Bloqueados vão para depois dos disponíveis
         if (a.isBloqueado !== b.isBloqueado) {
           return a.isBloqueado ? 1 : -1;
         }
+
+        // 3. Líderes vão para o final da lista (após os demais obreiros disponíveis)
+        const aLider = !!a.lider;
+        const bLider = !!b.lider;
+        if (aLider !== bLider) {
+          return aLider ? 1 : -1;
+        }
+
+        // 4. Obreiros com MENOS escalas no mês aparecem primeiro
+        if (a.totalEscalasMes !== b.totalEscalasMes) {
+          return a.totalEscalasMes - b.totalEscalasMes;
+        }
+
+        // 5. Desempate por ordem alfabética de nome
         return a.nome.localeCompare(b.nome);
       });
   });
@@ -191,30 +224,54 @@ export class EscalaModalComponent implements OnChanges {
     } else {
       this.selectedEventoId.set(null);
     }
-    this.selectedObreiroId.set(null);
+    this.selectedObreiroIds.set(new Set());
   }
 
   onEventoSelect(idEvento: any) {
     this.selectedEventoId.set(Number(idEvento));
-    this.selectedObreiroId.set(null);
+    this.selectedObreiroIds.set(new Set());
   }
 
-  selecionarObreiro(idObreiro: number, isJaEscalado: boolean) {
+  isObreiroSelected(idObreiro: number): boolean {
+    return this.selectedObreiroIds().has(idObreiro);
+  }
+
+  toggleObreiro(idObreiro: number, isJaEscalado: boolean) {
     if (isJaEscalado) return;
-    this.selectedObreiroId.set(idObreiro);
+    this.selectedObreiroIds.update(prev => {
+      const next = new Set(prev);
+      if (next.has(idObreiro)) {
+        next.delete(idObreiro);
+      } else {
+        next.add(idObreiro);
+      }
+      return next;
+    });
+  }
+
+  selecionarTodosDisponiveis() {
+    const disponiveis = this.candidatosObreiros()
+      .filter(c => !c.isJaEscalado)
+      .map(c => c.id_obreiro);
+    this.selectedObreiroIds.set(new Set(disponiveis));
+  }
+
+  limparSelecao() {
+    this.selectedObreiroIds.set(new Set());
   }
 
   onSubmit() {
     const mesId = this.selectedMesId();
     const evId = this.selectedEventoId();
-    const obId = this.selectedObreiroId();
+    const ids = Array.from(this.selectedObreiroIds());
 
-    if (mesId && evId && obId) {
-      this.save.emit({
+    if (mesId && evId && ids.length > 0) {
+      const dtos: CreateEscalaDto[] = ids.map(id_obreiro => ({
         id_mes: mesId,
         id_evento: evId,
-        id_obreiro: obId
-      });
+        id_obreiro
+      }));
+      this.save.emit(dtos);
     }
   }
 

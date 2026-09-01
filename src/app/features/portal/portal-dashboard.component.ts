@@ -7,6 +7,7 @@ import { Escala } from '../../core/models/escala.model';
 import { Bloqueio } from '../../core/models/bloqueio.model';
 import { Evento } from '../../core/models/evento.model';
 import { Local } from '../../core/models/local.model';
+import { Obreiro } from '../../core/models/obreiro.model';
 
 export interface EscalaPortalItem {
   id_escala: number;
@@ -40,7 +41,7 @@ export class PortalDashboardComponent implements OnInit {
   minhasEscalas = signal<EscalaPortalItem[]>([]);
   meusBloqueios = signal<Bloqueio[]>([]);
   areaHorarios = signal<EventoAreaHorarioItem[]>([]);
-  obreirosLista = signal<{ id_obreiro: number; nome: string }[]>([]);
+  obreirosLista = signal<{ id_obreiro: number; nome: string; apelido?: string | null; telefone?: string | null; email?: string | null }[]>([]);
 
   // Próxima Escala Futura
   proximaEscala = computed<EscalaPortalItem | null>(() => {
@@ -123,13 +124,13 @@ export class PortalDashboardComponent implements OnInit {
         this.areaHorarios.set(horData as EventoAreaHorarioItem[]);
       }
 
-      // 4. Carrega obreiros para identificação dos líderes
+      // 4. Carrega obreiros para identificação e contato dos líderes
       const { data: obData } = await this.supabase
         .from('obreiros')
-        .select('id_obreiro, nome');
+        .select('id_obreiro, nome, apelido, telefone, email');
 
       if (obData) {
-        this.obreirosLista.set(obData);
+        this.obreirosLista.set(obData as any[]);
       }
     } catch (e) {
       console.error('Erro ao carregar dados do dashboard do portal:', e);
@@ -153,16 +154,29 @@ export class PortalDashboardComponent implements OnInit {
     return null;
   }
 
-  getLideresResponsaveis(evento?: Evento): string {
+  getLideresObjetos(evento?: Evento): { id_obreiro: number; nome: string; apelido?: string | null; telefone?: string | null; email?: string | null }[] {
     if (!evento?.lideres_responsaveis_ids || evento.lideres_responsaveis_ids.length === 0) {
-      return 'A definir pela liderança';
+      return [];
     }
     const ids = evento.lideres_responsaveis_ids;
-    const nomes = this.obreirosLista()
-      .filter(o => ids.includes(o.id_obreiro))
-      .map(o => o.nome);
+    return this.obreirosLista().filter(o => o.id_obreiro && ids.includes(o.id_obreiro));
+  }
 
-    return nomes.length > 0 ? nomes.join(', ') : 'A definir pela liderança';
+  getLideresResponsaveis(evento?: Evento): string {
+    const lideres = this.getLideresObjetos(evento);
+    return lideres.length > 0 ? lideres.map(o => o.nome).join(', ') : 'A definir pela liderança';
+  }
+
+  getCleanWhatsAppNumber(phone?: string | null): string {
+    if (!phone) return '';
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length === 10 || digits.length === 11) {
+      return `55${digits}`;
+    }
+    if (digits.startsWith('55')) {
+      return digits;
+    }
+    return `55${digits}`;
   }
 
   formatDataExtensa(dataStr?: string): string {

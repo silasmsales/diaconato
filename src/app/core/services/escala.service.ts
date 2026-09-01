@@ -145,6 +145,47 @@ export class EscalaService {
     }
   }
 
+  async addMultipleObreirosToEvento(dtos: CreateEscalaDto[]): Promise<Escala[]> {
+    if (!dtos || dtos.length === 0) return [];
+    this.loading.set(true);
+    try {
+      const { data, error } = await this.supabase
+        .from('escala')
+        .insert(dtos)
+        .select(`
+          *,
+          eventos (*),
+          obreiros (*),
+          mes (*)
+        `);
+
+      if (error) {
+        if (error.code === '23505') {
+          this.toast.warning('Atenção', 'Um ou mais obreiros selecionados já estavam escalados neste evento.');
+        } else {
+          throw error;
+        }
+      }
+
+      const createdList = (data as Escala[]) || [];
+      if (createdList.length > 0) {
+        this.escalas.update(list => [...list, ...createdList]);
+        const mId = dtos[0].id_mes;
+        if (mId && this.mesCache.has(mId)) {
+          this.mesCache.set(mId, [...(this.mesCache.get(mId) || []), ...createdList]);
+        }
+        this.toast.success('Obreiros escalados!', `${createdList.length} ${createdList.length === 1 ? 'obreiro foi adicionado' : 'obreiros foram adicionados'} à escala.`);
+      }
+      return createdList;
+    } catch (err: any) {
+      console.error('Erro ao escalar múltiplos obreiros:', err);
+      this.toast.error('Erro ao escalar', err.message || 'Falha ao incluir obreiros na escala.');
+      return [];
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
   async updateCheckin(idEscala: number, checkin: boolean | null): Promise<Escala | null> {
     try {
       const { data, error } = await this.supabase

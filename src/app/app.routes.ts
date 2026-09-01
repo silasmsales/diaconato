@@ -27,6 +27,11 @@ export const routes: Routes = [
     canActivate: [obreiroGuard],
     loadComponent: () => import('./features/portal/portal-bloqueios.component').then(m => m.PortalBloqueiosComponent)
   },
+  {
+    path: 'portal/contatos',
+    canActivate: [obreiroGuard],
+    loadComponent: () => import('./features/portal/portal-contatos.component').then(m => m.PortalContatosComponent)
+  },
 
   // ==========================================
   // 🔐 ADMINISTRAÇÃO & OPERAÇÃO GERAL
