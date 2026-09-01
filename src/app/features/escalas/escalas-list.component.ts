@@ -69,6 +69,23 @@ export class EscalasListComponent implements OnInit {
   substitutoSearchQuery = signal<string>('');
   substitutoSelecionadoId = signal<number | null>(null);
 
+  escalasPorObreiroNoMes = computed(() => {
+    const esc = this.selectedEscalaParaSubstituir();
+    const idMes = esc?.id_mes || this.selectedMesId();
+    const todasEscalas = this.escalaService.escalas();
+    const countMap = new Map<number, number>();
+
+    todasEscalas
+      .filter(e => idMes === 0 || e.id_mes === idMes)
+      .forEach(e => {
+        if (e.id_obreiro) {
+          countMap.set(e.id_obreiro, (countMap.get(e.id_obreiro) || 0) + 1);
+        }
+      });
+
+    return countMap;
+  });
+
   candidatosSubstitutos = computed(() => {
     const esc = this.selectedEscalaParaSubstituir();
     if (!esc) return [];
@@ -76,6 +93,7 @@ export class EscalasListComponent implements OnInit {
     const obreiros = this.obreiroService.obreiros().filter(o => o.ativo);
     const bloqueios = this.bloqueioService.bloqueios();
     const query = this.substitutoSearchQuery().toLowerCase().trim();
+    const escalasMesCount = this.escalasPorObreiroNoMes();
 
     // Evento desta escala
     const idEvento = esc.id_evento;
@@ -83,19 +101,19 @@ export class EscalasListComponent implements OnInit {
     const dataEvento = evento?.data;
     const turnoEvento = evento?.turno;
 
-    // IDs de obreiros já escalados neste evento
+    // IDs de obreiros já escalados neste evento (exceto o que está sendo substituído)
     const escaladosNesteEvento = new Set(
-      this.filteredEscalas()
-        .filter(e => e.id_evento === idEvento)
+      this.escalaService.escalas()
+        .filter(e => e.id_evento === idEvento && e.id_obreiro !== esc.id_obreiro)
         .map(e => e.id_obreiro)
     );
 
     return obreiros
       .filter((ob): ob is Obreiro & { id_obreiro: number } => typeof ob.id_obreiro === 'number')
       .filter(ob => ob.id_obreiro !== esc.id_obreiro) // Não é o próprio obreiro sendo substituído
-      .filter(ob => !escaladosNesteEvento.has(ob.id_obreiro)) // Não está já escalado no evento
       .map(ob => {
-        // Verificar se tem bloqueio nesta data/turno
+        const isJaEscalado = escaladosNesteEvento.has(ob.id_obreiro);
+        const totalEscalasMes = escalasMesCount.get(ob.id_obreiro) || 0;
         let isBloqueado = false;
         let motivoBloqueio = '';
 
@@ -113,8 +131,10 @@ export class EscalasListComponent implements OnInit {
 
         return {
           ...ob,
+          isJaEscalado,
           isBloqueado,
-          motivoBloqueio
+          motivoBloqueio,
+          totalEscalasMes
         };
       })
       .filter(ob => {
@@ -125,10 +145,29 @@ export class EscalasListComponent implements OnInit {
         );
       })
       .sort((a, b) => {
-        // Disponíveis primeiro
+        // 1. Já escalados no evento vão para o final absoluto
+        if (a.isJaEscalado !== b.isJaEscalado) {
+          return a.isJaEscalado ? 1 : -1;
+        }
+
+        // 2. Bloqueados vão para depois dos disponíveis
         if (a.isBloqueado !== b.isBloqueado) {
           return a.isBloqueado ? 1 : -1;
         }
+
+        // 3. Líderes vão para o final da lista (após os demais obreiros disponíveis)
+        const aLider = !!a.lider;
+        const bLider = !!b.lider;
+        if (aLider !== bLider) {
+          return aLider ? 1 : -1;
+        }
+
+        // 4. Obreiros com MENOS escalas no mês aparecem primeiro
+        if (a.totalEscalasMes !== b.totalEscalasMes) {
+          return a.totalEscalasMes - b.totalEscalasMes;
+        }
+
+        // 5. Desempate por ordem alfabética de nome
         return a.nome.localeCompare(b.nome);
       });
   });
@@ -147,9 +186,13 @@ export class EscalasListComponent implements OnInit {
     this.substitutoSearchQuery.set('');
   }
 
-  selecionarSubstituto(idObreiro?: number) {
-    if (!idObreiro) return;
-    this.substitutoSelecionadoId.set(idObreiro);
+  selecionarSubstituto(idObreiro?: number, isJaEscalado?: boolean) {
+    if (isJaEscalado || !idObreiro) return;
+    if (this.substitutoSelecionadoId() === idObreiro) {
+      this.substitutoSelecionadoId.set(null);
+    } else {
+      this.substitutoSelecionadoId.set(idObreiro);
+    }
   }
 
   async confirmarSubstituicao() {

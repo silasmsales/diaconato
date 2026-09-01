@@ -18,9 +18,23 @@
       </p>
     </div>
 
-    <!-- Filtro de Mês -->
-    @if (mesesDisponiveis().length > 0) {
-      <div class="flex items-center gap-2 self-start sm:self-center">
+    <!-- Ações do Header: Agendar Todos os Cultos + Filtro de Mês -->
+    <div class="flex items-center gap-2.5 flex-wrap self-start sm:self-center">
+      @if (totalFuturas() > 0) {
+        <button
+          (click)="exportarTodasParaCalendario()"
+          type="button"
+          class="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all shadow-md shadow-indigo-600/20 active:scale-95 flex items-center gap-1.5"
+          title="Adicionar todos os cultos futuros à agenda do aparelho">
+          <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          <span>Adicionar todos à Agenda ({{ totalFuturas() }})</span>
+        </button>
+      }
+
+      @if (mesesDisponiveis().length > 0) {
         <select [ngModel]="filtroMesAno()" (ngModelChange)="filtroMesAno.set($event)"
           class="px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-indigo-500 shadow-sm">
           <option value="TODOS">Todos os Meses</option>
@@ -28,8 +42,8 @@
             <option [value]="m">{{ formatMesAnoLabel(m) }}</option>
           }
         </select>
-      </div>
-    }
+      }
+    </div>
   </div>
 
   <!-- Tabs: Futuras / Histórico / Todas -->
@@ -116,14 +130,32 @@
             </span>
           </div>
 
-          <!-- 2. Título do Culto e Local -->
-          <div class="space-y-0.5">
-            <h3 class="text-xl sm:text-2xl font-black text-white tracking-tight">
-              {{ item.evento?.descricao || 'Culto de Adoração' }}
-            </h3>
-            <p class="text-xs text-slate-400 font-medium">
-              Assembleia de Deus de Taguatinga • Templo Sede
-            </p>
+          <!-- 2. Título do Culto, Local e Ação de Agendamento Individual -->
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-0.5">
+            <div class="space-y-0.5 min-w-0">
+              <h3 class="text-xl sm:text-2xl font-black text-white tracking-tight">
+                {{ item.evento?.descricao || 'Culto de Adoração' }}
+              </h3>
+              <p class="text-xs text-slate-400 font-medium">
+                Assembleia de Deus de Taguatinga • Templo Sede
+              </p>
+            </div>
+
+            @if (item.isFuturo) {
+              <div class="shrink-0">
+                <button
+                  (click)="adicionarEscalaAoCalendario(item)"
+                  type="button"
+                  class="w-full sm:w-auto px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-indigo-500/50 text-slate-200 hover:text-white text-xs font-bold transition-all shadow-sm active:scale-95 flex items-center justify-center gap-1.5"
+                  title="Adicionar à agenda do aparelho">
+                  <svg class="w-3.5 h-3.5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <span>Adicionar à Agenda</span>
+                </button>
+              </div>
+            }
           </div>
 
           <!-- 3. Bloco: POSTO DE ATUAÇÃO & HORÁRIO DO TURNO -->
@@ -248,14 +280,11 @@
                       <div class="bg-slate-950/80 rounded-xl p-2.5 border border-slate-800/90 flex items-center justify-between gap-2 shadow-sm">
                         <div class="min-w-0">
                           <span class="text-xs sm:text-sm font-bold text-white block truncate">
-                            {{ lider.nome }}
-                            @if (lider.apelido) {
-                              <span class="text-xs font-normal text-slate-400">({{ lider.apelido }})</span>
-                            }
+                            {{ lider.apelido || lider.nome }}
                           </span>
                           @if (lider.telefone) {
                             <span class="text-[10px] text-slate-400 font-mono block truncate">
-                              {{ lider.telefone }}
+                              {{ getFormattedPhone(lider.telefone) }}
                             </span>
                           }
                         </div>

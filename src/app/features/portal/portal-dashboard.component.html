@@ -102,14 +102,31 @@
           </div>
         </div>
 
-        <!-- 2. Título do Culto e Local -->
-        <div class="space-y-1">
-          <h2 class="text-2xl sm:text-3xl font-black text-white tracking-tight">
-            {{ proximaEscala()?.evento?.descricao || 'Culto de Adoração' }}
-          </h2>
-          <p class="text-xs text-slate-400 font-medium">
-            Assembleia de Deus de Taguatinga • Templo Sede
-          </p>
+        <!-- 2. Título do Culto, Local e Ação de Agendamento no Calendário -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+          <div class="space-y-1 min-w-0">
+            <h2 class="text-2xl sm:text-3xl font-black text-white tracking-tight">
+              {{ proximaEscala()?.evento?.descricao || 'Culto de Adoração' }}
+            </h2>
+            <p class="text-xs text-slate-400 font-medium">
+              Assembleia de Deus de Taguatinga • Templo Sede
+            </p>
+          </div>
+
+          <!-- Botão de Adicionar à Agenda / Calendário Padrão do Aparelho -->
+          <div class="shrink-0">
+            <button
+              (click)="adicionarAoCalendario(proximaEscala())"
+              type="button"
+              class="w-full sm:w-auto px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all shadow-md shadow-indigo-600/20 active:scale-95 flex items-center justify-center gap-2"
+              title="Adicionar automaticamente ao calendário do aparelho">
+              <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <span>Adicionar à Agenda</span>
+            </button>
+          </div>
         </div>
 
         <!-- 3. Bloco Principal: POSTO DE ATUAÇÃO & HORÁRIO DO TURNO -->
@@ -234,14 +251,11 @@
                     <div class="bg-slate-950/80 rounded-xl p-2.5 border border-slate-800/90 flex items-center justify-between gap-2 shadow-sm">
                       <div class="min-w-0">
                         <span class="text-xs sm:text-sm font-bold text-white block truncate">
-                          {{ lider.nome }}
-                          @if (lider.apelido) {
-                            <span class="text-xs font-normal text-slate-400">({{ lider.apelido }})</span>
-                          }
+                          {{ lider.apelido || lider.nome }}
                         </span>
                         @if (lider.telefone) {
                           <span class="text-[10px] text-slate-400 font-mono block truncate">
-                            {{ lider.telefone }}
+                            {{ getFormattedPhone(lider.telefone) }}
                           </span>
                         }
                       </div>
@@ -301,7 +315,117 @@
 
         </div>
 
-        <!-- 5. Rodapé com Link Direto -->
+        <!-- 5. EQUIPE DO CULTO: Outros Obreiros Escalados por Horário e Área -->
+        <div class="bg-slate-950/70 border border-slate-800/90 rounded-2xl p-4 sm:p-5 space-y-4 shadow-inner">
+          <div class="flex items-center justify-between border-b border-slate-800/80 pb-2.5 flex-wrap gap-2">
+            <div class="flex items-center gap-2">
+              <span class="text-base">👥</span>
+              <h3 class="text-xs sm:text-sm font-bold text-white uppercase tracking-wider">
+                Outros Obreiros Escalados neste Culto
+              </h3>
+            </div>
+            
+            <span class="text-[11px] px-2.5 py-0.5 rounded-full bg-indigo-500/15 text-indigo-300 font-bold border border-indigo-500/30">
+              {{ outrosObreirosEscalados().length }} {{ outrosObreirosEscalados().length === 1 ? 'diácono escalado' : 'diáconos escalados' }}
+            </span>
+          </div>
+
+          @if (equipeAgrupada().length === 0) {
+            <p class="text-xs text-slate-400 py-2 italic text-center">
+              Nenhum outro obreiro escalado neste evento até o momento.
+            </p>
+          } @else {
+            <div class="space-y-5">
+              @for (grupoTurno of equipeAgrupada(); track grupoTurno.horarioTurno) {
+                <div class="space-y-3">
+                  
+                  @for (area of grupoTurno.areas; track area.idArea) {
+                    <div class="space-y-2.5">
+                      
+                      <!-- Cabeçalho Limpo do Grupo (Turno + Área + Horário) -->
+                      <div class="flex items-center justify-between pb-1 border-b border-slate-800/80 flex-wrap gap-2">
+                        <div class="flex items-center gap-2 flex-wrap">
+                          <span class="text-[11px] font-bold px-2.5 py-0.5 rounded-lg bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 uppercase tracking-wide">
+                            ⏰ {{ grupoTurno.labelTurno }}
+                          </span>
+                          <span class="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5">
+                            <span>{{ area.iconeArea }}</span>
+                            <span>{{ area.nomeArea }}</span>
+                          </span>
+                        </div>
+                        
+                        @if (area.horarioFormatado) {
+                          <span class="text-xs font-mono font-bold text-amber-300 px-2.5 py-0.5 rounded-lg bg-amber-500/10 border border-amber-500/20 shadow-sm">
+                            {{ area.horarioFormatado }}
+                          </span>
+                        }
+                      </div>
+
+                      <!-- Grid Confortável de Obreiros (Sem caixas aninhadas) -->
+                      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                        @for (ob of area.obreiros; track ob.id_escala) {
+                          <div class="bg-slate-900/90 hover:bg-slate-900 border border-slate-800/80 hover:border-slate-700/90 rounded-xl p-3 flex items-center justify-between gap-3 shadow-sm transition-all">
+                            
+                            <!-- Avatar + Apelido + Posto -->
+                            <div class="flex items-center gap-2.5 min-w-0">
+                              @if (ob.foto) {
+                                <img [src]="ob.foto" [alt]="ob.nome"
+                                  class="w-9 h-9 rounded-xl object-cover border border-slate-700 shrink-0 shadow-inner" />
+                              } @else {
+                                <div class="w-9 h-9 rounded-xl bg-slate-800 border border-slate-700/80 flex items-center justify-center font-bold text-xs text-indigo-300 shrink-0 shadow-inner">
+                                  {{ getInitials(ob.nome) }}
+                                </div>
+                              }
+
+                              <div class="min-w-0">
+                                <span class="text-xs sm:text-sm font-bold text-white block truncate leading-tight">
+                                  {{ ob.apelido || ob.nome }}
+                                </span>
+                                <span class="text-xs text-emerald-400 font-medium block truncate leading-tight mt-0.5">
+                                  📍 {{ ob.posto }}
+                                </span>
+                              </div>
+                            </div>
+
+                            <!-- Ações Rápidas de Contato -->
+                            @if (ob.telefone) {
+                              <div class="flex items-center gap-1.5 shrink-0">
+                                <a 
+                                  [href]="'https://wa.me/' + getCleanWhatsAppNumber(ob.telefone)"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  class="p-2 rounded-xl bg-emerald-600/90 hover:bg-emerald-500 text-white transition-all shadow-sm active:scale-95 flex items-center justify-center min-w-[34px] min-h-[34px]"
+                                  title="WhatsApp para {{ ob.apelido || ob.nome }}">
+                                  <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                                    <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+                                  </svg>
+                                </a>
+                                <a 
+                                  [href]="'tel:' + ob.telefone"
+                                  class="p-2 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-700 text-slate-200 hover:text-white transition-all shadow-sm active:scale-95 flex items-center justify-center min-w-[34px] min-h-[34px]"
+                                  title="Ligar para {{ ob.apelido || ob.nome }}">
+                                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                                  </svg>
+                                </a>
+                              </div>
+                            }
+
+                          </div>
+                        }
+                      </div>
+
+                    </div>
+                  }
+
+                </div>
+              }
+            </div>
+          }
+        </div>
+
+        <!-- 6. Rodapé com Link Direto -->
         <div class="pt-2 border-t border-slate-800/80 flex items-center justify-between flex-wrap gap-2">
           <span class="text-[11px] text-slate-400">
             Dúvidas sobre o posto ou horário? Procure a liderança com antecedência.

@@ -72,6 +72,24 @@ export class ObreirosListComponent implements OnInit {
     return `https://wa.me/${cleanNumber}`;
   }
 
+  getFormattedPhone(phone?: string | null): string {
+    if (!phone) return '';
+    const d = phone.replace(/\D/g, '');
+    if (d.length === 11) {
+      return `(${d.substring(0, 2)}) ${d.substring(2, 7)}-${d.substring(7)}`;
+    }
+    if (d.length === 10) {
+      return `(${d.substring(0, 2)}) ${d.substring(2, 6)}-${d.substring(6)}`;
+    }
+    if (d.length === 13 && d.startsWith('55')) {
+      return `(${d.substring(2, 4)}) ${d.substring(4, 9)}-${d.substring(9)}`;
+    }
+    if (d.length === 12 && d.startsWith('55')) {
+      return `(${d.substring(2, 4)}) ${d.substring(4, 8)}-${d.substring(8)}`;
+    }
+    return phone;
+  }
+
   openCreateModal() {
     this.selectedObreiro = null;
     this.isModalOpen = true;

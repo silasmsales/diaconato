@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { ObreiroAuthService } from '../../core/services/obreiro-auth.service';
 import { SupabaseService } from '../../core/services/supabase.service';
+import { ToastService } from '../../core/services/toast.service';
 import { Evento } from '../../core/models/evento.model';
 import { Local } from '../../core/models/local.model';
 
@@ -26,6 +27,7 @@ export interface EscalaDetalhadaPortal {
 export class PortalEscalasComponent implements OnInit {
   public obreiroAuth = inject(ObreiroAuthService);
   private supabase = inject(SupabaseService).client;
+  private toast = inject(ToastService);
 
   loading = signal<boolean>(true);
   escalas = signal<EscalaDetalhadaPortal[]>([]);
@@ -160,7 +162,7 @@ export class PortalEscalasComponent implements OnInit {
 
   getLideresResponsaveis(evento?: Evento): string {
     const lideres = this.getLideresObjetos(evento);
-    return lideres.length > 0 ? lideres.map(o => o.nome).join(', ') : 'A definir pela liderança';
+    return lideres.length > 0 ? lideres.map(o => o.apelido || o.nome).join(', ') : 'A definir pela liderança';
   }
 
   getCleanWhatsAppNumber(phone?: string | null): string {
@@ -173,6 +175,24 @@ export class PortalEscalasComponent implements OnInit {
       return digits;
     }
     return `55${digits}`;
+  }
+
+  getFormattedPhone(phone?: string | null): string {
+    if (!phone) return '';
+    const d = phone.replace(/\D/g, '');
+    if (d.length === 11) {
+      return `(${d.substring(0, 2)}) ${d.substring(2, 7)}-${d.substring(7)}`;
+    }
+    if (d.length === 10) {
+      return `(${d.substring(0, 2)}) ${d.substring(2, 6)}-${d.substring(6)}`;
+    }
+    if (d.length === 13 && d.startsWith('55')) {
+      return `(${d.substring(2, 4)}) ${d.substring(4, 9)}-${d.substring(9)}`;
+    }
+    if (d.length === 12 && d.startsWith('55')) {
+      return `(${d.substring(2, 4)}) ${d.substring(4, 8)}-${d.substring(8)}`;
+    }
+    return phone;
   }
 
   formatDataExtensa(dataStr?: string): string {
@@ -206,5 +226,220 @@ export class PortalEscalasComponent implements OnInit {
       return { label: '🌤️ Tarde', class: 'bg-orange-500/10 text-orange-300 border-orange-500/30' };
     }
     return { label: '🌙 Noite', class: 'bg-indigo-500/10 text-indigo-300 border-indigo-500/30' };
+  }
+
+  getTurnoLabel(turno?: number): string {
+    if (turno === 1) return '☀️ Manhã';
+    if (turno === 2) return '🌤️ Tarde';
+    return '🌙 Noite';
+  }
+
+  // --- Agendamento de Cultos no Calendário do Aparelho (Individual ou em Lote) ---
+  exportarTodasParaCalendario(lista?: EscalaDetalhadaPortal[]): void {
+    const itens = (lista || this.escalas().filter(e => e.isFuturo));
+    if (!itens || itens.length === 0) {
+      this.toast.error('Nenhum culto futuro encontrado para agendar.');
+      return;
+    }
+
+    const vevents: string[] = [];
+    const nowIso = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+    const location = 'Assembleia de Deus de Taguatinga • Templo Sede';
+
+    for (const escala of itens) {
+      if (!escala.data) continue;
+      const ev = escala.evento;
+      const title = `Escala Diaconato - ${ev?.descricao || 'Culto de Adoração'}`;
+
+      const horarioStr = this.getHorarioAtuacao(ev?.id_evento, escala.local?.id_area, escala.horario_turno);
+      let horaInicio = '18:30';
+      let horaFim = '21:00';
+
+      if (horarioStr && horarioStr.includes('às')) {
+        const parts = horarioStr.split('às').map(s => s.trim());
+        if (parts.length === 2) {
+          horaInicio = parts[0];
+          horaFim = parts[1];
+        }
+      } else {
+        if (ev?.turno === 1) {
+          horaInicio = '08:30';
+          horaFim = '11:45';
+        } else if (ev?.turno === 2) {
+          horaInicio = '14:30';
+          horaFim = '17:30';
+        }
+      }
+
+      const dataClean = escala.data.replace(/-/g, '');
+      const hIniClean = horaInicio.replace(/:/g, '').padEnd(4, '0') + '00';
+      const hFimClean = horaFim.replace(/:/g, '').padEnd(4, '0') + '00';
+
+      const startIso = `${dataClean}T${hIniClean}`;
+      const endIso = `${dataClean}T${hFimClean}`;
+
+      const posto = escala.local?.nome || 'A definir pela coordenação';
+      const setor = escala.local?.areas?.nome ? ` (${escala.local.areas.nome})` : '';
+      const turnoTxt = escala.horario_turno ? `${escala.horario_turno}º Horário` : 'Horário Geral';
+      const trajeTxt = ev?.traje_tipo === 'Terno' 
+        ? `Terno Completo (${ev.terno_cor_obrigatoria ? 'Terno ' + ev.terno_cor : 'Cor Livre'}, ${ev.gravata_cor_obrigatoria ? 'Gravata ' + ev.gravata_cor : 'Gravata Livre'})` 
+        : (ev?.traje_tipo || 'Uniforme Padrão');
+      const lideresTxt = this.getLideresResponsaveis(ev);
+      const crachaTxt = ev?.cracha_obrigatorio ? 'Obrigatório' : 'Dispensado';
+
+      const horarioAtuacaoTxt = horarioStr 
+        ? `${horarioStr} (${turnoTxt})` 
+        : `${horaInicio} às ${horaFim} (Posto/Horário específico a definir - ${this.getTurnoLabel(ev?.turno)})`;
+
+      const descriptionIcs = `Escala de Diaconato\\nPosto: ${posto}${setor}\\nHorario: ${horarioAtuacaoTxt}\\nTraje: ${trajeTxt}\\nLideranca: ${lideresTxt}\\nCracha: ${crachaTxt}\\nLocal: ${location}`;
+
+      vevents.push(
+        'BEGIN:VEVENT',
+        `UID:${Date.now()}-${escala.id_escala}-${dataClean}@diaconato.app`,
+        `DTSTAMP:${nowIso}`,
+        `DTSTART:${startIso}`,
+        `DTEND:${endIso}`,
+        `SUMMARY:${title}`,
+        `DESCRIPTION:${descriptionIcs}`,
+        `LOCATION:${location}`,
+        'STATUS:CONFIRMED',
+        'BEGIN:VALARM',
+        'TRIGGER:-PT2H',
+        'ACTION:DISPLAY',
+        'DESCRIPTION:Lembrete da Escala do Diaconato em 2 horas',
+        'END:VALARM',
+        'END:VEVENT'
+      );
+    }
+
+    const icsContent = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//Diaconato Web//PT',
+      'CALSCALE:GREGORIAN',
+      'METHOD:PUBLISH',
+      ...vevents,
+      'END:VCALENDAR'
+    ].join('\r\n');
+
+    const ua = navigator.userAgent.toLowerCase();
+    const isIOS = /iphone|ipad|ipod/.test(ua);
+
+    if (isIOS) {
+      const dataUri = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(icsContent);
+      window.location.href = dataUri;
+    } else {
+      const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `minhas-escalas-diaconato.ics`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    }
+
+    this.toast.success(`${itens.length} ${itens.length === 1 ? 'culto agendado' : 'cultos agendados'} no calendário do aparelho!`);
+  }
+
+  // --- Agendamento Individual no Calendário Padrão do Aparelho (Mesmo padrão de Seu Próximo Culto) ---
+  adicionarEscalaAoCalendario(escala?: EscalaDetalhadaPortal | null): void {
+    if (!escala || !escala.data) return;
+    const ev = escala.evento;
+    const title = `Escala Diaconato - ${ev?.descricao || 'Culto de Adoração'}`;
+    const location = 'Assembleia de Deus de Taguatinga • Templo Sede';
+
+    const horarioStr = this.getHorarioAtuacao(ev?.id_evento, escala.local?.id_area, escala.horario_turno);
+    let horaInicio = '18:30';
+    let horaFim = '21:00';
+
+    if (horarioStr && horarioStr.includes('às')) {
+      const parts = horarioStr.split('às').map(s => s.trim());
+      if (parts.length === 2) {
+        horaInicio = parts[0];
+        horaFim = parts[1];
+      }
+    } else {
+      if (ev?.turno === 1) {
+        horaInicio = '08:30';
+        horaFim = '11:45';
+      } else if (ev?.turno === 2) {
+        horaInicio = '14:30';
+        horaFim = '17:30';
+      }
+    }
+
+    const dataClean = escala.data.replace(/-/g, '');
+    const hIniClean = horaInicio.replace(/:/g, '').padEnd(4, '0') + '00';
+    const hFimClean = horaFim.replace(/:/g, '').padEnd(4, '0') + '00';
+
+    const posto = escala.local?.nome || 'A definir pela coordenação';
+    const setor = escala.local?.areas?.nome ? ` (Setor: ${escala.local.areas.nome})` : '';
+    const turnoTxt = escala.horario_turno ? `${escala.horario_turno}º Horário` : 'Horário Geral';
+    const trajeTxt = ev?.traje_tipo === 'Terno' 
+      ? `Terno Completo (${ev.terno_cor_obrigatoria ? 'Terno ' + ev.terno_cor : 'Cor Livre'}, ${ev.gravata_cor_obrigatoria ? 'Gravata ' + ev.gravata_cor : 'Gravata Livre'})` 
+      : (ev?.traje_tipo || 'Camisa Oficial');
+    const lideresTxt = this.getLideresResponsaveis(ev);
+    const crachaTxt = ev?.cracha_obrigatorio ? 'Obrigatório' : 'Dispensado';
+
+    const horarioAtuacaoTxt = horarioStr 
+      ? `${horarioStr} (${turnoTxt})` 
+      : `${horaInicio} às ${horaFim} (Posto/Horário específico a definir pela coordenação - ${this.getTurnoLabel(ev?.turno)})`;
+
+    const details = [
+      `⛪ Evento: ${ev?.descricao || 'Culto de Adoração'}`,
+      `📍 Posto Designado: ${posto}${setor}`,
+      `⏰ Horário de Atuação: ${horarioAtuacaoTxt}`,
+      `👔 Traje Oficial: ${trajeTxt}`,
+      `⭐ Liderança do Culto: ${lideresTxt}`,
+      `🪪 Crachá: ${crachaTxt}`,
+      `\nAssembleia de Deus de Taguatinga • Templo Sede\nDiaconato AD Taguatinga`
+    ].join('\n');
+
+    const ua = navigator.userAgent.toLowerCase();
+    const isIOS = /iphone|ipad|ipod/.test(ua);
+
+    if (isIOS) {
+      // No iPhone/iPad (iOS), o Data URI de text/calendar abre diretamente a tela nativa "Adicionar Evento" da Apple
+      const startIso = `${dataClean}T${hIniClean}`;
+      const endIso = `${dataClean}T${hFimClean}`;
+      const nowIso = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+      const descriptionIcs = `Escala de Diaconato\\nPosto: ${posto}${setor}\\nHorario: ${horarioAtuacaoTxt}\\nTraje: ${trajeTxt}\\nLideranca: ${lideresTxt}\\nCracha: ${crachaTxt}\\nLocal: ${location}`;
+
+      const icsContent = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//Diaconato Web//PT',
+        'CALSCALE:GREGORIAN',
+        'METHOD:PUBLISH',
+        'BEGIN:VEVENT',
+        `UID:${Date.now()}-${escala.id_escala}@diaconato.app`,
+        `DTSTAMP:${nowIso}`,
+        `DTSTART:${startIso}`,
+        `DTEND:${endIso}`,
+        `SUMMARY:${title}`,
+        `DESCRIPTION:${descriptionIcs}`,
+        `LOCATION:${location}`,
+        'STATUS:CONFIRMED',
+        'BEGIN:VALARM',
+        'TRIGGER:-PT2H',
+        'ACTION:DISPLAY',
+        'DESCRIPTION:Lembrete da Escala do Diaconato em 2 horas',
+        'END:VALARM',
+        'END:VEVENT',
+        'END:VCALENDAR'
+      ].join('\r\n');
+
+      const dataUri = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(icsContent);
+      window.location.href = dataUri;
+    } else {
+      // No Android e Computadores, abrir o link do Google Agenda aciona diretamente o app nativo de calendário do celular
+      const dates = `${dataClean}T${hIniClean}/${dataClean}T${hFimClean}`;
+      const googleUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${dates}&details=${encodeURIComponent(details)}&location=${encodeURIComponent(location)}`;
+      window.open(googleUrl, '_blank');
+    }
+
+    this.toast.success('Abrindo calendário do aparelho...');
   }
 }
