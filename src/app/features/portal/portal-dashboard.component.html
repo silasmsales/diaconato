@@ -345,13 +345,20 @@
                       <!-- Cabeçalho Limpo do Grupo (Turno + Área + Horário) -->
                       <div class="flex items-center justify-between pb-1 border-b border-slate-800/80 flex-wrap gap-2">
                         <div class="flex items-center gap-2 flex-wrap">
-                          <span class="text-[11px] font-bold px-2.5 py-0.5 rounded-lg bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 uppercase tracking-wide">
-                            ⏰ {{ grupoTurno.labelTurno }}
-                          </span>
-                          <span class="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5">
-                            <span>{{ area.iconeArea }}</span>
-                            <span>{{ area.nomeArea }}</span>
-                          </span>
+                          @if (grupoTurno.horarioTurno === 0 || area.idArea === 0) {
+                            <span class="text-[11px] font-bold px-2.5 py-0.5 rounded-lg bg-slate-800 text-slate-300 border border-slate-700 uppercase tracking-wide flex items-center gap-1.5">
+                              <span>⏳</span>
+                              <span>Sem Posto Definido</span>
+                            </span>
+                          } @else {
+                            <span class="text-[11px] font-bold px-2.5 py-0.5 rounded-lg bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 uppercase tracking-wide">
+                              ⏰ {{ grupoTurno.labelTurno }}
+                            </span>
+                            <span class="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5">
+                              <span>{{ area.iconeArea }}</span>
+                              <span>{{ area.nomeArea }}</span>
+                            </span>
+                          }
                         </div>
                         
                         @if (area.horarioFormatado) {
@@ -381,9 +388,15 @@
                                 <span class="text-xs sm:text-sm font-bold text-white block truncate leading-tight">
                                   {{ ob.apelido || ob.nome }}
                                 </span>
-                                <span class="text-xs text-emerald-400 font-medium block truncate leading-tight mt-0.5">
-                                  📍 {{ ob.posto }}
-                                </span>
+                                @if (ob.posto === 'Sem Posto Definido') {
+                                  <span class="text-xs text-slate-400 font-medium italic block truncate leading-tight mt-0.5">
+                                    Sem Posto Definido
+                                  </span>
+                                } @else {
+                                  <span class="text-xs text-emerald-400 font-medium block truncate leading-tight mt-0.5">
+                                    📍 {{ ob.posto }}
+                                  </span>
+                                }
                               </div>
                             </div>
 

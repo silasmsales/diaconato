@@ -117,12 +117,27 @@ export class PortalDashboardComponent implements OnInit {
     if (outros.length === 0) return [];
 
     const turnosMap = new Map<number, Map<number, AreaComObreiros>>();
+    const semPostoList: ObreiroCompactoItem[] = [];
 
     for (const item of outros) {
+      const temPosto = !!(item.local && (item.local.nome || item.local.id_local));
+      if (!temPosto) {
+        semPostoList.push({
+          id_escala: item.id_escala,
+          id_obreiro: item.id_obreiro,
+          nome: item.obreiro?.nome || '',
+          apelido: item.obreiro?.apelido,
+          telefone: item.obreiro?.telefone,
+          foto: item.obreiro?.foto,
+          posto: 'Sem Posto Definido'
+        });
+        continue;
+      }
+
       const turno = Number(item.horario_turno || 1);
       const idArea = Number(item.local?.id_area || item.local?.areas?.id_area || 0);
-      const nomeArea = item.local?.areas?.nome || (idArea === 0 ? 'Geral' : 'Setor');
-      const iconeArea = item.local?.areas?.icone || (idArea === 0 ? '📍' : '🏛️');
+      const nomeArea = item.local?.areas?.nome || 'Setor';
+      const iconeArea = item.local?.areas?.icone || '📍';
 
       if (!turnosMap.has(turno)) {
         turnosMap.set(turno, new Map());
@@ -147,28 +162,36 @@ export class PortalDashboardComponent implements OnInit {
         apelido: item.obreiro?.apelido,
         telefone: item.obreiro?.telefone,
         foto: item.obreiro?.foto,
-        posto: item.local?.nome || 'Posto a definir'
+        posto: item.local?.nome || 'Sem Posto Definido'
       });
     }
 
     const resultado: GrupoTurnoEquipe[] = [];
-    const turnosOrdenados = Array.from(turnosMap.keys()).sort((a, b) => {
-      if (a === 0) return 1;
-      if (b === 0) return -1;
-      return a - b;
-    });
+    const turnosOrdenados = Array.from(turnosMap.keys()).sort((a, b) => a - b);
 
     for (const turno of turnosOrdenados) {
       const areasMap = turnosMap.get(turno)!;
       const areasList = Array.from(areasMap.values()).sort((a, b) => a.nomeArea.localeCompare(b.nomeArea));
 
-      let labelTurno = `${turno}º Horário`;
-      if (turno === 0) labelTurno = 'Horário Geral';
-
       resultado.push({
         horarioTurno: turno,
-        labelTurno,
+        labelTurno: `${turno}º Horário`,
         areas: areasList
+      });
+    }
+
+    // Se houver obreiros sem posto definido, adiciona no final como grupo "Sem Posto Definido"
+    if (semPostoList.length > 0) {
+      resultado.push({
+        horarioTurno: 0,
+        labelTurno: 'Sem Posto Definido',
+        areas: [{
+          idArea: 0,
+          nomeArea: 'Sem Posto Definido',
+          iconeArea: '⏳',
+          horarioFormatado: null,
+          obreiros: semPostoList
+        }]
       });
     }
 
