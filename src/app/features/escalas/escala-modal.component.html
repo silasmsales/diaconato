@@ -2,7 +2,7 @@
   <div class="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in">
     <div 
       (click)="$event.stopPropagation()"
-      class="glass-panel w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl border border-slate-700/80 bg-slate-900/95 shadow-2xl p-5 sm:p-6 space-y-4 max-h-[88vh] flex flex-col">
+      class="glass-panel w-full sm:max-w-3xl rounded-t-3xl sm:rounded-3xl border border-slate-700/80 bg-slate-900/95 shadow-2xl p-5 sm:p-6 space-y-4 max-h-[90vh] flex flex-col">
       
       <!-- Modal Header -->
       <div class="flex items-start justify-between gap-3 border-b border-slate-800 pb-3.5">
@@ -23,39 +23,39 @@
         </button>
       </div>
 
-      <!-- Seletor de Culto / Evento e Mês -->
-      <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-3.5 space-y-2.5">
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <!-- Mês -->
-          <div>
-            <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Mês de Referência</label>
-            <select 
-              [ngModel]="selectedMesId()"
-              (ngModelChange)="onMesSelect($event)"
-              class="w-full px-3 py-1.5 bg-slate-900 border border-slate-700/70 rounded-xl text-xs text-slate-100 focus:outline-none focus:border-indigo-500 transition-all">
-              @for (m of mesesData(); track m.id_mes) {
-                <option [value]="m.id_mes">{{ formatMesReferencia(m) }}</option>
-              }
-            </select>
+      <!-- Informações do Culto Selecionado -->
+      @if (currentEvento()) {
+        <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-3.5 space-y-2.5">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <!-- Mês -->
+            <div>
+              <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Mês de Referência</label>
+              <select 
+                [ngModel]="selectedMesId()"
+                (ngModelChange)="onMesSelect($event)"
+                class="w-full px-3 py-1.5 bg-slate-900 border border-slate-700/70 rounded-xl text-xs text-slate-100 focus:outline-none focus:border-indigo-500 transition-all">
+                @for (m of mesesData(); track m.id_mes) {
+                  <option [value]="m.id_mes">{{ formatMesReferencia(m) }}</option>
+                }
+              </select>
+            </div>
+
+            <!-- Culto / Evento -->
+            <div>
+              <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Culto / Evento</label>
+              <select 
+                [ngModel]="selectedEventoId()"
+                (ngModelChange)="onEventoSelect($event)"
+                class="w-full px-3 py-1.5 bg-slate-900 border border-slate-700/70 rounded-xl text-xs text-slate-100 focus:outline-none focus:border-indigo-500 transition-all">
+                @for (e of filteredEventos(); track e.id_evento) {
+                  <option [value]="e.id_evento">
+                    {{ e.data | date:'dd/MM' }} • {{ e.descricao || 'Culto' }} ({{ getTurnoLabel(e.turno) }})
+                  </option>
+                }
+              </select>
+            </div>
           </div>
 
-          <!-- Culto / Evento -->
-          <div>
-            <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Culto / Evento</label>
-            <select 
-              [ngModel]="selectedEventoId()"
-              (ngModelChange)="onEventoSelect($event)"
-              class="w-full px-3 py-1.5 bg-slate-900 border border-slate-700/70 rounded-xl text-xs text-slate-100 focus:outline-none focus:border-indigo-500 transition-all">
-              @for (e of filteredEventos(); track e.id_evento) {
-                <option [value]="e.id_evento">
-                  {{ e.data | date:'dd/MM' }} • {{ e.descricao || 'Culto' }} ({{ getTurnoLabel(e.turno) }})
-                </option>
-              }
-            </select>
-          </div>
-        </div>
-
-        @if (currentEvento()) {
           <div class="flex items-center justify-between text-xs text-slate-400 pt-2 border-t border-slate-800/80 flex-wrap gap-2">
             <div class="flex items-center gap-2">
               <span class="font-bold text-slate-200">{{ currentEvento()?.descricao || 'Culto' }}</span>
@@ -64,12 +64,14 @@
               <span class="text-slate-600">•</span>
               <span class="text-slate-300">{{ getTurnoLabel(currentEvento()?.turno) }}</span>
             </div>
-            <span class="text-[11px] font-semibold text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
-              👥 {{ escaladosNesteEvento().size }} já escalados
-            </span>
+            <div class="flex items-center gap-2">
+              <span class="text-[11px] font-semibold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">
+                👥 {{ escaladosNesteEvento().size }} escalado(s)
+              </span>
+            </div>
           </div>
-        }
-      </div>
+        </div>
+      }
 
       <!-- Campo de Busca de Obreiro -->
       <div class="relative">
@@ -80,7 +82,7 @@
           type="text" 
           [ngModel]="searchQuery()"
           (ngModelChange)="searchQuery.set($event)"
-          placeholder="Buscar obreiro para escalar..."
+          placeholder="Buscar diácono ou obreiro por nome ou apelido..."
           class="w-full pl-10 pr-4 py-2 bg-slate-950/80 border border-slate-700/60 rounded-xl text-xs sm:text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-all"
         />
       </div>
@@ -105,7 +107,7 @@
       </div>
 
       <!-- Lista de Candidatos a Escalar -->
-      <div class="flex-1 overflow-y-auto space-y-2 max-h-60 sm:max-h-64 pr-1">
+      <div class="flex-1 overflow-y-auto space-y-2 max-h-64 sm:max-h-72 pr-1">
         @if (candidatosObreiros().length === 0) {
           <div class="py-8 text-center text-xs text-slate-500">
             Nenhum obreiro encontrado com este filtro.
@@ -119,9 +121,10 @@
             [class.cursor-not-allowed]="cand.isJaEscalado"
             [class.cursor-pointer]="!cand.isJaEscalado"
             [class]="isSelected ? 'bg-indigo-600/15 border-indigo-500/60 shadow-md ring-1 ring-indigo-500/40' : 'bg-slate-950/60 border-slate-800/80 hover:border-slate-700'"
-            class="p-3 rounded-xl border flex items-center justify-between gap-3 transition-all select-none">
+            class="p-3 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-all select-none">
             
-            <div class="flex items-center gap-2.5 min-w-0">
+            <!-- Identificação do Obreiro (Avatar, Apelido/Nome e Cargo) -->
+            <div class="flex items-center gap-3 min-w-0 flex-1">
               <!-- Checkbox Visual -->
               <div 
                 [class]="cand.isJaEscalado ? 'bg-slate-900 border-slate-800 text-transparent' : (isSelected ? 'bg-indigo-600 border-indigo-500 text-white shadow-sm shadow-indigo-600/50' : 'bg-slate-900/80 border-slate-700 text-transparent hover:border-slate-500')"
@@ -131,10 +134,18 @@
 
               <!-- Iniciais -->
               <div class="w-8 h-8 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-xs text-indigo-400 shrink-0">
-                {{ getInitials(cand.nome) }}
+                {{ getInitials(cand.apelido || cand.nome) }}
               </div>
-              <div class="min-w-0">
-                <h4 class="text-xs sm:text-sm font-bold text-white truncate">{{ cand.nome }}</h4>
+
+              <div class="min-w-0 flex-1">
+                <div class="flex items-baseline gap-1.5 flex-wrap">
+                  <h4 class="text-xs sm:text-sm font-bold text-white leading-tight" [title]="cand.nome">
+                    {{ cand.apelido || cand.nome }}
+                  </h4>
+                  @if (cand.apelido && cand.apelido !== cand.nome) {
+                    <span class="text-[11px] text-slate-400 font-normal leading-tight">({{ cand.nome }})</span>
+                  }
+                </div>
                 <div class="flex items-center gap-1.5 text-[10px] text-slate-400 mt-0.5 flex-wrap">
                   <span>{{ cand.diacono ? 'Diácono' : 'Obreiro' }}</span>
                   @if (cand.lider) {
@@ -147,24 +158,43 @@
               </div>
             </div>
 
-            <!-- Badge de Status & Contagem de Escalas no Mês -->
-            <div class="shrink-0 flex items-center gap-1.5 sm:gap-2">
-              <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-900/90 text-indigo-300 border border-slate-700/80 font-bold"
+            <!-- Badges na ordem -->
+            <div class="flex items-center gap-1.5 sm:gap-2 flex-wrap justify-start sm:justify-end shrink-0 pl-8 sm:pl-0">
+              <!-- 1. Contagem no Mês -->
+              <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-900/90 text-indigo-300 border border-slate-700/80 font-bold shrink-0"
                 title="Total de escalas no mês selecionado">
-                {{ cand.totalEscalasMes }}x no mês
+                {{ cand.totalEscalasMes }} {{ cand.totalEscalasMes === 1 ? 'escala no mês' : 'escalas no mês' }}
               </span>
+
+              <!-- 2. Taxa de Presença -->
+              @if (cand.taxaPct !== null) {
+                <span 
+                  [class]="cand.taxaPct >= 80 ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' : (cand.taxaPct >= 60 ? 'bg-amber-500/15 text-amber-300 border-amber-500/30' : 'bg-rose-500/15 text-rose-300 border-rose-500/30')"
+                  class="text-[10px] font-mono px-2 py-0.5 rounded border font-bold flex items-center gap-1 shadow-sm shrink-0"
+                  [title]="cand.taxaTooltip">
+                  <span>🎯 {{ cand.taxaPct }}% de presença</span>
+                </span>
+              } @else {
+                <span 
+                  class="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-900/90 text-slate-400 border border-slate-700/80 font-medium shrink-0"
+                  [title]="cand.taxaTooltip">
+                  -% de presença
+                </span>
+              }
+
+              <!-- 3. Status de Disponibilidade -->
               @if (cand.isJaEscalado) {
-                <span class="text-[9px] font-bold px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">
+                <span class="text-[9px] font-bold px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700 shrink-0">
                   👥 Já Escalado
                 </span>
               } @else if (cand.isBloqueado) {
                 <span 
-                  class="text-[9px] font-bold px-2 py-0.5 rounded bg-rose-500/15 text-rose-300 border border-rose-500/30 flex items-center gap-1"
+                  class="text-[9px] font-bold px-2 py-0.5 rounded bg-rose-500/15 text-rose-300 border border-rose-500/30 flex items-center gap-1 shrink-0"
                   [title]="cand.motivoBloqueio">
                   <span>⚠️ Bloqueado</span>
                 </span>
               } @else {
-                <span class="text-[9px] font-bold px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                <span class="text-[9px] font-bold px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 shrink-0">
                   ✓ Disponível
                 </span>
               }

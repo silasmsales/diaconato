@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, OnChanges, SimpleChanges, signal, computed } from '@angular/core';
+import { Component, EventEmitter, Input, Output, OnChanges, SimpleChanges, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Evento } from '../../core/models/evento.model';
@@ -6,6 +6,7 @@ import { Obreiro } from '../../core/models/obreiro.model';
 import { Mes, formatMesReferencia } from '../../core/models/mes.model';
 import { Bloqueio } from '../../core/models/bloqueio.model';
 import { Escala, CreateEscalaDto } from '../../core/models/escala.model';
+import { EscalaService } from '../../core/services/escala.service';
 import { TURNO_LABELS, TURNO_COLORS } from '../../core/models/turno.enum';
 
 @Component({
@@ -15,6 +16,8 @@ import { TURNO_LABELS, TURNO_COLORS } from '../../core/models/turno.enum';
   templateUrl: './escala-modal.component.html'
 })
 export class EscalaModalComponent implements OnChanges {
+  escalaService = inject(EscalaService);
+
   @Input() isOpen = false;
   @Input() meses: Mes[] = [];
   @Input() eventos: Evento[] = [];
@@ -137,6 +140,8 @@ export class EscalaModalComponent implements OnChanges {
     const jaEscalados = this.escaladosNesteEvento();
     const allBloqueios = this.bloqueiosData();
     const escalasMesCount = this.escalasPorObreiroNoMes();
+    const taxasMap = this.escalaService.taxasPresencaTipoMap();
+    const descEvento = (evento?.descricao || '').trim().toLowerCase();
 
     return this.obreirosData()
       .filter((ob): ob is Obreiro & { id_obreiro: number } => typeof ob.id_obreiro === 'number' && !!ob.ativo)
@@ -158,12 +163,22 @@ export class EscalaModalComponent implements OnChanges {
           }
         }
 
+        const keyTaxa = `${ob.id_obreiro}_${descEvento}`;
+        const stats = taxasMap.get(keyTaxa);
+        const taxaPct = stats?.pct ?? null;
+        let taxaTooltip = `Sem histórico de presenças apurado em ${evento?.descricao || 'Culto'}`;
+        if (stats && (stats.presencas + stats.faltas > 0)) {
+          taxaTooltip = `Taxa de presença em ${evento?.descricao || 'Culto'}: ${stats.pct}% (${stats.presencas} ${stats.presencas === 1 ? 'presença' : 'presenças'}, ${stats.faltas} ${stats.faltas === 1 ? 'falta' : 'faltas'})`;
+        }
+
         return {
           ...ob,
           isJaEscalado,
           isBloqueado,
           motivoBloqueio,
-          totalEscalasMes
+          totalEscalasMes,
+          taxaPct,
+          taxaTooltip
         };
       })
       .filter(ob => {

@@ -94,12 +94,14 @@ export class EscalasListComponent implements OnInit {
     const bloqueios = this.bloqueioService.bloqueios();
     const query = this.substitutoSearchQuery().toLowerCase().trim();
     const escalasMesCount = this.escalasPorObreiroNoMes();
+    const taxasMap = this.escalaService.taxasPresencaTipoMap();
 
     // Evento desta escala
     const idEvento = esc.id_evento;
     const evento = esc.eventos || this.eventoService.eventos().find(e => e.id_evento === idEvento);
     const dataEvento = evento?.data;
     const turnoEvento = evento?.turno;
+    const descEvento = (evento?.descricao || '').trim().toLowerCase();
 
     // IDs de obreiros já escalados neste evento (exceto o que está sendo substituído)
     const escaladosNesteEvento = new Set(
@@ -129,12 +131,22 @@ export class EscalasListComponent implements OnInit {
           }
         }
 
+        const keyTaxa = `${ob.id_obreiro}_${descEvento}`;
+        const stats = taxasMap.get(keyTaxa);
+        const taxaPct = stats?.pct ?? null;
+        let taxaTooltip = `Sem histórico de presenças apurado em ${evento?.descricao || 'Culto'}`;
+        if (stats && (stats.presencas + stats.faltas > 0)) {
+          taxaTooltip = `Taxa de presença em ${evento?.descricao || 'Culto'}: ${stats.pct}% (${stats.presencas} ${stats.presencas === 1 ? 'presença' : 'presenças'}, ${stats.faltas} ${stats.faltas === 1 ? 'falta' : 'faltas'})`;
+        }
+
         return {
           ...ob,
           isJaEscalado,
           isBloqueado,
           motivoBloqueio,
-          totalEscalasMes
+          totalEscalasMes,
+          taxaPct,
+          taxaTooltip
         };
       })
       .filter(ob => {
@@ -299,7 +311,8 @@ export class EscalasListComponent implements OnInit {
       this.mesService.fetchAll(),
       this.eventoService.fetchAll(),
       this.obreiroService.fetchAll(),
-      this.bloqueioService.fetchAll()
+      this.bloqueioService.fetchAll(),
+      this.escalaService.fetchTaxasPresencaPorTipoEvento()
     ]);
 
     if (this.selectedMesId() === 0) {

@@ -489,11 +489,8 @@ export class EscalaPdfService {
         return `
           <tr>
             <td style="text-align: center; width: 30px; font-weight: 800; color: #000000;">${index + 1}</td>
-            <td class="obreiro-name" style="width: 190px;">${item.obreiro.nome}</td>
-            <td style="width: 110px; font-weight: 600; color: #000000;">${item.obreiro.telefone || '-'}</td>
-            <td style="text-align: center; width: 45px;">
-              <span class="total-badge">${item.escalas.length}</span>
-            </td>
+            <td class="obreiro-name" style="width: 200px;">${item.obreiro.nome}</td>
+            <td style="width: 120px; font-weight: 600; color: #000000;">${item.obreiro.telefone || '-'}</td>
             <td>${escalasHtml}</td>
           </tr>
         `;
@@ -513,9 +510,8 @@ export class EscalaPdfService {
         <thead>
           <tr>
             <th style="width: 30px; text-align: center;">#</th>
-            <th>Nome do Obreiro</th>
-            <th>Telefone</th>
-            <th style="text-align: center; width: 45px;">Total</th>
+            <th style="width: 200px;">Nome do Obreiro</th>
+            <th style="width: 120px;">Telefone</th>
             <th>Dias e Cultos Escalados</th>
           </tr>
         </thead>

@@ -3,6 +3,14 @@ import { SupabaseService } from './supabase.service';
 import { Escala, CreateEscalaDto } from '../models/escala.model';
 import { ToastService } from './toast.service';
 
+export interface TaxaPresencaTipoCulto {
+  total: number;
+  presencas: number;
+  faltas: number;
+  pendentes: number;
+  pct: number | null;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -11,10 +19,99 @@ export class EscalaService {
   private toast = inject(ToastService);
 
   escalas = signal<Escala[]>([]);
+  taxasPresencaTipoMap = signal<Map<string, TaxaPresencaTipoCulto>>(new Map());
   loading = signal<boolean>(false);
 
   // Cache em memória indexado por id_mes para carregamento instantâneo
   private mesCache = new Map<number, Escala[]>();
+
+  private async fetchAllPaginated<T>(buildQuery: (from: number, to: number) => any): Promise<T[]> {
+    let allData: T[] = [];
+    let from = 0;
+    const pageSize = 1000;
+    while (true) {
+      const { data, error } = await buildQuery(from, from + pageSize - 1);
+      if (error) throw error;
+      if (!data || data.length === 0) break;
+      allData = allData.concat(data as T[]);
+      if (data.length < pageSize) break;
+      from += pageSize;
+    }
+    return allData;
+  }
+
+  async fetchTaxasPresencaPorTipoEvento(ano?: number): Promise<Map<string, TaxaPresencaTipoCulto>> {
+    const targetAno = ano || new Date().getFullYear();
+    try {
+      const map = new Map<string, TaxaPresencaTipoCulto>();
+
+      // 1. Tenta buscar da view vw_distribuicao_obreiros_por_descricao_evento filtrando pelo ano
+      try {
+        const viewData = await this.fetchAllPaginated<any>((from, to) =>
+          this.supabase
+            .from('vw_distribuicao_obreiros_por_descricao_evento')
+            .select('*')
+            .eq('ano_referencia', targetAno)
+            .range(from, to)
+        );
+
+        if (viewData && viewData.length > 0) {
+          for (const row of viewData) {
+            const key = `${row.id_obreiro}_${(row.descricao_evento || '').trim().toLowerCase()}`;
+            const curr = map.get(key) || { total: 0, presencas: 0, faltas: 0, pendentes: 0, pct: null };
+            curr.total += Number(row.total_escalas_no_ano || 0);
+            curr.presencas += Number(row.total_presencas || 0);
+            curr.faltas += Number(row.total_faltas || 0);
+            curr.pendentes += Number(row.total_pendentes || 0);
+            const concluidas = curr.presencas + curr.faltas;
+            curr.pct = concluidas > 0 ? Math.round((curr.presencas / concluidas) * 100) : null;
+            map.set(key, curr);
+          }
+          this.taxasPresencaTipoMap.set(map);
+          return map;
+        }
+      } catch (errView) {
+        console.warn('View vw_distribuicao_obreiros_por_descricao_evento não disponível, usando fallback:', errView);
+      }
+
+      // 2. Fallback direto da tabela escala com paginação segura e filtro do ano
+      const rawEscalas = await this.fetchAllPaginated<any>((from, to) =>
+        this.supabase
+          .from('escala')
+          .select(`
+            id_obreiro,
+            checkin,
+            eventos!inner(descricao, data)
+          `)
+          .gte('eventos.data', `${targetAno}-01-01`)
+          .lte('eventos.data', `${targetAno}-12-31`)
+          .range(from, to)
+      );
+
+      if (rawEscalas && rawEscalas.length > 0) {
+        for (const row of rawEscalas) {
+          if (!row.id_obreiro || !row.eventos?.descricao) continue;
+          const key = `${row.id_obreiro}_${(row.eventos.descricao || '').trim().toLowerCase()}`;
+          const curr = map.get(key) || { total: 0, presencas: 0, faltas: 0, pendentes: 0, pct: null };
+          curr.total++;
+          if (row.checkin === true) curr.presencas++;
+          else if (row.checkin === false) curr.faltas++;
+          else curr.pendentes++;
+          const concluidas = curr.presencas + curr.faltas;
+          curr.pct = concluidas > 0 ? Math.round((curr.presencas / concluidas) * 100) : null;
+          map.set(key, curr);
+        }
+        this.taxasPresencaTipoMap.set(map);
+        return map;
+      }
+
+      this.taxasPresencaTipoMap.set(map);
+      return map;
+    } catch (err) {
+      console.error('Erro ao buscar taxas de presença por tipo de evento:', err);
+      return new Map();
+    }
+  }
 
   async fetchByMes(idMes: number, forceRefresh: boolean = false): Promise<Escala[]> {
     if (!forceRefresh && this.mesCache.has(idMes)) {
@@ -25,20 +122,20 @@ export class EscalaService {
 
     this.loading.set(true);
     try {
-      const { data, error } = await this.supabase
-        .from('escala')
-        .select(`
-          *,
-          eventos (*),
-          obreiros (*),
-          mes (*)
-        `)
-        .eq('id_mes', idMes)
-        .order('id_escala', { ascending: true })
-        .limit(2000);
+      const list = await this.fetchAllPaginated<Escala>((from, to) =>
+        this.supabase
+          .from('escala')
+          .select(`
+            *,
+            eventos (*),
+            obreiros (*),
+            mes (*)
+          `)
+          .eq('id_mes', idMes)
+          .order('id_escala', { ascending: true })
+          .range(from, to)
+      );
 
-      if (error) throw error;
-      const list = (data as Escala[]) || [];
       this.mesCache.set(idMes, list);
       this.escalas.set(list);
       return list;
